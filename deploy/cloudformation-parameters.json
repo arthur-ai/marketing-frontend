@@ -1,0 +1,84 @@
+[
+  {
+    "ParameterKey": "EnvironmentName",
+    "ParameterValue": "production"
+  },
+  {
+    "ParameterKey": "VpcCIDR",
+    "ParameterValue": "10.0.0.0/16"
+  },
+  {
+    "ParameterKey": "PublicSubnet1CIDR",
+    "ParameterValue": "10.0.1.0/24"
+  },
+  {
+    "ParameterKey": "PublicSubnet2CIDR",
+    "ParameterValue": "10.0.2.0/24"
+  },
+  {
+    "ParameterKey": "PrivateSubnet1CIDR",
+    "ParameterValue": "10.0.3.0/24"
+  },
+  {
+    "ParameterKey": "PrivateSubnet2CIDR",
+    "ParameterValue": "10.0.4.0/24"
+  },
+  {
+    "ParameterKey": "ContainerImage",
+    "ParameterValue": "REPLACE_WITH_YOUR_ECR_IMAGE_URI"
+  },
+  {
+    "ParameterKey": "ContainerPort",
+    "ParameterValue": "3000"
+  },
+  {
+    "ParameterKey": "TaskCPU",
+    "ParameterValue": "512"
+  },
+  {
+    "ParameterKey": "TaskMemory",
+    "ParameterValue": "1024"
+  },
+  {
+    "ParameterKey": "DesiredCount",
+    "ParameterValue": "2"
+  },
+  {
+    "ParameterKey": "MinCount",
+    "ParameterValue": "1"
+  },
+  {
+    "ParameterKey": "MaxCount",
+    "ParameterValue": "10"
+  },
+  {
+    "ParameterKey": "BackendApiUrl",
+    "ParameterValue": "REPLACE_WITH_YOUR_BACKEND_API_URL"
+  },
+  {
+    "ParameterKey": "BackendWebSocketUrl",
+    "ParameterValue": "REPLACE_WITH_YOUR_BACKEND_WEBSOCKET_URL"
+  },
+  {
+    "ParameterKey": "CertificateArn",
+    "ParameterValue": ""
+  },
+  {
+    "ParameterKey": "DomainName",
+    "ParameterValue": ""
+  },
+  {
+    "ParameterKey": "HostedZoneId",
+    "ParameterValue": ""
+  }
+]
+
+
+
+
+
+
+
+
+
+
