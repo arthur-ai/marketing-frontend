@@ -1,0 +1,180 @@
+name: Build and Push to Nexus
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Image version/tag (e.g., v1.0.0, latest)'
+        required: false
+        type: string
+        default: 'latest'
+      backend_api_url:
+        description: 'Backend API URL (optional - defaults to relative /api for same-domain deployment)'
+        required: false
+        type: string
+      backend_websocket_url:
+        description: 'Backend WebSocket URL (optional - auto-inferred if not provided)'
+        required: false
+        type: string
+  push:
+    branches:
+      - main
+    tags:
+      - 'frontend-v*.*.*'
+  pull_request:
+    branches:
+      - main
+
+env:
+  NEXUS_REGISTRY: repository.arthur.ai
+  # If your Nexus uses a repository path, set it here (e.g., "docker-hosted" or "docker")
+  # Leave empty if no repository path is needed
+  NEXUS_REPOSITORY: ''
+  IMAGE_NAME: marketing-frontend
+
+jobs:
+  build-and-push:
+    name: Build and Push to Nexus
+    runs-on: ubuntu-latest
+    # Only push on main branch or tags, not on PRs
+    if: github.event_name != 'pull_request'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Determine image version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          elif [ "${{ github.event_name }}" = "push" ] && [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            # Extract version from tag (e.g., frontend-v1.2.3 -> v1.2.3)
+            VERSION=$(echo "${{ github.ref }}" | sed 's/refs\/tags\/frontend-//')
+          elif [ "${{ github.event_name }}" = "push" ] && [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            # Use commit SHA for main branch
+            VERSION="main-$(git rev-parse --short HEAD)"
+          else
+            VERSION="latest"
+          fi
+          
+          # Default to latest if empty
+          if [ -z "$VERSION" ]; then
+            VERSION="latest"
+          fi
+          
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Using version: $VERSION"
+
+      - name: Get backend URLs (optional)
+        id: backend-urls
+        run: |
+          # These are optional - if not provided, the frontend will use relative URLs (/api)
+          # Only needed for development or cross-domain deployments
+          BACKEND_API_URL="${{ github.event.inputs.backend_api_url || secrets.BACKEND_API_URL || '' }}"
+          BACKEND_WS_URL="${{ github.event.inputs.backend_websocket_url || secrets.BACKEND_WEBSOCKET_URL || '' }}"
+          
+          if [ -z "$BACKEND_API_URL" ]; then
+            # Use relative URL for same-domain deployment
+            BACKEND_API_URL="/api"
+            echo "ℹ️  No backend API URL provided - will use relative URL: $BACKEND_API_URL"
+          else
+            echo "Using provided Backend API URL: $BACKEND_API_URL"
+          fi
+          
+          if [ -z "$BACKEND_WS_URL" ]; then
+            # Try to infer from API URL
+            if [[ "$BACKEND_API_URL" == http://* ]]; then
+              BACKEND_WS_URL=$(echo "$BACKEND_API_URL" | sed 's/http:/ws:/')
+            elif [[ "$BACKEND_API_URL" == https://* ]]; then
+              BACKEND_WS_URL=$(echo "$BACKEND_API_URL" | sed 's/https:/wss:/')
+            else
+              # Relative URL for WebSocket
+              BACKEND_WS_URL="/api"
+            fi
+          fi
+          
+          echo "backend_api_url=$BACKEND_API_URL" >> $GITHUB_OUTPUT
+          echo "backend_ws_url=$BACKEND_WS_URL" >> $GITHUB_OUTPUT
+          echo "Backend API: $BACKEND_API_URL"
+          echo "Backend WebSocket: $BACKEND_WS_URL"
+
+      - name: Build image path
+        id: image-path
+        run: |
+          if [ -n "${{ env.NEXUS_REPOSITORY }}" ]; then
+            IMAGE_PATH="${{ env.NEXUS_REGISTRY }}/${{ env.NEXUS_REPOSITORY }}/${{ env.IMAGE_NAME }}"
+          else
+            IMAGE_PATH="${{ env.NEXUS_REGISTRY }}/${{ env.IMAGE_NAME }}"
+          fi
+          echo "image_path=$IMAGE_PATH" >> $GITHUB_OUTPUT
+          echo "Image path: $IMAGE_PATH"
+
+      - name: Login to Nexus
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.NEXUS_REGISTRY }}
+          username: ${{ secrets.NEXUS_USERNAME }}
+          password: ${{ secrets.NEXUS_PASSWORD }}
+
+      - name: Build and push Docker image
+        id: build-push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./deploy/Dockerfile
+          push: true
+          tags: |
+            ${{ steps.image-path.outputs.image_path }}:${{ steps.version.outputs.version }}
+            ${{ steps.image-path.outputs.image_path }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64
+          build-args: |
+            NEXT_PUBLIC_BACKEND_API_BASE_URL=${{ steps.backend-urls.outputs.backend_api_url }}
+            NEXT_PUBLIC_BACKEND_WEBSOCKET_URL=${{ steps.backend-urls.outputs.backend_ws_url }}
+
+      - name: Output image information
+        run: |
+          IMAGE_PATH="${{ steps.image-path.outputs.image_path }}"
+          
+          echo "✅ Successfully pushed image to Nexus"
+          echo "Image: ${IMAGE_PATH}:${{ steps.version.outputs.version }}"
+          echo "Image (latest): ${IMAGE_PATH}:latest"
+          
+          REPO_INFO=""
+          if [ -n "${{ env.NEXUS_REPOSITORY }}" ]; then
+            REPO_INFO="**Repository:** \`${{ env.NEXUS_REPOSITORY }}\`\n"
+          fi
+          
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+          ## 🐳 Docker Image Pushed to Nexus
+          
+          **Registry:** \`${{ env.NEXUS_REGISTRY }}\`
+          ${REPO_INFO}**Image:** \`${{ env.IMAGE_NAME }}\`
+          **Version:** \`${{ steps.version.outputs.version }}\`
+          
+          ### 📦 Image Tags
+          - \`${IMAGE_PATH}:${{ steps.version.outputs.version }}\`
+          - \`${IMAGE_PATH}:latest\`
+          
+          ### 🔧 Build Configuration
+          - **Backend API URL:** ${{ steps.backend-urls.outputs.backend_api_url }}
+          - **Backend WebSocket URL:** ${{ steps.backend-urls.outputs.backend_ws_url }}
+          
+          ### 📝 Usage
+          To pull this image:
+          \`\`\`bash
+          docker pull ${IMAGE_PATH}:${{ steps.version.outputs.version }}
+          \`\`\`
+          EOF
+

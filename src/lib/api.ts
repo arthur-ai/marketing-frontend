@@ -33,7 +33,10 @@ import type {
   DesignKitConfig
 } from '@/types/api'
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_API_BASE_URL || 'http://localhost:8000'
+// Use relative URL for same-domain deployment, or absolute URL for development/cross-domain
+// If NEXT_PUBLIC_BACKEND_API_BASE_URL is set, use it (for development or different domains)
+// Otherwise, use relative path '/api' (for production same-domain deployment)
+const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_API_BASE_URL || '/api'
 
 // Create axios instance with default config
 export const apiClient = axios.create({
