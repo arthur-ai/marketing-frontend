@@ -52,8 +52,8 @@ cp env.example .env.local
 
 4. Update `.env.local` with your API URL:
 ```bash
-NEXT_PUBLIC_API_URL=http://localhost:8000
-NEXT_PUBLIC_WS_URL=ws://localhost:8000
+NEXT_PUBLIC_BACKEND_API_BASE_URL=http://localhost:8000
+NEXT_PUBLIC_BACKEND_WEBSOCKET_URL=ws://localhost:8000
 ```
 
 5. Start the development server:
@@ -67,8 +67,8 @@ npm run dev
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `NEXT_PUBLIC_API_URL` | Backend API URL | `http://localhost:8000` |
-| `NEXT_PUBLIC_WS_URL` | WebSocket URL for real-time updates | `ws://localhost:8000` |
+| `NEXT_PUBLIC_BACKEND_API_BASE_URL` | Backend API URL | `http://localhost:8000` or `/api` (relative) |
+| `NEXT_PUBLIC_BACKEND_WEBSOCKET_URL` | WebSocket URL for real-time updates | `ws://localhost:8000` or `wss://domain/api` |
 | `NEXT_PUBLIC_API_KEY` | API key for authentication (optional) | - |
 
 ## Project Structure

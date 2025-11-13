@@ -4,8 +4,23 @@ import { useState, useEffect } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import type { StepInfo, StepRequirementsResponse, StepExecutionRequest, JobStatusResponse } from '@/types/api'
-import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
+import Box from '@mui/material/Box'
+import Typography from '@mui/material/Typography'
+import Paper from '@mui/material/Paper'
+import Card from '@mui/material/Card'
+import TextField from '@mui/material/TextField'
+import Select from '@mui/material/Select'
+import MenuItem from '@mui/material/MenuItem'
+import FormControl from '@mui/material/FormControl'
+import InputLabel from '@mui/material/InputLabel'
+import Button from '@mui/material/Button'
+import Alert from '@mui/material/Alert'
+import CircularProgress from '@mui/material/CircularProgress'
+import Chip from '@mui/material/Chip'
+import LinearProgress from '@mui/material/LinearProgress'
+import Divider from '@mui/material/Divider'
+import InfoIcon from '@mui/icons-material/Info'
+import PlayArrowIcon from '@mui/icons-material/PlayArrow'
 
 interface ContentInput {
   id?: string
@@ -140,230 +155,324 @@ export function StepExecutor() {
   const renderContextInput = (key: string) => {
     const description = requirements?.descriptions[key] || key
     const isStepOutput = requirements?.descriptions[key]?.includes('Output from')
+    const label = key.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())
+
+    if (key === 'content_type') {
+      return (
+        <Box key={key} sx={{ mb: 3 }}>
+          <FormControl fullWidth>
+            <InputLabel>{label}</InputLabel>
+            <Select
+              value={contextInputs[key] || 'blog_post'}
+              onChange={(e) =>
+                setContextInputs({ ...contextInputs, [key]: e.target.value })
+              }
+              label={label}
+            >
+              <MenuItem value="blog_post">Blog Post</MenuItem>
+              <MenuItem value="release_notes">Release Notes</MenuItem>
+              <MenuItem value="transcript">Transcript</MenuItem>
+            </Select>
+          </FormControl>
+          <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+            {description}
+          </Typography>
+        </Box>
+      )
+    }
 
     return (
-      <div key={key} className="mb-4">
-        <label className="block text-sm font-medium mb-2">
-          {key.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
-        </label>
-        <p className="text-xs text-gray-500 mb-2">{description}</p>
-        {isStepOutput ? (
-          <textarea
-            className="w-full p-2 border rounded font-mono text-sm"
-            rows={8}
-            placeholder={`Enter JSON for ${key}...`}
-            value={contextInputs[key] || ''}
-            onChange={(e) =>
-              setContextInputs({ ...contextInputs, [key]: e.target.value })
-            }
-          />
-        ) : key === 'content_type' ? (
-          <select
-            className="w-full p-2 border rounded"
-            value={contextInputs[key] || 'blog_post'}
-            onChange={(e) =>
-              setContextInputs({ ...contextInputs, [key]: e.target.value })
-            }
-          >
-            <option value="blog_post">Blog Post</option>
-            <option value="release_notes">Release Notes</option>
-            <option value="transcript">Transcript</option>
-          </select>
-        ) : (
-          <input
-            type="text"
-            className="w-full p-2 border rounded"
-            placeholder={`Enter value for ${key}...`}
-            value={contextInputs[key] || ''}
-            onChange={(e) =>
-              setContextInputs({ ...contextInputs, [key]: e.target.value })
-            }
-          />
-        )}
-      </div>
+      <Box key={key} sx={{ mb: 3 }}>
+        <TextField
+          fullWidth
+          label={label}
+          helperText={description}
+          value={contextInputs[key] || ''}
+          onChange={(e) =>
+            setContextInputs({ ...contextInputs, [key]: e.target.value })
+          }
+          multiline={isStepOutput}
+          rows={isStepOutput ? 8 : 1}
+          placeholder={isStepOutput ? `Enter JSON for ${key}...` : `Enter value for ${key}...`}
+          sx={{
+            '& .MuiInputBase-input': isStepOutput ? {
+              fontFamily: 'monospace',
+              fontSize: '0.875rem',
+            } : {},
+          }}
+        />
+      </Box>
     )
   }
 
   return (
-    <div className="space-y-6">
-      <Card className="p-6">
-        <h2 className="text-2xl font-bold mb-4">Execute Pipeline Step</h2>
-        <p className="text-gray-600 mb-6">
-          Execute individual pipeline steps independently with custom inputs.
-        </p>
+    <Paper elevation={0} sx={{ p: 4, borderRadius: 3 }}>
+      {/* Step Selector */}
+      <Box sx={{ mb: 4 }}>
+        <FormControl fullWidth>
+          <InputLabel>Select Step</InputLabel>
+          <Select
+            value={selectedStep}
+            onChange={(e) => {
+              setSelectedStep(e.target.value)
+              setJobId(null)
+              setError(null)
+            }}
+            label="Select Step"
+            disabled={stepsLoading}
+          >
+            <MenuItem value="">
+              <em>-- Select a step --</em>
+            </MenuItem>
+            {stepsData?.steps.map((step: StepInfo) => (
+              <MenuItem key={step.step_name} value={step.step_name}>
+                {step.step_number}. {step.step_name.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+        {stepsLoading && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+            <CircularProgress size={24} />
+          </Box>
+        )}
+      </Box>
 
-        {/* Step Selector */}
-        <div className="mb-6">
-          <label className="block text-sm font-medium mb-2">Select Step</label>
-          {stepsLoading ? (
-            <p>Loading steps...</p>
-          ) : (
-            <select
-              className="w-full p-2 border rounded"
-              value={selectedStep}
-              onChange={(e) => {
-                setSelectedStep(e.target.value)
-                setJobId(null)
-                setError(null)
+      {selectedStep && (
+        <>
+          {/* Requirements Info */}
+          {requirementsLoading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', mb: 4 }}>
+              <CircularProgress />
+            </Box>
+          ) : requirements && (
+            <Card 
+              elevation={0} 
+              sx={{ 
+                mb: 4, 
+                p: 3, 
+                bgcolor: 'info.50', 
+                borderRadius: 2,
+                border: 1,
+                borderColor: 'info.200'
               }}
             >
-              <option value="">-- Select a step --</option>
-              {stepsData?.steps.map((step: StepInfo) => (
-                <option key={step.step_name} value={step.step_name}>
-                  {step.step_number}. {step.step_name.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
-                </option>
-              ))}
-            </select>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                <InfoIcon sx={{ color: 'info.main' }} />
+                <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                  Step Requirements
+                </Typography>
+              </Box>
+              <Typography variant="body2" sx={{ mb: 1 }}>
+                <strong>Step {requirements.step_number}:</strong> {requirements.step_name.replace(/_/g, ' ')}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                <strong>Required context keys:</strong> {requirements.required_context_keys.join(', ')}
+              </Typography>
+            </Card>
           )}
-        </div>
 
-        {selectedStep && (
-          <>
-            {/* Requirements Info */}
-            {requirementsLoading ? (
-              <p>Loading requirements...</p>
-            ) : requirements && (
-              <div className="mb-6 p-4 bg-blue-50 rounded">
-                <h3 className="font-semibold mb-2">Step Requirements</h3>
-                <p className="text-sm mb-2">
-                  Step {requirements.step_number}: {requirements.step_name.replace(/_/g, ' ')}
-                </p>
-                <p className="text-sm text-gray-600">
-                  Required context keys: {requirements.required_context_keys.join(', ')}
-                </p>
-              </div>
-            )}
+          {/* Content Input */}
+          <Box sx={{ mb: 4 }}>
+            <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
+              Content Input
+            </Typography>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+              <TextField
+                label="ID (optional)"
+                value={contentInput.id || ''}
+                onChange={(e) =>
+                  setContentInput({ ...contentInput, id: e.target.value })
+                }
+                fullWidth
+              />
+              <TextField
+                label="Title"
+                value={contentInput.title}
+                onChange={(e) =>
+                  setContentInput({ ...contentInput, title: e.target.value })
+                }
+                required
+                fullWidth
+              />
+              <TextField
+                label="Content"
+                value={contentInput.content}
+                onChange={(e) =>
+                  setContentInput({ ...contentInput, content: e.target.value })
+                }
+                required
+                multiline
+                rows={6}
+                fullWidth
+              />
+              <TextField
+                label="Snippet (optional)"
+                value={contentInput.snippet || ''}
+                onChange={(e) =>
+                  setContentInput({ ...contentInput, snippet: e.target.value })
+                }
+                multiline
+                rows={2}
+                fullWidth
+              />
+              <FormControl fullWidth>
+                <InputLabel>Content Type (optional)</InputLabel>
+                <Select
+                  value={contentInput.content_type || 'blog_post'}
+                  onChange={(e) =>
+                    setContentInput({ ...contentInput, content_type: e.target.value })
+                  }
+                  label="Content Type (optional)"
+                >
+                  <MenuItem value="blog_post">Blog Post</MenuItem>
+                  <MenuItem value="release_notes">Release Notes</MenuItem>
+                  <MenuItem value="transcript">Transcript</MenuItem>
+                </Select>
+              </FormControl>
+            </Box>
+          </Box>
 
-            {/* Content Input */}
-            <div className="mb-6">
-              <h3 className="font-semibold mb-4">Content Input</h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">ID (optional)</label>
-                  <input
-                    type="text"
-                    className="w-full p-2 border rounded"
-                    value={contentInput.id || ''}
-                    onChange={(e) =>
-                      setContentInput({ ...contentInput, id: e.target.value })
+          {/* Context Inputs */}
+          {requirements && requirements.required_context_keys.filter((key) => key !== 'input_content').length > 0 && (
+            <Box sx={{ mb: 4 }}>
+              <Divider sx={{ mb: 3 }} />
+              <Typography variant="h6" sx={{ fontWeight: 600, mb: 3 }}>
+                Context Inputs
+              </Typography>
+              <Box>
+                {requirements.required_context_keys
+                  .filter((key) => key !== 'input_content')
+                  .map((key) => renderContextInput(key))}
+              </Box>
+            </Box>
+          )}
+
+          {/* Error Display */}
+          {error && (
+            <Alert severity="error" sx={{ mb: 3 }}>
+              {error}
+            </Alert>
+          )}
+
+          {/* Execute Button */}
+          <Button
+            variant="contained"
+            size="large"
+            fullWidth
+            startIcon={<PlayArrowIcon />}
+            onClick={handleExecute}
+            disabled={executeMutation.isPending || !selectedStep}
+            sx={{ mb: 4 }}
+          >
+            {executeMutation.isPending ? 'Executing...' : 'Execute Step'}
+          </Button>
+
+          {/* Job Status */}
+          {jobId && jobStatus && (
+            <Card elevation={0} sx={{ p: 3, bgcolor: 'grey.50', borderRadius: 2 }}>
+              <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>
+                Job Status
+              </Typography>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, mb: 2 }}>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    Job ID:
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {jobId}
+                  </Typography>
+                </Box>
+                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    Status:
+                  </Typography>
+                  <Chip
+                    label={jobStatus.status}
+                    size="small"
+                    color={
+                      jobStatus.status === 'completed'
+                        ? 'success'
+                        : jobStatus.status === 'processing'
+                        ? 'warning'
+                        : jobStatus.status === 'failed'
+                        ? 'error'
+                        : 'default'
                     }
+                    sx={{ textTransform: 'capitalize', height: 24 }}
                   />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Title *</label>
-                  <input
-                    type="text"
-                    className="w-full p-2 border rounded"
-                    value={contentInput.title}
-                    onChange={(e) =>
-                      setContentInput({ ...contentInput, title: e.target.value })
-                    }
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Content *</label>
-                  <textarea
-                    className="w-full p-2 border rounded"
-                    rows={6}
-                    value={contentInput.content}
-                    onChange={(e) =>
-                      setContentInput({ ...contentInput, content: e.target.value })
-                    }
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Snippet (optional)</label>
-                  <textarea
-                    className="w-full p-2 border rounded"
-                    rows={2}
-                    value={contentInput.snippet || ''}
-                    onChange={(e) =>
-                      setContentInput({ ...contentInput, snippet: e.target.value })
-                    }
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Content Type (optional)</label>
-                  <select
-                    className="w-full p-2 border rounded"
-                    value={contentInput.content_type || 'blog_post'}
-                    onChange={(e) =>
-                      setContentInput({ ...contentInput, content_type: e.target.value })
-                    }
-                  >
-                    <option value="blog_post">Blog Post</option>
-                    <option value="release_notes">Release Notes</option>
-                    <option value="transcript">Transcript</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            {/* Context Inputs */}
-            {requirements && requirements.required_context_keys.length > 0 && (
-              <div className="mb-6">
-                <h3 className="font-semibold mb-4">Context Inputs</h3>
-                <div className="space-y-4">
-                  {requirements.required_context_keys
-                    .filter((key) => key !== 'input_content')
-                    .map((key) => renderContextInput(key))}
-                </div>
-              </div>
-            )}
-
-            {/* Error Display */}
-            {error && (
-              <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded text-red-700">
-                {error}
-              </div>
-            )}
-
-            {/* Execute Button */}
-            <Button
-              onClick={handleExecute}
-              disabled={executeMutation.isPending || !selectedStep}
-              className="w-full"
-            >
-              {executeMutation.isPending ? 'Executing...' : 'Execute Step'}
-            </Button>
-
-            {/* Job Status */}
-            {jobId && jobStatus && (
-              <div className="mt-6 p-4 bg-gray-50 rounded">
-                <h3 className="font-semibold mb-2">Job Status</h3>
-                <p className="text-sm">
-                  <strong>Job ID:</strong> {jobId}
-                </p>
-                <p className="text-sm">
-                  <strong>Status:</strong> {jobStatus.status}
-                </p>
-                <p className="text-sm">
-                  <strong>Progress:</strong> {jobStatus.progress}%
-                </p>
+                </Box>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    Progress:
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {jobStatus.progress}%
+                  </Typography>
+                </Box>
                 {jobStatus.current_step && (
-                  <p className="text-sm">
-                    <strong>Current Step:</strong> {jobStatus.current_step}
-                  </p>
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      Current Step:
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {jobStatus.current_step}
+                    </Typography>
+                  </Box>
                 )}
                 {jobStatus.error && (
-                  <p className="text-sm text-red-600">
-                    <strong>Error:</strong> {jobStatus.error}
-                  </p>
+                  <Alert severity="error" sx={{ mt: 1 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                      Error:
+                    </Typography>
+                    {jobStatus.error}
+                  </Alert>
                 )}
-                {jobStatus.status === 'completed' && jobStatus.result && (
-                  <div className="mt-4">
-                    <h4 className="font-semibold mb-2">Result</h4>
-                    <pre className="text-xs bg-white p-4 rounded border overflow-auto max-h-96">
+              </Box>
+              {jobStatus.progress > 0 && jobStatus.progress < 100 && (
+                <LinearProgress
+                  variant="determinate"
+                  value={jobStatus.progress}
+                  sx={{ mb: 2, height: 8, borderRadius: 4 }}
+                />
+              )}
+              {jobStatus.status === 'completed' && jobStatus.result && (
+                <Box sx={{ mt: 3 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+                    Result
+                  </Typography>
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 2,
+                      bgcolor: 'background.paper',
+                      borderRadius: 1,
+                      border: 1,
+                      borderColor: 'divider',
+                      maxHeight: 400,
+                      overflow: 'auto',
+                    }}
+                  >
+                    <Typography
+                      component="pre"
+                      sx={{
+                        fontFamily: 'monospace',
+                        fontSize: '0.75rem',
+                        m: 0,
+                        whiteSpace: 'pre-wrap',
+                        wordBreak: 'break-word',
+                      }}
+                    >
                       {JSON.stringify(jobStatus.result, null, 2)}
-                    </pre>
-                  </div>
-                )}
-              </div>
-            )}
-          </>
-        )}
-      </Card>
-    </div>
+                    </Typography>
+                  </Paper>
+                </Box>
+              )}
+            </Card>
+          )}
+        </>
+      )}
+    </Paper>
   )
 }
 
