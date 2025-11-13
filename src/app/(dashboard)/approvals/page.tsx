@@ -27,6 +27,7 @@ import {
   Refresh,
 } from '@mui/icons-material'
 import { usePendingApprovals } from '@/hooks/useApi'
+import { getApprovalRoute } from '@/lib/approval-routing'
 
 export default function ApprovalsPage() {
   const router = useRouter()
@@ -161,7 +162,7 @@ export default function ApprovalsPage() {
                       }}
                     >
                       <ListItemButton
-                        onClick={() => router.push(`/approvals/${approval.id}`)}
+                        onClick={() => router.push(getApprovalRoute(approval.pipeline_step, approval.id))}
                         sx={{ borderRadius: 1 }}
                       >
                         <ListItemText
@@ -214,7 +215,7 @@ export default function ApprovalsPage() {
                           size="small"
                           onClick={(e) => {
                             e.stopPropagation()
-                            router.push(`/approvals/${approval.id}`)
+                            router.push(getApprovalRoute(approval.pipeline_step, approval.id))
                           }}
                         >
                           Review

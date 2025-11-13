@@ -588,6 +588,36 @@ export interface InternalDocsConfig {
 }
 
 // Design Kit Configuration
+// Step Execution Types
+export interface StepInfo {
+  step_name: string
+  step_number: number
+  description?: string
+}
+
+export interface StepListResponse {
+  steps: StepInfo[]
+}
+
+export interface StepRequirementsResponse {
+  step_name: string
+  step_number: number
+  required_context_keys: string[]
+  descriptions: Record<string, string>
+}
+
+export interface StepExecutionRequest {
+  content: Record<string, any>
+  context: Record<string, any>
+}
+
+export interface StepExecutionResponse {
+  step_name: string
+  job_id: string
+  status: string
+  message: string
+}
+
 export interface DesignKitConfig {
   // Visual Design
   visual_components?: Array<Record<string, string>>

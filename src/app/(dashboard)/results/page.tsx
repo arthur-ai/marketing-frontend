@@ -41,6 +41,7 @@ import { useQueries } from '@tanstack/react-query';
 import { useJobApprovals, useResumeJob, useApproval } from '@/hooks/useApi';
 import { api } from '@/lib/api';
 import { showSuccessToast, showErrorToast } from '@/lib/toast-utils';
+import { getApprovalRoute } from '@/lib/approval-routing';
 import { SubjobVisualizer } from '@/components/results/subjob-visualizer';
 import { PerformanceMetrics } from '@/components/results/performance-metrics';
 import { QualityWarningsDisplay } from '@/components/results/quality-warnings-display';
@@ -1623,9 +1624,7 @@ export default function ResultsPage() {
                                       size="small"
                                       variant="outlined"
                                       color="warning"
-                                      onClick={() => {
-                                        router.push(`/approvals/${approval.id}`);
-                                      }}
+                                      onClick={() => router.push(getApprovalRoute(approval.pipeline_step, approval.id))}
                                     >
                                       Review
                                     </Button>

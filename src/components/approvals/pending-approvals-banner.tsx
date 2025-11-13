@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { usePendingApprovals } from '@/hooks/useApi'
+import { getApprovalRoute } from '@/lib/approval-routing'
 
 export function PendingApprovalsBanner() {
   const router = useRouter()
@@ -116,7 +117,7 @@ export function PendingApprovalsBanner() {
                           </div>
                           <Button
                             size="sm"
-                            onClick={() => router.push(`/approvals/${approval.id}`)}
+                            onClick={() => router.push(getApprovalRoute(approval.pipeline_step, approval.id))}
                             className="bg-amber-500 hover:bg-amber-600 text-white text-xs px-3 py-1.5"
                           >
                             Review

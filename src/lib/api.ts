@@ -30,7 +30,11 @@ import type {
   RecentActivity,
   TrendData,
   InternalDocsConfig,
-  DesignKitConfig
+  DesignKitConfig,
+  StepListResponse,
+  StepRequirementsResponse,
+  StepExecutionRequest,
+  StepExecutionResponse
 } from '@/types/api'
 
 // Use relative URL for same-domain deployment, or absolute URL for development/cross-domain
@@ -100,6 +104,16 @@ export const api = {
   
   getJobResult: (jobId: string): Promise<AxiosResponse<any>> => 
     apiClient.get(`/api/v1/jobs/${jobId}/result`),
+  
+  // Pipeline Step Execution
+  getPipelineSteps: (): Promise<AxiosResponse<StepListResponse>> => 
+    apiClient.get('/api/v1/pipeline/steps'),
+  
+  getStepRequirements: (stepName: string): Promise<AxiosResponse<StepRequirementsResponse>> => 
+    apiClient.get(`/api/v1/pipeline/steps/${stepName}/requirements`),
+  
+  executePipelineStep: (stepName: string, request: StepExecutionRequest): Promise<AxiosResponse<StepExecutionResponse>> => 
+    apiClient.post(`/api/v1/pipeline/steps/${stepName}/execute`, request),
   
   cancelJob: (jobId: string): Promise<AxiosResponse<{ success: boolean; message: string }>> => 
     apiClient.delete(`/api/v1/jobs/${jobId}`),

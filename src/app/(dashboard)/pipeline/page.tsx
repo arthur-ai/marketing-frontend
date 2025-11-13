@@ -14,14 +14,18 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty'
 import ErrorIcon from '@mui/icons-material/Error'
 import PlayArrowIcon from '@mui/icons-material/PlayArrow'
+import SettingsApplicationsIcon from '@mui/icons-material/SettingsApplications'
 import { OrchestratorControls } from '@/components/orchestrator/orchestrator-controls'
 import { ContentSelector } from '@/components/orchestrator/content-selector'
 import { PipelineSettings } from '@/components/pipeline/pipeline-settings'
 import { usePipelineStats } from '@/hooks/useApi'
+import { useRouter } from 'next/navigation'
+import Button from '@mui/material/Button'
 
 export default function PipelinePage() {
   const [selectedContent, setSelectedContent] = useState<any>(null)
   const { data: statsData, isLoading: statsLoading } = usePipelineStats()
+  const router = useRouter()
 
   const pipelineStats = statsData?.data
 
@@ -67,13 +71,23 @@ export default function PipelinePage() {
   return (
     <Box>
       {/* Page Header */}
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" sx={{ fontWeight: 700, color: 'text.primary', mb: 1 }}>
-          Marketing Pipeline
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
-          Monitor and control your content processing pipeline
-        </Typography>
+      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <Box>
+          <Typography variant="h4" sx={{ fontWeight: 700, color: 'text.primary', mb: 1 }}>
+            Marketing Pipeline
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            Monitor and control your content processing pipeline
+          </Typography>
+        </Box>
+        <Button
+          variant="outlined"
+          startIcon={<SettingsApplicationsIcon />}
+          onClick={() => router.push('/pipeline/steps')}
+          sx={{ mt: 1 }}
+        >
+          Execute Individual Steps
+        </Button>
       </Box>
 
       {/* Stats Grid */}
