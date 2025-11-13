@@ -123,11 +123,12 @@ jobs:
           echo "Image path: $IMAGE_PATH"
 
       - name: Login to Nexus
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.NEXUS_REGISTRY }}
-          username: ${{ secrets.NEXUS_USERNAME }}
-          password: ${{ secrets.NEXUS_PASSWORD }}
+        run: |
+          # Nexus Docker registry login - try with repository path
+          # Format: repository.arthur.ai/repository/docker
+          NEXUS_LOGIN_URL="${{ env.NEXUS_REGISTRY }}/${{ env.NEXUS_REPOSITORY }}"
+          echo "Logging into Nexus at: $NEXUS_LOGIN_URL"
+          echo "${{ secrets.NEXUS_PASSWORD }}" | docker login "$NEXUS_LOGIN_URL" -u "${{ secrets.NEXUS_USERNAME }}" --password-stdin
 
       - name: Build and push Docker image
         id: build-push
