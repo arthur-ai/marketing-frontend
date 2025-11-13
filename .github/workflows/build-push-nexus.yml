@@ -8,14 +8,6 @@ on:
         required: false
         type: string
         default: 'latest'
-      backend_api_url:
-        description: 'Backend API URL (optional - defaults to relative /api for same-domain deployment)'
-        required: false
-        type: string
-      backend_websocket_url:
-        description: 'Backend WebSocket URL (optional - auto-inferred if not provided)'
-        required: false
-        type: string
   push:
     branches:
       - main
@@ -26,11 +18,9 @@ on:
       - main
 
 env:
-  NEXUS_REGISTRY: repository.arthur.ai
-  # Nexus repository path structure: docker/v2/arthur
-  NEXUS_REPOSITORY: docker
-  NEXUS_NAMESPACE: v2/arthur
-  IMAGE_NAME: marketing
+  NEXUS_REPOSITORY: arthur
+  NEXUS_NAMESPACE: marketing-tool
+  IMAGE_NAME: marketing-frontend
 
 jobs:
   build-and-push:
@@ -48,9 +38,6 @@ jobs:
         with:
           node-version: '18'
           cache: 'npm'
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
 
       - name: Determine image version
         id: version
@@ -75,114 +62,69 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Using version: $VERSION"
 
-      - name: Get backend URLs (optional)
-        id: backend-urls
+      - name: Build Docker image
         run: |
-          # These are optional - if not provided, the frontend will use relative URLs (/api)
-          # Only needed for development or cross-domain deployments
-          BACKEND_API_URL="${{ github.event.inputs.backend_api_url || secrets.BACKEND_API_URL || '' }}"
-          BACKEND_WS_URL="${{ github.event.inputs.backend_websocket_url || secrets.BACKEND_WEBSOCKET_URL || '' }}"
+          docker build \
+            --build-arg NEXT_PUBLIC_BACKEND_API_BASE_URL=/api \
+            --build-arg NEXT_PUBLIC_BACKEND_WEBSOCKET_URL=/api \
+            -t marketing-frontend:${{ steps.version.outputs.version }} \
+            -f ./deploy/Dockerfile \
+            .
+
+      - name: Login to Artifactory
+        run: |
+          docker logout
+          echo "${{ secrets.NEXUS_PASSWORD }}" | docker login docker.arthur.ai -u "${{ secrets.NEXUS_USERNAME }}" --password-stdin
+
+      - name: Retag and push image to Artifactory
+        run: |
+          ARTIFACTORY_IMAGE="docker.arthur.ai/${{ env.NEXUS_REPOSITORY }}/${{ env.NEXUS_NAMESPACE }}/${{ env.IMAGE_NAME }}"
           
-          if [ -z "$BACKEND_API_URL" ]; then
-            # Use relative URL for same-domain deployment
-            BACKEND_API_URL="/api"
-            echo "ℹ️  No backend API URL provided - will use relative URL: $BACKEND_API_URL"
-          else
-            echo "Using provided Backend API URL: $BACKEND_API_URL"
+          docker tag marketing-frontend:${{ steps.version.outputs.version }} ${ARTIFACTORY_IMAGE}:${{ steps.version.outputs.version }}
+          docker push ${ARTIFACTORY_IMAGE}:${{ steps.version.outputs.version }}
+          
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            docker tag marketing-frontend:${{ steps.version.outputs.version }} ${ARTIFACTORY_IMAGE}:latest
+            docker push ${ARTIFACTORY_IMAGE}:latest
           fi
           
-          if [ -z "$BACKEND_WS_URL" ]; then
-            # Try to infer from API URL
-            if [[ "$BACKEND_API_URL" == http://* ]]; then
-              BACKEND_WS_URL=$(echo "$BACKEND_API_URL" | sed 's/http:/ws:/')
-            elif [[ "$BACKEND_API_URL" == https://* ]]; then
-              BACKEND_WS_URL=$(echo "$BACKEND_API_URL" | sed 's/https:/wss:/')
-            else
-              # Relative URL for WebSocket
-              BACKEND_WS_URL="/api"
-            fi
-          fi
-          
-          echo "backend_api_url=$BACKEND_API_URL" >> $GITHUB_OUTPUT
-          echo "backend_ws_url=$BACKEND_WS_URL" >> $GITHUB_OUTPUT
-          echo "Backend API: $BACKEND_API_URL"
-          echo "Backend WebSocket: $BACKEND_WS_URL"
-
-      - name: Build image path
-        id: image-path
-        run: |
-          # Build full image path: repository.arthur.ai/docker/v2/arthur/marketing
-          if [ -n "${{ env.NEXUS_NAMESPACE }}" ]; then
-            IMAGE_PATH="${{ env.NEXUS_REGISTRY }}/${{ env.NEXUS_REPOSITORY }}/${{ env.NEXUS_NAMESPACE }}/${{ env.IMAGE_NAME }}"
-          elif [ -n "${{ env.NEXUS_REPOSITORY }}" ]; then
-            IMAGE_PATH="${{ env.NEXUS_REGISTRY }}/${{ env.NEXUS_REPOSITORY }}/${{ env.IMAGE_NAME }}"
-          else
-            IMAGE_PATH="${{ env.NEXUS_REGISTRY }}/${{ env.IMAGE_NAME }}"
-          fi
-          echo "image_path=$IMAGE_PATH" >> $GITHUB_OUTPUT
-          echo "Image path: $IMAGE_PATH"
-
-      - name: Login to Nexus
-        run: |
-          # Nexus Docker registry login - try with repository path
-          # Format: repository.arthur.ai/repository/docker
-          NEXUS_LOGIN_URL="${{ env.NEXUS_REGISTRY }}/${{ env.NEXUS_REPOSITORY }}"
-          echo "Logging into Nexus at: $NEXUS_LOGIN_URL"
-          echo "${{ secrets.NEXUS_PASSWORD }}" | docker login "$NEXUS_LOGIN_URL" -u "${{ secrets.NEXUS_USERNAME }}" --password-stdin
-
-      - name: Build and push Docker image
-        id: build-push
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ./deploy/Dockerfile
-          push: true
-          tags: |
-            ${{ steps.image-path.outputs.image_path }}:${{ steps.version.outputs.version }}
-            ${{ steps.image-path.outputs.image_path }}:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          platforms: linux/amd64
-          build-args: |
-            NEXT_PUBLIC_BACKEND_API_BASE_URL=${{ steps.backend-urls.outputs.backend_api_url }}
-            NEXT_PUBLIC_BACKEND_WEBSOCKET_URL=${{ steps.backend-urls.outputs.backend_ws_url }}
+          # Store image path for output
+          echo "image_path=${ARTIFACTORY_IMAGE}" >> $GITHUB_ENV
 
       - name: Output image information
         run: |
-          IMAGE_PATH="${{ steps.image-path.outputs.image_path }}"
+          ARTIFACTORY_IMAGE="docker.arthur.ai/${{ env.NEXUS_REPOSITORY }}/${{ env.NEXUS_NAMESPACE }}/${{ env.IMAGE_NAME }}"
           
-          echo "✅ Successfully pushed image to Nexus"
-          echo "Image: ${IMAGE_PATH}:${{ steps.version.outputs.version }}"
-          echo "Image (latest): ${IMAGE_PATH}:latest"
-          
-          REPO_INFO=""
-          if [ -n "${{ env.NEXUS_REPOSITORY }}" ]; then
-            if [ -n "${{ env.NEXUS_NAMESPACE }}" ]; then
-              REPO_INFO="**Repository:** \`${{ env.NEXUS_REPOSITORY }}/${{ env.NEXUS_NAMESPACE }}\`\n"
-            else
-              REPO_INFO="**Repository:** \`${{ env.NEXUS_REPOSITORY }}\`\n"
-            fi
+          echo "✅ Successfully pushed image to Artifactory"
+          echo "Image: ${ARTIFACTORY_IMAGE}:${{ steps.version.outputs.version }}"
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "Image (latest): ${ARTIFACTORY_IMAGE}:latest"
           fi
           
           cat >> $GITHUB_STEP_SUMMARY << EOF
-          ## 🐳 Docker Image Pushed to Nexus
+          ## 🐳 Docker Image Pushed to Artifactory
           
-          **Registry:** \`${{ env.NEXUS_REGISTRY }}\`
-          ${REPO_INFO}**Image:** \`${{ env.IMAGE_NAME }}\`
+          **Registry:** \`docker.arthur.ai\`
+          **Repository:** \`${{ env.NEXUS_REPOSITORY }}/${{ env.NEXUS_NAMESPACE }}\`
+          **Image:** \`${{ env.IMAGE_NAME }}\`
           **Version:** \`${{ steps.version.outputs.version }}\`
           
           ### 📦 Image Tags
-          - \`${IMAGE_PATH}:${{ steps.version.outputs.version }}\`
-          - \`${IMAGE_PATH}:latest\`
+          - \`${ARTIFACTORY_IMAGE}:${{ steps.version.outputs.version }}\`
+          EOF
           
-          ### 🔧 Build Configuration
-          - **Backend API URL:** ${{ steps.backend-urls.outputs.backend_api_url }}
-          - **Backend WebSocket URL:** ${{ steps.backend-urls.outputs.backend_ws_url }}
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            cat >> $GITHUB_STEP_SUMMARY << EOF
+          - \`${ARTIFACTORY_IMAGE}:latest\`
+          EOF
+          fi
+          
+          cat >> $GITHUB_STEP_SUMMARY << EOF
           
           ### 📝 Usage
           To pull this image:
           \`\`\`bash
-          docker pull ${IMAGE_PATH}:${{ steps.version.outputs.version }}
+          docker pull ${ARTIFACTORY_IMAGE}:${{ steps.version.outputs.version }}
           \`\`\`
           EOF
 
