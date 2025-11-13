@@ -27,10 +27,10 @@ on:
 
 env:
   NEXUS_REGISTRY: repository.arthur.ai
-  # If your Nexus uses a repository path, set it here (e.g., "docker-hosted" or "docker")
-  # Leave empty if no repository path is needed
-  NEXUS_REPOSITORY: ''
-  IMAGE_NAME: marketing-frontend
+  # Nexus repository path structure: docker/v2/arthur
+  NEXUS_REPOSITORY: docker
+  NEXUS_NAMESPACE: v2/arthur
+  IMAGE_NAME: marketing
 
 jobs:
   build-and-push:
@@ -111,7 +111,10 @@ jobs:
       - name: Build image path
         id: image-path
         run: |
-          if [ -n "${{ env.NEXUS_REPOSITORY }}" ]; then
+          # Build full image path: repository.arthur.ai/docker/v2/arthur/marketing
+          if [ -n "${{ env.NEXUS_NAMESPACE }}" ]; then
+            IMAGE_PATH="${{ env.NEXUS_REGISTRY }}/${{ env.NEXUS_REPOSITORY }}/${{ env.NEXUS_NAMESPACE }}/${{ env.IMAGE_NAME }}"
+          elif [ -n "${{ env.NEXUS_REPOSITORY }}" ]; then
             IMAGE_PATH="${{ env.NEXUS_REGISTRY }}/${{ env.NEXUS_REPOSITORY }}/${{ env.IMAGE_NAME }}"
           else
             IMAGE_PATH="${{ env.NEXUS_REGISTRY }}/${{ env.IMAGE_NAME }}"
@@ -153,7 +156,11 @@ jobs:
           
           REPO_INFO=""
           if [ -n "${{ env.NEXUS_REPOSITORY }}" ]; then
-            REPO_INFO="**Repository:** \`${{ env.NEXUS_REPOSITORY }}\`\n"
+            if [ -n "${{ env.NEXUS_NAMESPACE }}" ]; then
+              REPO_INFO="**Repository:** \`${{ env.NEXUS_REPOSITORY }}/${{ env.NEXUS_NAMESPACE }}\`\n"
+            else
+              REPO_INFO="**Repository:** \`${{ env.NEXUS_REPOSITORY }}\`\n"
+            fi
           fi
           
           cat >> $GITHUB_STEP_SUMMARY << EOF
