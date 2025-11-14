@@ -176,15 +176,7 @@ Resources:
       Protocol: HTTP
       VpcId: !Ref ExistingVpcId
       TargetType: ip
-      HealthCheckEnabled: true
-      HealthCheckPath: /
-      HealthCheckProtocol: HTTP
-      HealthCheckIntervalSeconds: 30
-      HealthCheckTimeoutSeconds: 5
-      HealthyThresholdCount: 2
-      UnhealthyThresholdCount: 3
-      Matcher:
-        HttpCode: 200-399
+      HealthCheckEnabled: false
       Tags:
         - Key: Name
           Value: !Sub '${EnvironmentName}-marketing-frontend-tg'
