@@ -5,6 +5,9 @@ import Typography from '@mui/material/Typography'
 import SettingsApplicationsIcon from '@mui/icons-material/SettingsApplications'
 import { StepExecutor } from '@/components/pipeline/step-executor'
 
+// Force dynamic rendering since this page uses useSearchParams
+export const dynamic = 'force-dynamic'
+
 export default function PipelineStepsPage() {
   return (
     <Box>
