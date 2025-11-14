@@ -35,6 +35,7 @@ import {
   VerifiedUser,
   Cancel,
   ContentCopy,
+  PlayArrow,
 } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
 import { useQueries } from '@tanstack/react-query';
@@ -470,6 +471,7 @@ export default function ResultsPage() {
       }
       const jobsList: JobListItemType[] = (data.jobs || [])
         // Filter out cancelled jobs, resume_pipeline jobs, and jobs with original_job_id (subjobs)
+        // Include both full pipeline runs and individually triggered step jobs (Main runs)
         .filter((job: JobResponse) => 
           job.status !== 'cancelled' && 
           job.type !== 'resume_pipeline' && 
@@ -1767,6 +1769,89 @@ export default function ResultsPage() {
                             );
                           })()}
                         </Box>
+                      </AccordionDetails>
+                    </Accordion>
+                  </Box>
+                )}
+
+                {/* Pipeline Steps Section */}
+                {selectedJob.steps && selectedJob.steps.length > 0 && !selectedJob.parent_job_id && (
+                  <Box sx={{ mb: 3 }}>
+                    <Accordion defaultExpanded={false}>
+                      <AccordionSummary expandIcon={<ExpandMore />}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%' }}>
+                          <Code sx={{ color: '#2196f3' }} />
+                          <Typography variant="h6">
+                            Pipeline Steps ({selectedJob.steps.length})
+                          </Typography>
+                        </Box>
+                      </AccordionSummary>
+                      <AccordionDetails>
+                        <List>
+                          {selectedJob.steps.map((step: StepInfo) => (
+                            <ListItem
+                              key={`${step.step_number}_${step.step_name}_${step.job_id || selectedJob.job_id}`}
+                              secondaryAction={
+                                step.has_result && (
+                                  <Button
+                                    size="small"
+                                    variant="outlined"
+                                    startIcon={<PlayArrow />}
+                                    onClick={() => {
+                                      router.push(`/pipeline?jobId=${selectedJob.job_id}&stepName=${step.step_name}`);
+                                    }}
+                                  >
+                                    Use in Step
+                                  </Button>
+                                )
+                              }
+                              sx={{
+                                border: 1,
+                                borderColor: 'divider',
+                                borderRadius: 1,
+                                mb: 1,
+                                bgcolor: step.has_result ? 'background.paper' : 'grey.50',
+                              }}
+                            >
+                              <ListItemText
+                                primary={
+                                  <Typography variant="body2" fontWeight="medium">
+                                    {step.step_number !== undefined ? `${step.step_number}. ` : ''}
+                                    {step.step_name.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
+                                  </Typography>
+                                }
+                                secondary={
+                                  <Box sx={{ mt: 0.5 }}>
+                                    {step.status && (
+                                      <Chip
+                                        label={step.status}
+                                        size="small"
+                                        color={
+                                          step.status === 'success' || step.status === 'completed'
+                                            ? 'success'
+                                            : step.status === 'failed'
+                                            ? 'error'
+                                            : 'default'
+                                        }
+                                        sx={{ mr: 1, height: 20, fontSize: '0.7rem' }}
+                                      />
+                                    )}
+                                    {step.execution_time !== undefined && (
+                                      <Typography variant="caption" color="text.secondary" sx={{ mr: 1 }}>
+                                        {step.execution_time.toFixed(2)}s
+                                      </Typography>
+                                    )}
+                                    {step.tokens_used !== undefined && (
+                                      <Typography variant="caption" color="text.secondary">
+                                        {step.tokens_used.toLocaleString()} tokens
+                                      </Typography>
+                                    )}
+                                  </Box>
+                                }
+                              />
+                            </ListItem>
+                          ))}
+                        </List>
                       </AccordionDetails>
                     </Accordion>
                   </Box>

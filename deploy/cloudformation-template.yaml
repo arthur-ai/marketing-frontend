@@ -11,34 +11,38 @@ Parameters:
       - staging
       - development
 
-  VpcCIDR:
-    Type: String
-    Default: 10.0.0.0/16
-    Description: CIDR block for VPC
+  ExistingVpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: Existing VPC ID (required - use the same VPC as your backend)
 
-  PublicSubnet1CIDR:
-    Type: String
-    Default: 10.0.1.0/24
-    Description: CIDR block for public subnet 1
+  ExistingPublicSubnet1Id:
+    Type: AWS::EC2::Subnet::Id
+    Description: Existing public subnet 1 ID (required - use the same subnets as your backend)
 
-  PublicSubnet2CIDR:
-    Type: String
-    Default: 10.0.2.0/24
-    Description: CIDR block for public subnet 2
+  ExistingPublicSubnet2Id:
+    Type: AWS::EC2::Subnet::Id
+    Description: Existing public subnet 2 ID (required)
 
-  PrivateSubnet1CIDR:
-    Type: String
-    Default: 10.0.3.0/24
-    Description: CIDR block for private subnet 1
-
-  PrivateSubnet2CIDR:
-    Type: String
-    Default: 10.0.4.0/24
-    Description: CIDR block for private subnet 2
+  ExistingPublicSubnet3Id:
+    Type: AWS::EC2::Subnet::Id
+    Default: ''
+    Description: Existing public subnet 3 ID (optional - provide for 3 AZ deployment)
 
   ContainerImage:
     Type: String
-    Description: Docker image URI (e.g., 123456789.dkr.ecr.us-east-1.amazonaws.com/marketing-frontend:latest)
+    Description: Docker image URI (e.g., 123456789.dkr.ecr.us-east-1.amazonaws.com/marketing-frontend:latest or docker.arthur.ai/arthur/marketing-tool/marketing-frontend:latest)
+
+  DockerRegistryUsername:
+    Type: String
+    Default: ''
+    Description: Docker registry username (required for private registries like docker.arthur.ai, leave empty for ECR)
+    NoEcho: true
+
+  DockerRegistryPassword:
+    Type: String
+    Default: ''
+    Description: Docker registry password (required for private registries like docker.arthur.ai, leave empty for ECR)
+    NoEcho: true
 
   ContainerPort:
     Type: Number
@@ -96,175 +100,19 @@ Parameters:
 Conditions:
   HasCertificate: !Not [!Equals [!Ref CertificateArn, '']]
   HasDomain: !Not [!Equals [!Ref DomainName, '']]
+  HasDockerRegistryCredentials: !And
+    - !Not [!Equals [!Ref DockerRegistryUsername, '']]
+    - !Not [!Equals [!Ref DockerRegistryPassword, '']]
+  HasThirdSubnet: !Not [!Equals [!Ref ExistingPublicSubnet3Id, '']]
 
 Resources:
-  # VPC and Networking
-  VPC:
-    Type: AWS::EC2::VPC
-    Properties:
-      CidrBlock: !Ref VpcCIDR
-      EnableDnsHostnames: true
-      EnableDnsSupport: true
-      Tags:
-        - Key: Name
-          Value: !Sub '${EnvironmentName}-marketing-frontend-vpc'
-
-  InternetGateway:
-    Type: AWS::EC2::InternetGateway
-    Properties:
-      Tags:
-        - Key: Name
-          Value: !Sub '${EnvironmentName}-marketing-frontend-igw'
-
-  InternetGatewayAttachment:
-    Type: AWS::EC2::VPCGatewayAttachment
-    Properties:
-      InternetGatewayId: !Ref InternetGateway
-      VpcId: !Ref VPC
-
-  PublicSubnet1:
-    Type: AWS::EC2::Subnet
-    Properties:
-      VpcId: !Ref VPC
-      AvailabilityZone: !Select [0, !GetAZs '']
-      CidrBlock: !Ref PublicSubnet1CIDR
-      MapPublicIpOnLaunch: true
-      Tags:
-        - Key: Name
-          Value: !Sub '${EnvironmentName}-marketing-frontend-public-subnet-1'
-
-  PublicSubnet2:
-    Type: AWS::EC2::Subnet
-    Properties:
-      VpcId: !Ref VPC
-      AvailabilityZone: !Select [1, !GetAZs '']
-      CidrBlock: !Ref PublicSubnet2CIDR
-      MapPublicIpOnLaunch: true
-      Tags:
-        - Key: Name
-          Value: !Sub '${EnvironmentName}-marketing-frontend-public-subnet-2'
-
-  PrivateSubnet1:
-    Type: AWS::EC2::Subnet
-    Properties:
-      VpcId: !Ref VPC
-      AvailabilityZone: !Select [0, !GetAZs '']
-      CidrBlock: !Ref PrivateSubnet1CIDR
-      Tags:
-        - Key: Name
-          Value: !Sub '${EnvironmentName}-marketing-frontend-private-subnet-1'
-
-  PrivateSubnet2:
-    Type: AWS::EC2::Subnet
-    Properties:
-      VpcId: !Ref VPC
-      AvailabilityZone: !Select [1, !GetAZs '']
-      CidrBlock: !Ref PrivateSubnet2CIDR
-      Tags:
-        - Key: Name
-          Value: !Sub '${EnvironmentName}-marketing-frontend-private-subnet-2'
-
-  NatGateway1EIP:
-    Type: AWS::EC2::EIP
-    DependsOn: InternetGatewayAttachment
-    Properties:
-      Domain: vpc
-
-  NatGateway2EIP:
-    Type: AWS::EC2::EIP
-    DependsOn: InternetGatewayAttachment
-    Properties:
-      Domain: vpc
-
-  NatGateway1:
-    Type: AWS::EC2::NatGateway
-    Properties:
-      AllocationId: !GetAtt NatGateway1EIP.AllocationId
-      SubnetId: !Ref PublicSubnet1
-
-  NatGateway2:
-    Type: AWS::EC2::NatGateway
-    Properties:
-      AllocationId: !GetAtt NatGateway2EIP.AllocationId
-      SubnetId: !Ref PublicSubnet2
-
-  PublicRouteTable:
-    Type: AWS::EC2::RouteTable
-    Properties:
-      VpcId: !Ref VPC
-      Tags:
-        - Key: Name
-          Value: !Sub '${EnvironmentName}-marketing-frontend-public-routes'
-
-  DefaultPublicRoute:
-    Type: AWS::EC2::Route
-    DependsOn: InternetGatewayAttachment
-    Properties:
-      RouteTableId: !Ref PublicRouteTable
-      DestinationCidrBlock: 0.0.0.0/0
-      GatewayId: !Ref InternetGateway
-
-  PublicSubnet1RouteTableAssociation:
-    Type: AWS::EC2::SubnetRouteTableAssociation
-    Properties:
-      RouteTableId: !Ref PublicRouteTable
-      SubnetId: !Ref PublicSubnet1
-
-  PublicSubnet2RouteTableAssociation:
-    Type: AWS::EC2::SubnetRouteTableAssociation
-    Properties:
-      RouteTableId: !Ref PublicRouteTable
-      SubnetId: !Ref PublicSubnet2
-
-  PrivateRouteTable1:
-    Type: AWS::EC2::RouteTable
-    Properties:
-      VpcId: !Ref VPC
-      Tags:
-        - Key: Name
-          Value: !Sub '${EnvironmentName}-marketing-frontend-private-routes-1'
-
-  DefaultPrivateRoute1:
-    Type: AWS::EC2::Route
-    Properties:
-      RouteTableId: !Ref PrivateRouteTable1
-      DestinationCidrBlock: 0.0.0.0/0
-      NatGatewayId: !Ref NatGateway1
-
-  PrivateSubnet1RouteTableAssociation:
-    Type: AWS::EC2::SubnetRouteTableAssociation
-    Properties:
-      RouteTableId: !Ref PrivateRouteTable1
-      SubnetId: !Ref PrivateSubnet1
-
-  PrivateRouteTable2:
-    Type: AWS::EC2::RouteTable
-    Properties:
-      VpcId: !Ref VPC
-      Tags:
-        - Key: Name
-          Value: !Sub '${EnvironmentName}-marketing-frontend-private-routes-2'
-
-  DefaultPrivateRoute2:
-    Type: AWS::EC2::Route
-    Properties:
-      RouteTableId: !Ref PrivateRouteTable2
-      DestinationCidrBlock: 0.0.0.0/0
-      NatGatewayId: !Ref NatGateway2
-
-  PrivateSubnet2RouteTableAssociation:
-    Type: AWS::EC2::SubnetRouteTableAssociation
-    Properties:
-      RouteTableId: !Ref PrivateRouteTable2
-      SubnetId: !Ref PrivateSubnet2
-
   # Security Groups
   ALBSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupName: !Sub '${EnvironmentName}-marketing-frontend-alb-sg'
       GroupDescription: Security group for Application Load Balancer
-      VpcId: !Ref VPC
+      VpcId: !Ref ExistingVpcId
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 80
@@ -289,7 +137,7 @@ Resources:
     Properties:
       GroupName: !Sub '${EnvironmentName}-marketing-frontend-ecs-sg'
       GroupDescription: Security group for ECS tasks
-      VpcId: !Ref VPC
+      VpcId: !Ref ExistingVpcId
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: !Ref ContainerPort
@@ -307,9 +155,13 @@ Resources:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
       Name: !Sub '${EnvironmentName}-frontend-alb'
-      Subnets:
-        - !Ref PublicSubnet1
-        - !Ref PublicSubnet2
+      Subnets: !If
+        - HasThirdSubnet
+        - - !Ref ExistingPublicSubnet1Id
+          - !Ref ExistingPublicSubnet2Id
+          - !Ref ExistingPublicSubnet3Id
+        - - !Ref ExistingPublicSubnet1Id
+          - !Ref ExistingPublicSubnet2Id
       SecurityGroups:
         - !Ref ALBSecurityGroup
       Tags:
@@ -322,7 +174,7 @@ Resources:
       Name: !Sub '${EnvironmentName}-frontend-tg'
       Port: !Ref ContainerPort
       Protocol: HTTP
-      VpcId: !Ref VPC
+      VpcId: !Ref ExistingVpcId
       TargetType: ip
       HealthCheckEnabled: true
       HealthCheckPath: /
@@ -385,6 +237,19 @@ Resources:
       LogGroupName: !Sub '/ecs/${EnvironmentName}-marketing-frontend'
       RetentionInDays: 30
 
+  # Docker Registry Secret (if credentials provided)
+  DockerRegistrySecret:
+    Type: AWS::SecretsManager::Secret
+    Condition: HasDockerRegistryCredentials
+    Properties:
+      Name: !Sub '${EnvironmentName}-marketing-frontend-docker-registry-credentials'
+      Description: Docker registry credentials for frontend image pull
+      SecretString: !Sub |
+        {
+          "username": "${DockerRegistryUsername}",
+          "password": "${DockerRegistryPassword}"
+        }
+
   # ECS Task Execution Role
   ECSTaskExecutionRole:
     Type: AWS::IAM::Role
@@ -398,6 +263,18 @@ Resources:
             Action: sts:AssumeRole
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+      Policies:
+        - !If
+          - HasDockerRegistryCredentials
+          - PolicyName: SecretsManagerAccess
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - secretsmanager:GetSecretValue
+                  Resource: !Ref DockerRegistrySecret
+          - !Ref AWS::NoValue
       Tags:
         - Key: Name
           Value: !Sub '${EnvironmentName}-marketing-frontend-execution-role'
@@ -432,6 +309,10 @@ Resources:
       ContainerDefinitions:
         - Name: marketing-frontend
           Image: !Ref ContainerImage
+          RepositoryCredentials: !If
+            - HasDockerRegistryCredentials
+            - CredentialsParameter: !Ref DockerRegistrySecret
+            - !Ref AWS::NoValue
           PortMappings:
             - ContainerPort: !Ref ContainerPort
               Protocol: tcp
@@ -448,14 +329,6 @@ Resources:
               awslogs-group: !Ref ECSLogGroup
               awslogs-region: !Ref AWS::Region
               awslogs-stream-prefix: ecs
-          HealthCheck:
-            Command:
-              - CMD-SHELL
-              - curl -f http://localhost:3000/ || exit 1
-            Interval: 30
-            Timeout: 5
-            Retries: 3
-            StartPeriod: 60
 
   # ECS Service
   ECSService:
@@ -469,12 +342,16 @@ Resources:
       LaunchType: FARGATE
       NetworkConfiguration:
         AwsvpcConfiguration:
-          AssignPublicIp: DISABLED
+          AssignPublicIp: ENABLED
           SecurityGroups:
             - !Ref ECSSecurityGroup
-          Subnets:
-            - !Ref PrivateSubnet1
-            - !Ref PrivateSubnet2
+          Subnets: !If
+            - HasThirdSubnet
+            - - !Ref ExistingPublicSubnet1Id
+              - !Ref ExistingPublicSubnet2Id
+              - !Ref ExistingPublicSubnet3Id
+            - - !Ref ExistingPublicSubnet1Id
+              - !Ref ExistingPublicSubnet2Id
       LoadBalancers:
         - ContainerName: marketing-frontend
           ContainerPort: !Ref ContainerPort
@@ -566,7 +443,7 @@ Outputs:
 
   VPCId:
     Description: VPC ID
-    Value: !Ref VPC
+    Value: !Ref ExistingVpcId
     Export:
       Name: !Sub '${EnvironmentName}-marketing-frontend-vpc-id'
 

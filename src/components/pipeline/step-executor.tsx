@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
+import { useSearchParams } from 'next/navigation'
 import { api } from '@/lib/api'
 import type { StepInfo, StepRequirementsResponse, StepExecutionRequest, JobStatusResponse } from '@/types/api'
 import Box from '@mui/material/Box'
@@ -19,8 +20,13 @@ import CircularProgress from '@mui/material/CircularProgress'
 import Chip from '@mui/material/Chip'
 import LinearProgress from '@mui/material/LinearProgress'
 import Divider from '@mui/material/Divider'
+import Accordion from '@mui/material/Accordion'
+import AccordionSummary from '@mui/material/AccordionSummary'
+import AccordionDetails from '@mui/material/AccordionDetails'
 import InfoIcon from '@mui/icons-material/Info'
 import PlayArrowIcon from '@mui/icons-material/PlayArrow'
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 
 interface ContentInput {
   id?: string
@@ -31,6 +37,7 @@ interface ContentInput {
 }
 
 export function StepExecutor() {
+  const searchParams = useSearchParams()
   const [selectedStep, setSelectedStep] = useState<string>('')
   const [contentInput, setContentInput] = useState<ContentInput>({
     id: '',
@@ -41,6 +48,7 @@ export function StepExecutor() {
   const [contextInputs, setContextInputs] = useState<Record<string, string>>({})
   const [jobId, setJobId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [loadedFromPastRun, setLoadedFromPastRun] = useState(false)
 
   // Fetch available steps
   const { data: stepsData, isLoading: stepsLoading } = useQuery({
@@ -49,6 +57,21 @@ export function StepExecutor() {
       const response = await api.getPipelineSteps()
       return response.data
     },
+  })
+
+  // Get query params for pre-filling from past results
+  const queryJobId = searchParams.get('jobId')
+  const queryStepName = searchParams.get('stepName')
+
+  // Fetch step result from past run if query params are present
+  const { data: pastStepResult, isLoading: loadingPastResult } = useQuery({
+    queryKey: ['step-result', queryJobId, queryStepName],
+    queryFn: async () => {
+      if (!queryJobId || !queryStepName) return null
+      const response = await api.getStepResult(queryJobId, queryStepName)
+      return response.data
+    },
+    enabled: !!queryJobId && !!queryStepName,
   })
 
   // Fetch step requirements when step is selected
@@ -108,6 +131,31 @@ export function StepExecutor() {
     }
   }, [requirements])
 
+  // Pre-fill from past result when available
+  useEffect(() => {
+    if (queryStepName && pastStepResult && requirements) {
+      setSelectedStep(queryStepName)
+      setLoadedFromPastRun(true)
+      
+      // Extract result data from past step result
+      const resultData = pastStepResult.result || pastStepResult
+      
+      // Pre-fill context inputs
+      const preFilledContext: Record<string, string> = {}
+      requirements.required_context_keys.forEach((key) => {
+        if (key !== 'input_content' && resultData[key] !== undefined) {
+          // Convert to JSON string if it's an object
+          if (typeof resultData[key] === 'object') {
+            preFilledContext[key] = JSON.stringify(resultData[key], null, 2)
+          } else {
+            preFilledContext[key] = String(resultData[key])
+          }
+        }
+      })
+      setContextInputs(preFilledContext)
+    }
+  }, [queryStepName, pastStepResult, requirements])
+
   const handleExecute = () => {
     setError(null)
 
@@ -152,10 +200,42 @@ export function StepExecutor() {
     executeMutation.mutate(request)
   }
 
+  // Get example value for a field
+  const getExampleValue = (key: string): string => {
+    const examples: Record<string, any> = {
+      content_type: 'blog_post',
+      seo_keywords: JSON.stringify({
+        primary_keywords: ['example', 'keywords'],
+        secondary_keywords: ['secondary', 'terms'],
+        lsi_keywords: ['related', 'concepts']
+      }, null, 2),
+      marketing_brief: JSON.stringify({
+        target_audience: 'Example audience',
+        key_messages: ['Message 1', 'Message 2'],
+        tone: 'professional'
+      }, null, 2),
+      article_generation: JSON.stringify({
+        article_content: 'Example article content...',
+        structure: 'introduction, body, conclusion'
+      }, null, 2),
+      seo_optimization: JSON.stringify({
+        meta_title: 'Example Meta Title',
+        meta_description: 'Example meta description',
+        seo_score: 85
+      }, null, 2),
+      content_formatting: JSON.stringify({
+        formatted_html: '<h1>Example</h1><p>Content</p>',
+        structure: 'formatted'
+      }, null, 2),
+    }
+    return examples[key] || (key.includes('_') ? `"example_${key}"` : `"example${key}"`)
+  }
+
   const renderContextInput = (key: string) => {
     const description = requirements?.descriptions[key] || key
     const isStepOutput = requirements?.descriptions[key]?.includes('Output from')
     const label = key.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())
+    const exampleValue = getExampleValue(key)
 
     if (key === 'content_type') {
       return (
@@ -201,6 +281,40 @@ export function StepExecutor() {
             } : {},
           }}
         />
+        <Accordion sx={{ mt: 1 }}>
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            <Typography variant="caption" color="text.secondary">
+              Show Example
+            </Typography>
+          </AccordionSummary>
+          <AccordionDetails>
+            <Box
+              component="pre"
+              sx={{
+                bgcolor: 'grey.100',
+                p: 2,
+                borderRadius: 1,
+                overflow: 'auto',
+                fontSize: '0.75rem',
+                fontFamily: 'monospace',
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word',
+              }}
+            >
+              {exampleValue}
+            </Box>
+            <Button
+              size="small"
+              variant="outlined"
+              sx={{ mt: 1 }}
+              onClick={() => {
+                setContextInputs({ ...contextInputs, [key]: exampleValue })
+              }}
+            >
+              Use Example
+            </Button>
+          </AccordionDetails>
+        </Accordion>
       </Box>
     )
   }
@@ -240,6 +354,20 @@ export function StepExecutor() {
 
       {selectedStep && (
         <>
+          {/* Banner for content loaded from past run */}
+          {loadedFromPastRun && queryJobId && (
+            <Alert 
+              severity="info" 
+              sx={{ mb: 3 }}
+              icon={<CheckCircleIcon />}
+            >
+              <Typography variant="body2">
+                Content loaded from past run (Job: {queryJobId.substring(0, 8)}...). 
+                You can modify the pre-filled values before executing.
+              </Typography>
+            </Alert>
+          )}
+
           {/* Requirements Info */}
           {requirementsLoading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', mb: 4 }}>
@@ -278,44 +406,147 @@ export function StepExecutor() {
               Content Input
             </Typography>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-              <TextField
-                label="ID (optional)"
-                value={contentInput.id || ''}
-                onChange={(e) =>
-                  setContentInput({ ...contentInput, id: e.target.value })
-                }
-                fullWidth
-              />
-              <TextField
-                label="Title"
-                value={contentInput.title}
-                onChange={(e) =>
-                  setContentInput({ ...contentInput, title: e.target.value })
-                }
-                required
-                fullWidth
-              />
-              <TextField
-                label="Content"
-                value={contentInput.content}
-                onChange={(e) =>
-                  setContentInput({ ...contentInput, content: e.target.value })
-                }
-                required
-                multiline
-                rows={6}
-                fullWidth
-              />
-              <TextField
-                label="Snippet (optional)"
-                value={contentInput.snippet || ''}
-                onChange={(e) =>
-                  setContentInput({ ...contentInput, snippet: e.target.value })
-                }
-                multiline
-                rows={2}
-                fullWidth
-              />
+              <Box>
+                <TextField
+                  label="ID (optional)"
+                  value={contentInput.id || ''}
+                  onChange={(e) =>
+                    setContentInput({ ...contentInput, id: e.target.value })
+                  }
+                  fullWidth
+                  helperText="Unique identifier for the content"
+                />
+                <Accordion sx={{ mt: 1 }}>
+                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                    <Typography variant="caption" color="text.secondary">
+                      Show Example
+                    </Typography>
+                  </AccordionSummary>
+                  <AccordionDetails>
+                    <Box
+                      component="pre"
+                      sx={{
+                        bgcolor: 'grey.100',
+                        p: 2,
+                        borderRadius: 1,
+                        overflow: 'auto',
+                        fontSize: '0.75rem',
+                        fontFamily: 'monospace',
+                      }}
+                    >
+                      "content-123"
+                    </Box>
+                  </AccordionDetails>
+                </Accordion>
+              </Box>
+              <Box>
+                <TextField
+                  label="Title"
+                  value={contentInput.title}
+                  onChange={(e) =>
+                    setContentInput({ ...contentInput, title: e.target.value })
+                  }
+                  required
+                  fullWidth
+                  helperText="Title of the content"
+                />
+                <Accordion sx={{ mt: 1 }}>
+                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                    <Typography variant="caption" color="text.secondary">
+                      Show Example
+                    </Typography>
+                  </AccordionSummary>
+                  <AccordionDetails>
+                    <Box
+                      component="pre"
+                      sx={{
+                        bgcolor: 'grey.100',
+                        p: 2,
+                        borderRadius: 1,
+                        overflow: 'auto',
+                        fontSize: '0.75rem',
+                        fontFamily: 'monospace',
+                        whiteSpace: 'pre-wrap',
+                      }}
+                    >
+                      "Example Blog Post Title"
+                    </Box>
+                  </AccordionDetails>
+                </Accordion>
+              </Box>
+              <Box>
+                <TextField
+                  label="Content"
+                  value={contentInput.content}
+                  onChange={(e) =>
+                    setContentInput({ ...contentInput, content: e.target.value })
+                  }
+                  required
+                  multiline
+                  rows={6}
+                  fullWidth
+                  helperText="Main content text"
+                />
+                <Accordion sx={{ mt: 1 }}>
+                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                    <Typography variant="caption" color="text.secondary">
+                      Show Example
+                    </Typography>
+                  </AccordionSummary>
+                  <AccordionDetails>
+                    <Box
+                      component="pre"
+                      sx={{
+                        bgcolor: 'grey.100',
+                        p: 2,
+                        borderRadius: 1,
+                        overflow: 'auto',
+                        fontSize: '0.75rem',
+                        fontFamily: 'monospace',
+                        whiteSpace: 'pre-wrap',
+                      }}
+                    >
+                      "This is example content for the blog post. It can contain multiple paragraphs and should provide context for the pipeline step to process."
+                    </Box>
+                  </AccordionDetails>
+                </Accordion>
+              </Box>
+              <Box>
+                <TextField
+                  label="Snippet (optional)"
+                  value={contentInput.snippet || ''}
+                  onChange={(e) =>
+                    setContentInput({ ...contentInput, snippet: e.target.value })
+                  }
+                  multiline
+                  rows={2}
+                  fullWidth
+                  helperText="Short excerpt or summary"
+                />
+                <Accordion sx={{ mt: 1 }}>
+                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                    <Typography variant="caption" color="text.secondary">
+                      Show Example
+                    </Typography>
+                  </AccordionSummary>
+                  <AccordionDetails>
+                    <Box
+                      component="pre"
+                      sx={{
+                        bgcolor: 'grey.100',
+                        p: 2,
+                        borderRadius: 1,
+                        overflow: 'auto',
+                        fontSize: '0.75rem',
+                        fontFamily: 'monospace',
+                        whiteSpace: 'pre-wrap',
+                      }}
+                    >
+                      "A brief summary of the content..."
+                    </Box>
+                  </AccordionDetails>
+                </Accordion>
+              </Box>
               <FormControl fullWidth>
                 <InputLabel>Content Type (optional)</InputLabel>
                 <Select

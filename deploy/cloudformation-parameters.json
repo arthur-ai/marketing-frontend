@@ -4,24 +4,20 @@
     "ParameterValue": "production"
   },
   {
-    "ParameterKey": "VpcCIDR",
-    "ParameterValue": "10.0.0.0/16"
+    "ParameterKey": "ExistingVpcId",
+    "ParameterValue": "REPLACE_WITH_YOUR_VPC_ID"
   },
   {
-    "ParameterKey": "PublicSubnet1CIDR",
-    "ParameterValue": "10.0.1.0/24"
+    "ParameterKey": "ExistingPublicSubnet1Id",
+    "ParameterValue": "REPLACE_WITH_YOUR_PUBLIC_SUBNET_1_ID"
   },
   {
-    "ParameterKey": "PublicSubnet2CIDR",
-    "ParameterValue": "10.0.2.0/24"
+    "ParameterKey": "ExistingPublicSubnet2Id",
+    "ParameterValue": "REPLACE_WITH_YOUR_PUBLIC_SUBNET_2_ID"
   },
   {
-    "ParameterKey": "PrivateSubnet1CIDR",
-    "ParameterValue": "10.0.3.0/24"
-  },
-  {
-    "ParameterKey": "PrivateSubnet2CIDR",
-    "ParameterValue": "10.0.4.0/24"
+    "ParameterKey": "ExistingPublicSubnet3Id",
+    "ParameterValue": ""
   },
   {
     "ParameterKey": "ContainerImage",

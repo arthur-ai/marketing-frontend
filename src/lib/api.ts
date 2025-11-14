@@ -115,6 +115,9 @@ export const api = {
   executePipelineStep: (stepName: string, request: StepExecutionRequest): Promise<AxiosResponse<StepExecutionResponse>> => 
     apiClient.post(`/v1/pipeline/steps/${stepName}/execute`, request),
   
+  getStepResult: (jobId: string, stepName: string): Promise<AxiosResponse<any>> => 
+    apiClient.get(`/v1/results/jobs/${jobId}/steps/by-name/${stepName}`),
+  
   cancelJob: (jobId: string): Promise<AxiosResponse<{ success: boolean; message: string }>> => 
     apiClient.delete(`/v1/jobs/${jobId}`),
   
