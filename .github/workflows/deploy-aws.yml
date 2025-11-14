@@ -17,13 +17,18 @@ on:
         required: false
         default: 'us-east-1'
       backend_api_url:
-        description: 'Backend API URL (e.g., https://api.example.com)'
-        required: true
-        type: string
-      backend_websocket_url:
-        description: 'Backend WebSocket URL (e.g., wss://api.example.com)'
+        description: 'Backend API URL (e.g., https://api.example.com). Leave empty to auto-detect from backend stack.'
         required: false
         type: string
+      backend_websocket_url:
+        description: 'Backend WebSocket URL (e.g., wss://api.example.com). Leave empty to auto-detect.'
+        required: false
+        type: string
+      wait_for_backend:
+        description: 'Wait for backend deployment to complete before deploying frontend'
+        required: false
+        type: boolean
+        default: true
   push:
     tags:
       - 'frontend-v*.*.*'
@@ -34,8 +39,33 @@ env:
   PROJECT_NAME: marketing-frontend
 
 jobs:
+  # Map frontend environment names to backend environment names
+  map-environment:
+    runs-on: ubuntu-latest
+    outputs:
+      backend_env: ${{ steps.map.outputs.backend_env }}
+    steps:
+      - id: map
+        run: |
+          case "${{ env.ENVIRONMENT }}" in
+            development)
+              echo "backend_env=dev" >> $GITHUB_OUTPUT
+              ;;
+            staging)
+              echo "backend_env=stag" >> $GITHUB_OUTPUT
+              ;;
+            production)
+              echo "backend_env=prod" >> $GITHUB_OUTPUT
+              ;;
+            *)
+              echo "backend_env=${{ env.ENVIRONMENT }}" >> $GITHUB_OUTPUT
+              ;;
+          esac
+
   deploy:
+    needs: map-environment
     name: Deploy Frontend to AWS
+
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -80,14 +110,83 @@ jobs:
             type=sha,prefix={{branch}}-
             type=raw,value=latest,enable={{is_default_branch}}
 
+      - name: Wait for backend deployment (if requested)
+        if: ${{ github.event.inputs.wait_for_backend == 'true' }}
+        run: |
+          BACKEND_STACK_NAME="marketing-tool-${{ needs.map-environment.outputs.backend_env }}"
+          echo "Waiting for backend stack to be ready: $BACKEND_STACK_NAME"
+          
+          # Wait for stack to exist and be in a stable state
+          MAX_WAIT=1800  # 30 minutes
+          ELAPSED=0
+          
+          while [ $ELAPSED -lt $MAX_WAIT ]; do
+            if aws cloudformation describe-stacks --stack-name "$BACKEND_STACK_NAME" --region ${{ env.AWS_REGION }} &> /dev/null; then
+              STACK_STATUS=$(aws cloudformation describe-stacks \
+                --stack-name "$BACKEND_STACK_NAME" \
+                --query 'Stacks[0].StackStatus' \
+                --output text \
+                --region ${{ env.AWS_REGION }})
+              
+              echo "Backend stack status: $STACK_STATUS"
+              
+              if [[ "$STACK_STATUS" == "CREATE_COMPLETE" ]] || [[ "$STACK_STATUS" == "UPDATE_COMPLETE" ]]; then
+                echo "✅ Backend stack is ready!"
+                break
+              elif [[ "$STACK_STATUS" == *"FAILED"* ]] || [[ "$STACK_STATUS" == *"ROLLBACK"* ]]; then
+                echo "❌ Backend stack failed: $STACK_STATUS"
+                exit 1
+              fi
+            else
+              echo "Backend stack does not exist yet, waiting..."
+            fi
+            
+            sleep 30
+            ELAPSED=$((ELAPSED + 30))
+          done
+          
+          if [ $ELAPSED -ge $MAX_WAIT ]; then
+            echo "❌ Timeout waiting for backend stack"
+            exit 1
+          fi
+          
+          # Wait for backend ECS service to be stable
+          BACKEND_CLUSTER="marketing-tool-${{ needs.map-environment.outputs.backend_env }}-cluster"
+          BACKEND_SERVICE="marketing-tool-${{ needs.map-environment.outputs.backend_env }}-service"
+          
+          echo "Waiting for backend ECS service to be stable..."
+          aws ecs wait services-stable \
+            --cluster "$BACKEND_CLUSTER" \
+            --services "$BACKEND_SERVICE" \
+            --region ${{ env.AWS_REGION }} || echo "⚠️  Backend service check skipped (may not exist)"
+
       - name: Get backend URLs
         id: backend-urls
         run: |
-          BACKEND_API_URL="${{ github.event.inputs.backend_api_url || secrets.BACKEND_API_URL }}"
-          BACKEND_WS_URL="${{ github.event.inputs.backend_websocket_url || secrets.BACKEND_WEBSOCKET_URL || format('wss://{0}', github.event.inputs.backend_api_url) }}"
+          # Try to get backend URL from CloudFormation stack outputs first
+          BACKEND_STACK_NAME="marketing-tool-${{ needs.map-environment.outputs.backend_env }}"
+          
+          if aws cloudformation describe-stacks --stack-name "$BACKEND_STACK_NAME" --region ${{ env.AWS_REGION }} &> /dev/null; then
+            # Get ALB URL from stack outputs
+            ALB_URL=$(aws cloudformation describe-stacks \
+              --stack-name "$BACKEND_STACK_NAME" \
+              --query 'Stacks[0].Outputs[?OutputKey==`ALBURL`].OutputValue' \
+              --output text \
+              --region ${{ env.AWS_REGION }} || echo "")
+            
+            if [ -n "$ALB_URL" ]; then
+              BACKEND_API_URL="https://$ALB_URL/api"
+              BACKEND_WS_URL="wss://$ALB_URL/api"
+              echo "✅ Auto-detected backend URLs from stack outputs"
+            fi
+          fi
+          
+          # Use provided URLs or fall back to secrets
+          BACKEND_API_URL="${BACKEND_API_URL:-${{ github.event.inputs.backend_api_url || secrets.BACKEND_API_URL }}}"
+          BACKEND_WS_URL="${BACKEND_WS_URL:-${{ github.event.inputs.backend_websocket_url || secrets.BACKEND_WEBSOCKET_URL || format('wss://{0}', github.event.inputs.backend_api_url) }}}"
           
           if [ -z "$BACKEND_API_URL" ]; then
-            echo "❌ Backend API URL is required"
+            echo "❌ Backend API URL is required. Please provide it as input or set BACKEND_API_URL secret."
             exit 1
           fi
           
