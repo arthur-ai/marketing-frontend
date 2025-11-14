@@ -1,12 +1,22 @@
 'use client'
 
+import { Suspense } from 'react'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
+import CircularProgress from '@mui/material/CircularProgress'
 import SettingsApplicationsIcon from '@mui/icons-material/SettingsApplications'
 import { StepExecutor } from '@/components/pipeline/step-executor'
 
 // Force dynamic rendering since this page uses useSearchParams
 export const dynamic = 'force-dynamic'
+
+function StepExecutorFallback() {
+  return (
+    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
+      <CircularProgress />
+    </Box>
+  )
+}
 
 export default function PipelineStepsPage() {
   return (
@@ -24,8 +34,10 @@ export default function PipelineStepsPage() {
         </Typography>
       </Box>
 
-      {/* Step Executor Component */}
-      <StepExecutor />
+      {/* Step Executor Component - Wrapped in Suspense for useSearchParams */}
+      <Suspense fallback={<StepExecutorFallback />}>
+        <StepExecutor />
+      </Suspense>
     </Box>
   )
 }
