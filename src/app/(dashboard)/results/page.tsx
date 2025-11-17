@@ -40,7 +40,7 @@ import {
 import { useRouter } from 'next/navigation';
 import { useQueries } from '@tanstack/react-query';
 import { useJobApprovals, useResumeJob, useApproval } from '@/hooks/useApi';
-import { api } from '@/lib/api';
+import { api, apiClient } from '@/lib/api';
 import { showSuccessToast, showErrorToast } from '@/lib/toast-utils';
 import { getApprovalRoute } from '@/lib/approval-routing';
 import { SubjobVisualizer } from '@/components/results/subjob-visualizer';
@@ -73,7 +73,7 @@ interface JobResults extends JobResultsSummary {
   metadata: JobMetadata;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+// Removed duplicate API_BASE_URL - using api client from '@/lib/api' instead
 
 // Component to display keyword selection for seo_keywords step
 interface KeywordSelectionDisplayProps {
@@ -374,9 +374,9 @@ export default function ResultsPage() {
       queryKey: ['job-result', subjobId],
       queryFn: async () => {
         try {
-          const response = await fetch(`${API_BASE_URL}/api/v1/jobs/${subjobId}/result`);
-          if (response.ok) {
-            const data = await response.json();
+          const response = await api.getJobResult(subjobId);
+          if (response.status === 200) {
+            const data = response.data;
             // Handle nested result structure: result.result
             let resultData = data.result;
             if (resultData && resultData.result) {
@@ -441,11 +441,8 @@ export default function ResultsPage() {
       setLoading(true);
       setError(null);
       // Use the jobs API endpoint with subjob status included
-      const response = await fetch(`${API_BASE_URL}/api/v1/jobs?include_subjob_status=true`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch jobs');
-      }
-      const data = await response.json();
+      const response = await api.listJobs(undefined, undefined, 50, true);
+      const data = response.data;
       // Transform Job objects to JobListItem format
       interface JobResponse {
         id: string;
@@ -502,9 +499,9 @@ export default function ResultsPage() {
   const fetchFinalResult = async (jobId: string) => {
     try {
       setLoadingFinalResult(true);
-      const response = await fetch(`${API_BASE_URL}/api/v1/jobs/${jobId}/result`);
-      if (response.ok) {
-        const data = await response.json();
+      const response = await api.getJobResult(jobId);
+      if (response.status === 200) {
+        const data = response.data;
         console.log('Final result API response:', data);
         
         // Handle nested result structure: result.result
@@ -543,9 +540,9 @@ export default function ResultsPage() {
       } else {
         // Try to get from job details
         console.log('Result API failed, trying job details endpoint');
-        const jobResponse = await fetch(`${API_BASE_URL}/api/v1/jobs/${jobId}`);
-        if (jobResponse.ok) {
-          const jobData = await jobResponse.json();
+        const jobResponse = await api.getJob(jobId);
+        if (jobResponse.status === 200) {
+          const jobData = jobResponse.data;
           console.log('Job details response:', jobData);
           if (jobData.job?.result) {
             // Handle nested result structure
@@ -610,9 +607,9 @@ export default function ResultsPage() {
       
       // First, check if this is a resume_pipeline job - if so, redirect to parent (unless explicitly disabled)
       if (redirectToParent) {
-        const jobCheckResponse = await fetch(`${API_BASE_URL}/api/v1/jobs/${jobId}`);
-        if (jobCheckResponse.ok) {
-          const jobCheckData = await jobCheckResponse.json();
+        const jobCheckResponse = await api.getJob(jobId);
+        if (jobCheckResponse.status === 200) {
+          const jobCheckData = jobCheckResponse.data;
           const jobCheck = jobCheckData.job;
           
           // If this is a resume_pipeline job or has original_job_id, fetch parent instead
@@ -629,14 +626,15 @@ export default function ResultsPage() {
       }
       
       // Try results API first (has step details), fallback to jobs API
-      const response = await fetch(`${API_BASE_URL}/api/v1/results/jobs/${jobId}`);
-      if (!response.ok) {
+      // Note: /api/v1/results/jobs/ endpoint doesn't have a dedicated api method, using apiClient directly
+      const response = await apiClient.get(`/v1/results/jobs/${jobId}`).catch(() => null);
+      if (!response || response.status !== 200) {
         // Fallback: Try to get job.result if job is completed
-        const jobResponse = await fetch(`${API_BASE_URL}/api/v1/jobs/${jobId}`);
-        if (!jobResponse.ok) {
+        const jobResponse = await api.getJob(jobId);
+        if (jobResponse.status !== 200) {
           throw new Error('Failed to fetch job details');
         }
-        const jobData = await jobResponse.json();
+        const jobData = jobResponse.data;
         const job = jobData.job;
         
         // Get content type - use original_content_type for resume_pipeline jobs
@@ -707,9 +705,9 @@ export default function ResultsPage() {
           subjobIds.push(currentJobId);
           
           try {
-            const nextJobResponse = await fetch(`${API_BASE_URL}/api/v1/jobs/${currentJobId}`);
-            if (nextJobResponse.ok) {
-              const nextJobData = await nextJobResponse.json();
+            const nextJobResponse = await api.getJob(currentJobId);
+            if (nextJobResponse.status === 200) {
+              const nextJobData = nextJobResponse.data;
               const nextJob = nextJobData.job;
               currentJobId = nextJob?.metadata?.resume_job_id;
             } else {
@@ -728,9 +726,9 @@ export default function ResultsPage() {
             // Fetch steps from each subjob
             for (const subjobId of subjobIds) {
               try {
-                const subjobResponse = await fetch(`${API_BASE_URL}/api/v1/results/jobs/${subjobId}`);
-                if (subjobResponse.ok) {
-                  const subjobData = await subjobResponse.json();
+                const subjobResponse = await apiClient.get(`/v1/results/jobs/${subjobId}`).catch(() => null);
+                if (subjobResponse && subjobResponse.status === 200) {
+                  const subjobData = subjobResponse.data;
                   if (subjobData.steps && subjobData.steps.length > 0) {
                     // Add job_id to each step to identify which subjob it belongs to
                     const subjobSteps = subjobData.steps.map((step: StepInfo) => ({
@@ -758,9 +756,9 @@ export default function ResultsPage() {
               // Pre-populate stepData from subjob results
               for (const subjobId of subjobIds) {
                 try {
-                  const subjobResultResponse = await fetch(`${API_BASE_URL}/api/v1/jobs/${subjobId}/result`);
-                  if (subjobResultResponse.ok) {
-                    const subjobResultData = await subjobResultResponse.json();
+                  const subjobResultResponse = await api.getJobResult(subjobId);
+                  if (subjobResultResponse.status === 200) {
+                    const subjobResultData = subjobResultResponse.data;
                     let subjobActualResult = subjobResultData.result;
                     if (subjobActualResult && subjobActualResult.result) {
                       subjobActualResult = subjobActualResult.result;
@@ -834,9 +832,9 @@ export default function ResultsPage() {
         // Fix content type for resume_pipeline jobs - use original_content_type if available
         if (data.metadata?.content_type === 'resume_pipeline') {
           // Try to get original_content_type from the job itself
-          const jobResponse = await fetch(`${API_BASE_URL}/api/v1/jobs/${jobId}`);
-          if (jobResponse.ok) {
-            const jobData = await jobResponse.json();
+          const jobResponse = await api.getJob(jobId);
+          if (jobResponse.status === 200) {
+            const jobData = jobResponse.data;
             const job = jobData.job;
             if (job.metadata?.original_content_type) {
               data.metadata.content_type = job.metadata.original_content_type;
@@ -849,9 +847,9 @@ export default function ResultsPage() {
         // Fetch job details to get resume_job_id if not in metadata
         if (!jobResults.metadata.resume_job_id) {
           try {
-            const jobResponse = await fetch(`${API_BASE_URL}/api/v1/jobs/${jobId}`);
-            if (jobResponse.ok) {
-              const jobData = await jobResponse.json();
+            const jobResponse = await api.getJob(jobId);
+            if (jobResponse.status === 200) {
+              const jobData = jobResponse.data;
               const job = jobData.job;
               if (job.metadata?.resume_job_id) {
                 jobResults.metadata.resume_job_id = job.metadata.resume_job_id;
@@ -874,9 +872,9 @@ export default function ResultsPage() {
             allSubjobIds.push(currentJobId);
             
             try {
-              const nextJobResponse = await fetch(`${API_BASE_URL}/api/v1/jobs/${currentJobId}`);
-              if (nextJobResponse.ok) {
-                const nextJobData = await nextJobResponse.json();
+              const nextJobResponse = await api.getJob(currentJobId);
+              if (nextJobResponse.status === 200) {
+                const nextJobData = nextJobResponse.data;
                 const nextJob = nextJobData.job;
                 currentJobId = nextJob?.metadata?.resume_job_id;
               } else {
@@ -899,9 +897,9 @@ export default function ResultsPage() {
             // Fetch steps from each subjob
             for (const subjobId of allSubjobIds) {
               try {
-                const subjobResponse = await fetch(`${API_BASE_URL}/api/v1/results/jobs/${subjobId}`);
-                if (subjobResponse.ok) {
-                  const subjobData = await subjobResponse.json();
+                const subjobResponse = await apiClient.get(`/v1/results/jobs/${subjobId}`).catch(() => null);
+                if (subjobResponse && subjobResponse.status === 200) {
+                  const subjobData = subjobResponse.data;
                   if (subjobData.steps && subjobData.steps.length > 0) {
                     // Add job_id to each step to identify which subjob it belongs to
                     const subjobSteps = subjobData.steps.map((step: StepInfo) => ({
@@ -936,9 +934,9 @@ export default function ResultsPage() {
         if (jobResults.steps && jobResults.steps.length > 0) {
           // Try to get step results from job result API
           try {
-            const resultResponse = await fetch(`${API_BASE_URL}/api/v1/jobs/${jobId}/result`);
-            if (resultResponse.ok) {
-              const resultData = await resultResponse.json();
+            const resultResponse = await api.getJobResult(jobId);
+            if (resultResponse.status === 200) {
+              const resultData = resultResponse.data;
               let actualResult = resultData.result;
               if (actualResult && actualResult.result) {
                 actualResult = actualResult.result;
@@ -964,9 +962,9 @@ export default function ResultsPage() {
           if (allSubjobIds.length > 0) {
             for (const subjobId of allSubjobIds) {
               try {
-                const subjobResultResponse = await fetch(`${API_BASE_URL}/api/v1/jobs/${subjobId}/result`);
-                if (subjobResultResponse.ok) {
-                  const subjobResultData = await subjobResultResponse.json();
+                const subjobResultResponse = await api.getJobResult(subjobId);
+                if (subjobResultResponse.status === 200) {
+                  const subjobResultData = subjobResultResponse.data;
                   let subjobActualResult = subjobResultData.result;
                   if (subjobActualResult && subjobActualResult.result) {
                     subjobActualResult = subjobActualResult.result;
@@ -1677,11 +1675,12 @@ export default function ResultsPage() {
                             startIcon={<Download />}
                             onClick={async () => {
                               try {
-                                const response = await fetch(
-                                  `${API_BASE_URL}/api/v1/results/jobs/${selectedJob.job_id}/steps/00_input.json/download`
+                                const response = await apiClient.get(
+                                  `/v1/results/jobs/${selectedJob.job_id}/steps/00_input.json/download`,
+                                  { responseType: 'blob' }
                                 );
-                                if (response.ok) {
-                                  const blob = await response.blob();
+                                if (response.status === 200) {
+                                  const blob = response.data;
                                   const url = window.URL.createObjectURL(blob);
                                   const a = document.createElement('a');
                                   a.href = url;

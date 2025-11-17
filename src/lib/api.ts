@@ -93,8 +93,8 @@ export const api = {
     apiClient.post('/v1/process/transcript', request),
   
   // Job Management
-  listJobs: (jobType?: string, status?: string, limit = 50): Promise<AxiosResponse<JobListResponse>> => 
-    apiClient.get('/v1/jobs', { params: { job_type: jobType, status, limit } }),
+  listJobs: (jobType?: string, status?: string, limit = 50, includeSubjobStatus?: boolean): Promise<AxiosResponse<JobListResponse>> => 
+    apiClient.get('/v1/jobs', { params: { job_type: jobType, status, limit, include_subjob_status: includeSubjobStatus } }),
   
   getJob: (jobId: string): Promise<AxiosResponse<JobResponse>> => 
     apiClient.get(`/v1/jobs/${jobId}`),
