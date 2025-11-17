@@ -52,7 +52,7 @@ import {
   CloudUpload,
   Download,
 } from '@mui/icons-material'
-import { useInternalDocsConfig, useInternalDocsVersions, useCreateOrUpdateInternalDocsConfig, useActivateInternalDocsVersion } from '@/hooks/useApi'
+import { useInternalDocsConfig, useInternalDocsVersions, useCreateOrUpdateInternalDocsConfig, useActivateInternalDocsVersion, useJobStatus } from '@/hooks/useApi'
 import { showSuccessToast, showErrorToast } from '@/lib/toast-utils'
 import { api } from '@/lib/api'
 import type { InternalDocsConfig, ScannedDocumentDB, DocumentFilters } from '@/types/api'
@@ -83,7 +83,11 @@ export default function InternalDocsPage() {
   const [followExternal, setFollowExternal] = useState(false)
   const [maxPages, setMaxPages] = useState(100)
   const [isScanning, setIsScanning] = useState(false)
-  const [scanResult, setScanResult] = useState<{ message: string; scanned_count: number } | null>(null)
+  const [scanResult, setScanResult] = useState<{ message: string; scanned_count: number; job_id?: string } | null>(null)
+  const [scanJobId, setScanJobId] = useState<string | null>(null)
+  
+  // Poll for scan job completion
+  const { data: scanJobStatus } = useJobStatus(scanJobId || '', !!scanJobId)
   
   // Tab state
   const [activeTab, setActiveTab] = useState(0)
@@ -269,15 +273,13 @@ export default function InternalDocsPage() {
       
       // Scan now runs as a background job
       const jobId = response.data.job_id
+      setScanJobId(jobId) // Start tracking job status
       showSuccessToast('Scan started', `Scan job started (Job ID: ${jobId}). The scan is running in the background.`)
       setScanResult({
         message: `Scan job started. Job ID: ${jobId}`,
         scanned_count: 0,
         job_id: jobId
       })
-      
-      // Don't auto-refetch - let user manually refresh if needed
-      // The config will be updated when the job completes
     } catch (error) {
       showErrorToast('Scan failed', error instanceof Error ? error.message : 'Failed to start scan')
     } finally {
@@ -314,6 +316,31 @@ export default function InternalDocsPage() {
       loadDocuments()
     }
   }, [activeTab])
+
+  // Handle scan job completion
+  useEffect(() => {
+    if (!scanJobStatus?.data) return
+
+    const status = scanJobStatus.data.status
+
+    if (status === 'completed') {
+      setScanJobId(null) // Stop polling
+      refetch().catch(() => {}) // Refetch the updated config
+      loadDocuments() // Reload documents list
+      showSuccessToast(
+        'Scan completed',
+        'Internal documents scan has completed successfully. Documents have been added to the configuration.'
+      )
+      setScanResult(null) // Clear scan result
+    } else if (status === 'failed') {
+      setScanJobId(null) // Stop polling
+      showErrorToast(
+        'Scan failed',
+        scanJobStatus.data.error || 'Failed to scan internal documents'
+      )
+      setScanResult(null) // Clear scan result
+    }
+  }, [scanJobStatus, refetch])
 
   // Handle document selection
   const handleSelectDocument = (url: string) => {
