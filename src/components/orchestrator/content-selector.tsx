@@ -21,7 +21,7 @@ interface ContentSelectorProps {
 }
 
 export function ContentSelector({ onContentSelect, selectedContent }: ContentSelectorProps) {
-  const [selectedSource, setSelectedSource] = useState<string>('local_content')
+  const [selectedSource, setSelectedSource] = useState<string>('s3_content')
   
   // Fetch content from the selected source
   const { data: contentData, isLoading, error } = useSourceContent(selectedSource, 20)
