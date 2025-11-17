@@ -8,7 +8,6 @@ import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
 import Paper from '@mui/material/Paper'
 import Chip from '@mui/material/Chip'
-import LinearProgress from '@mui/material/LinearProgress'
 import CircularProgress from '@mui/material/CircularProgress'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import HourglassEmptyIcon from '@mui/icons-material/HourglassEmpty'
@@ -153,7 +152,7 @@ export default function PipelinePage() {
         </Grid>
 
         {/* Content Selection */}
-        <Grid size={{ xs: 12, lg: 6 }}>
+        <Grid size={{ xs: 12 }}>
           <Paper elevation={2} sx={{ p: 3, borderRadius: 2, height: '100%' }}>
             <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
               Select Content
@@ -165,83 +164,6 @@ export default function PipelinePage() {
           </Paper>
         </Grid>
 
-        {/* Pipeline Status */}
-        <Grid size={{ xs: 12, lg: 6 }}>
-          <Paper elevation={2} sx={{ p: 3, borderRadius: 2, height: '100%' }}>
-            <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
-              Active Pipeline
-            </Typography>
-            
-            <Paper 
-              elevation={0} 
-              sx={{ 
-                mb: 3, 
-                p: 2.5, 
-                bgcolor: 'success.50', 
-                borderRadius: 2,
-                border: 1,
-                borderColor: 'success.200'
-              }}
-            >
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                <CheckCircleIcon sx={{ color: 'success.main', fontSize: 22 }} />
-                <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                  Pipeline Ready
-                </Typography>
-              </Box>
-              <Typography variant="caption" color="text.secondary">
-                All systems operational • Last run: 2 minutes ago
-              </Typography>
-            </Paper>
-
-            {/* Recent Jobs */}
-            <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600, color: 'text.secondary' }}>
-              Recent Jobs
-            </Typography>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-              {[
-                { title: 'Blog Post Processing', status: 'completed', progress: 100, color: 'success' },
-                { title: 'SEO Optimization', status: 'in_progress', progress: 65, color: 'warning' },
-                { title: 'Content Analysis', status: 'queued', progress: 0, color: 'info' },
-              ].map((job, index) => (
-                <Paper 
-                  key={index} 
-                  elevation={0}
-                  sx={{ 
-                    p: 2, 
-                    bgcolor: 'grey.50', 
-                    borderRadius: 2,
-                    border: 1,
-                    borderColor: 'divider'
-                  }}
-                >
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: job.progress > 0 ? 1.5 : 0 }}>
-                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                      {job.title}
-                    </Typography>
-                    <Chip
-                      label={job.status.replace('_', ' ')}
-                      size="small"
-                      color={job.color as any}
-                      sx={{ textTransform: 'capitalize', height: 22, fontSize: '0.7rem', fontWeight: 600 }}
-                    />
-                  </Box>
-                  {job.progress > 0 && (
-                    <LinearProgress
-                      variant="determinate"
-                      value={job.progress}
-                      color={job.color as any}
-                      sx={{
-                        height: 6,
-                        borderRadius: 3,
-                      }}
-                    />
-                  )}
-                </Paper>
-              ))}
-            </Box>
-          </Paper>
-        </Grid>
       </Grid>
     </Box>
   )
