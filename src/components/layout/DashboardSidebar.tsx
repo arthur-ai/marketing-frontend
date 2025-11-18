@@ -16,6 +16,7 @@ import ArticleIcon from '@mui/icons-material/Article'
 import AccountTreeIcon from '@mui/icons-material/AccountTree'
 import UploadFileIcon from '@mui/icons-material/UploadFile'
 import BarChartIcon from '@mui/icons-material/BarChart'
+import SettingsIcon from '@mui/icons-material/Settings'
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch'
 import FolderIcon from '@mui/icons-material/Folder'
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser'
@@ -42,9 +43,9 @@ const menuItems = [
   { title: 'Design Kit', icon: <PaletteIcon />, path: '/design-kit' },
 ]
 
-// const bottomItems = [
-//   { title: 'Settings', icon: <SettingsIcon />, path: '/settings' },
-// ]
+const bottomItems = [
+  { title: 'Settings', icon: <SettingsIcon />, path: '/settings' },
+]
 
 export function DashboardSidebar({
   drawerWidth,
