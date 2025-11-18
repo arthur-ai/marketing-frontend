@@ -16,14 +16,13 @@ import ArticleIcon from '@mui/icons-material/Article'
 import AccountTreeIcon from '@mui/icons-material/AccountTree'
 import UploadFileIcon from '@mui/icons-material/UploadFile'
 import BarChartIcon from '@mui/icons-material/BarChart'
-import SettingsIcon from '@mui/icons-material/Settings'
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch'
 import FolderIcon from '@mui/icons-material/Folder'
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser'
 import DescriptionIcon from '@mui/icons-material/Description'
 import PaletteIcon from '@mui/icons-material/Palette'
 import Badge from '@mui/material/Badge'
-import { usePendingApprovals } from '@/hooks/useApi'
+import { usePendingApprovals, useHealth } from '@/hooks/useApi'
 
 interface DashboardSidebarProps {
   drawerWidth: number
@@ -58,6 +57,8 @@ export function DashboardSidebar({
   const shouldPoll = pathname === '/results' || pathname === '/pipeline' || pathname === '/approvals'
   const { data: pendingData } = usePendingApprovals(undefined, shouldPoll)
   const pendingCount = pendingData?.data?.pending || 0
+  const { data: health } = useHealth()
+  const version = health?.data?.version || '1.0.0'
 
   const drawer = (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -88,7 +89,7 @@ export function DashboardSidebar({
             Marketing Tool
           </Typography>
           <Chip
-            label="v1.0.0"
+            label={`v${version}`}
             size="small"
             sx={{
               height: 18,
@@ -152,46 +153,7 @@ export function DashboardSidebar({
         </List>
       </Box>
 
-      <Divider />
-
-      {/* Bottom Menu */}
-      <List sx={{ p: 2 }}>
-        {bottomItems.map((item) => {
-          const isActive = pathname === item.path
-          
-          return (
-            <ListItem key={item.path} disablePadding>
-              <ListItemButton
-                onClick={() => router.push(item.path)}
-                sx={{
-                  borderRadius: 2,
-                  bgcolor: isActive ? 'primary.50' : 'transparent',
-                  color: isActive ? 'primary.main' : 'text.secondary',
-                  '&:hover': {
-                    bgcolor: isActive ? 'primary.100' : 'action.hover',
-                  },
-                }}
-              >
-                <ListItemIcon
-                  sx={{
-                    minWidth: 40,
-                    color: isActive ? 'primary.main' : 'text.secondary',
-                  }}
-                >
-                  {item.icon}
-                </ListItemIcon>
-                <ListItemText
-                  primary={item.title}
-                  primaryTypographyProps={{
-                    fontSize: '0.875rem',
-                    fontWeight: isActive ? 600 : 500,
-                  }}
-                />
-              </ListItemButton>
-            </ListItem>
-          )
-        })}
-      </List>
+      {/* Bottom Menu - Removed for now, can be added back when needed */}
     </Box>
   )
 
