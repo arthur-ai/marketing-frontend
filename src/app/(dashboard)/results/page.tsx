@@ -820,7 +820,7 @@ export default function ResultsPage() {
           setFinalResult(null);
         }
       } else {
-        const data = await response.json();
+        const data = response.data;
         // Ensure status is preserved from job list if not in results
         const jobFromList = jobs.find(j => j.job_id === jobId);
         if (jobFromList?.status) {
