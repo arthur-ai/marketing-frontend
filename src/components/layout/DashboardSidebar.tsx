@@ -43,9 +43,9 @@ const menuItems = [
   { title: 'Design Kit', icon: <PaletteIcon />, path: '/design-kit' },
 ]
 
-const bottomItems = [
-  { title: 'Settings', icon: <SettingsIcon />, path: '/settings' },
-]
+// const bottomItems = [
+//   { title: 'Settings', icon: <SettingsIcon />, path: '/settings' },
+// ]
 
 export function DashboardSidebar({
   drawerWidth,
