@@ -54,7 +54,9 @@ export function DashboardSidebar({
 }: DashboardSidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
-  const { data: pendingData } = usePendingApprovals()
+  // Only enable polling on results, pipeline, and approvals pages
+  const shouldPoll = pathname === '/results' || pathname === '/pipeline' || pathname === '/approvals'
+  const { data: pendingData } = usePendingApprovals(undefined, shouldPoll)
   const pendingCount = pendingData?.data?.pending || 0
 
   const drawer = (

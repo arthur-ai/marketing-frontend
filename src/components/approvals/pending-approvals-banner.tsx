@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { AlertCircle, ChevronDown, ChevronUp, Clock } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
@@ -12,7 +12,10 @@ import { getApprovalRoute } from '@/lib/approval-routing'
 
 export function PendingApprovalsBanner() {
   const router = useRouter()
-  const { data, isLoading } = usePendingApprovals()
+  const pathname = usePathname()
+  // Only enable polling on results, pipeline, and approvals pages
+  const shouldPoll = pathname === '/results' || pathname === '/pipeline' || pathname === '/approvals'
+  const { data, isLoading } = usePendingApprovals(undefined, shouldPoll)
   const [isExpanded, setIsExpanded] = useState(false)
 
   if (isLoading || !data?.data || data.data.pending === 0) {

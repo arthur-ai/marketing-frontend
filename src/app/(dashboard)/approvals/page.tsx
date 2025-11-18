@@ -31,7 +31,8 @@ import { getApprovalRoute } from '@/lib/approval-routing'
 
 export default function ApprovalsPage() {
   const router = useRouter()
-  const { data, isLoading, refetch } = usePendingApprovals()
+  // Enable polling on approvals page
+  const { data, isLoading, refetch } = usePendingApprovals(undefined, true)
 
   const formatTimeAgo = (dateString: string) => {
     const date = new Date(dateString)

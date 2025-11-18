@@ -112,11 +112,12 @@ export function useReady() {
 }
 
 // Approval Hooks
-export function usePendingApprovals(jobId?: string) {
+export function usePendingApprovals(jobId?: string, enabled: boolean = true) {
   return useQuery({
     queryKey: ['approvals', 'pending', jobId],
     queryFn: () => api.getPendingApprovals(jobId),
-    refetchInterval: 5000, // Poll every 5 seconds for pending approvals
+    enabled: enabled,
+    refetchInterval: enabled ? 5000 : false, // Poll every 5 seconds only when enabled
     staleTime: 2000,
   })
 }
