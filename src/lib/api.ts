@@ -105,6 +105,12 @@ export const api = {
   getJobResult: (jobId: string): Promise<AxiosResponse<any>> => 
     apiClient.get(`/v1/jobs/${jobId}/result`),
   
+  getJobChain: (jobId: string): Promise<AxiosResponse<any>> => 
+    apiClient.get(`/v1/jobs/${jobId}/chain`),
+  
+  getJobTimeline: (jobId: string): Promise<AxiosResponse<any>> => 
+    apiClient.get(`/v1/results/jobs/${jobId}/timeline`),
+  
   // Pipeline Step Execution
   getPipelineSteps: (): Promise<AxiosResponse<StepListResponse>> => 
     apiClient.get('/v1/pipeline/steps'),

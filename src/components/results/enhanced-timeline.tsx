@@ -25,6 +25,7 @@ import {
   Security,
   Timeline as TimelineIcon,
 } from '@mui/icons-material';
+import { api } from '@/lib/api';
 
 interface TimelineEvent {
   event_type: 'step' | 'approval' | 'job_boundary' | 'job_completion';
@@ -63,13 +64,11 @@ interface TimelineData {
 interface EnhancedTimelineProps {
   jobId: string;
   onEventClick?: (event: TimelineEvent) => void;
-  apiBaseUrl?: string;
 }
 
 const EnhancedTimeline: React.FC<EnhancedTimelineProps> = ({
   jobId,
   onEventClick,
-  apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000',
 }) => {
   const [timelineData, setTimelineData] = useState<TimelineData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -81,11 +80,11 @@ const EnhancedTimeline: React.FC<EnhancedTimelineProps> = ({
     const fetchTimeline = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`${apiBaseUrl}/api/v1/results/jobs/${jobId}/timeline`);
-        if (!response.ok) {
+        const response = await api.getJobTimeline(jobId);
+        if (response.status !== 200) {
           throw new Error('Failed to fetch timeline');
         }
-        const data = await response.json();
+        const data = response.data;
         setTimelineData(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load timeline');
@@ -97,7 +96,7 @@ const EnhancedTimeline: React.FC<EnhancedTimelineProps> = ({
     if (jobId) {
       fetchTimeline();
     }
-  }, [jobId, apiBaseUrl]);
+  }, [jobId]);
 
   const toggleEvent = (eventId: string) => {
     setExpandedEvents((prev) => {

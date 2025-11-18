@@ -68,7 +68,15 @@ jobs:
             
             if [ -n "$LATEST_TAG" ] && [ "$LATEST_TAG" != "null" ] && [ "$LATEST_TAG" != "" ]; then
               echo "✅ Found backend version tag: $LATEST_TAG"
-              VERSION="$LATEST_TAG"
+              # Increment patch version by 0.0.1 (increment last number by 1)
+              # Extract version numbers (e.g., v1.2.3 -> 1 2 3)
+              VERSION_PARTS=$(echo "$LATEST_TAG" | sed 's/^v//' | tr '.' ' ')
+              MAJOR=$(echo $VERSION_PARTS | cut -d' ' -f1)
+              MINOR=$(echo $VERSION_PARTS | cut -d' ' -f2)
+              PATCH=$(echo $VERSION_PARTS | cut -d' ' -f3)
+              # Increment patch version
+              PATCH=$((PATCH + 1))
+              VERSION="v${MAJOR}.${MINOR}.${PATCH}"
             else
               echo "⚠️  No backend version tag found, falling back to commit SHA"
               VERSION="main-$(git rev-parse --short HEAD)"

@@ -21,6 +21,7 @@ import {
   PlayArrow,
   HourglassEmpty,
 } from '@mui/icons-material';
+import { api } from '@/lib/api';
 
 interface JobNode {
   id: string;
@@ -49,14 +50,12 @@ interface JobHierarchyTreeProps {
   jobId: string;
   selectedJobId?: string;
   onJobClick?: (jobId: string) => void;
-  apiBaseUrl?: string;
 }
 
 const JobHierarchyTree: React.FC<JobHierarchyTreeProps> = ({
   jobId,
   selectedJobId,
   onJobClick,
-  apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000',
 }) => {
   const [chainData, setChainData] = useState<JobChainData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -67,11 +66,11 @@ const JobHierarchyTree: React.FC<JobHierarchyTreeProps> = ({
     const fetchChainData = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`${apiBaseUrl}/api/v1/jobs/${jobId}/chain`);
-        if (!response.ok) {
+        const response = await api.getJobChain(jobId);
+        if (response.status !== 200) {
           throw new Error('Failed to fetch job chain');
         }
-        const data = await response.json();
+        const data = response.data;
         setChainData(data);
         // Expand nodes to show the selected job
         const nodesToExpand = new Set<string>();
@@ -100,7 +99,7 @@ const JobHierarchyTree: React.FC<JobHierarchyTreeProps> = ({
     if (jobId) {
       fetchChainData();
     }
-  }, [jobId, selectedJobId, apiBaseUrl]);
+  }, [jobId, selectedJobId]);
 
   const toggleNode = (nodeId: string) => {
     setExpandedNodes((prev) => {
