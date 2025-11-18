@@ -5,10 +5,13 @@ import Typography from '@mui/material/Typography'
 import Paper from '@mui/material/Paper'
 import Tabs from '@mui/material/Tabs'
 import Tab from '@mui/material/Tab'
+import Button from '@mui/material/Button'
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import ArticleIcon from '@mui/icons-material/Article'
 import SourceIcon from '@mui/icons-material/Source'
 import ListAltIcon from '@mui/icons-material/ListAlt'
+import CloudUploadIcon from '@mui/icons-material/CloudUpload'
 import { ContentList } from '@/components/content/content-list'
 import { ContentSources } from '@/components/content/content-sources'
 
@@ -36,6 +39,7 @@ function TabPanel(props: TabPanelProps) {
 
 export default function ContentPage() {
   const [tabValue, setTabValue] = useState(0)
+  const router = useRouter()
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue)
@@ -44,16 +48,26 @@ export default function ContentPage() {
   return (
     <Box>
       {/* Page Header */}
-      <Box sx={{ mb: 4 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-          <ArticleIcon sx={{ fontSize: 32, color: 'primary.main' }} />
-          <Typography variant="h4" sx={{ fontWeight: 700, color: 'text.primary' }}>
-            Content Management
+      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+            <ArticleIcon sx={{ fontSize: 32, color: 'primary.main' }} />
+            <Typography variant="h4" sx={{ fontWeight: 700, color: 'text.primary' }}>
+              Content Management
+            </Typography>
+          </Box>
+          <Typography variant="body1" color="text.secondary">
+            Browse, manage, and process your marketing content
           </Typography>
         </Box>
-        <Typography variant="body1" color="text.secondary">
-          Browse, manage, and process your marketing content
-        </Typography>
+        <Button
+          variant="contained"
+          startIcon={<CloudUploadIcon />}
+          onClick={() => router.push('/upload')}
+          sx={{ mt: 1 }}
+        >
+          Upload Content
+        </Button>
       </Box>
 
       {/* Content Area */}
