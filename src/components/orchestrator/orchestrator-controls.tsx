@@ -44,6 +44,14 @@ interface OrchestratorControlsProps {
   }
 }
 
+// Social media pipeline steps (constant, defined outside component)
+const socialMediaSteps: PipelineStep[] = [
+  { id: 'seo_keywords', name: 'SEO Keywords', status: 'pending', requiresApproval: true },
+  { id: 'social_media_marketing_brief', name: 'Marketing Brief', status: 'pending', requiresApproval: true },
+  { id: 'social_media_angle_hook', name: 'Angle & Hook', status: 'pending', requiresApproval: true },
+  { id: 'social_media_post_generation', name: 'Post Generation', status: 'pending', requiresApproval: true },
+]
+
 export function OrchestratorControls({ selectedContent }: OrchestratorControlsProps) {
   const [isProcessing, setIsProcessing] = useState(false)
   const [processingStep, setProcessingStep] = useState('')
@@ -59,14 +67,6 @@ export function OrchestratorControls({ selectedContent }: OrchestratorControlsPr
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
   const { steps: pipelineVisualizerSteps } = usePipelineSteps()
   
-  // Social media pipeline steps
-  const socialMediaSteps: PipelineStep[] = [
-    { id: 'seo_keywords', name: 'SEO Keywords', status: 'pending', requiresApproval: true },
-    { id: 'social_media_marketing_brief', name: 'Marketing Brief', status: 'pending', requiresApproval: true },
-    { id: 'social_media_angle_hook', name: 'Angle & Hook', status: 'pending', requiresApproval: true },
-    { id: 'social_media_post_generation', name: 'Post Generation', status: 'pending', requiresApproval: true },
-  ]
-  
   const [currentPipelineSteps, setCurrentPipelineSteps] = useState<PipelineStep[]>(
     outputContentType === 'social_media_post' ? socialMediaSteps : pipelineVisualizerSteps
   )
@@ -78,7 +78,8 @@ export function OrchestratorControls({ selectedContent }: OrchestratorControlsPr
     } else {
       setCurrentPipelineSteps(pipelineVisualizerSteps.map(s => ({ ...s, status: 'pending' as const })))
     }
-  }, [outputContentType, pipelineVisualizerSteps])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [outputContentType])
   const [currentJobId, setCurrentJobId] = useState<string | null>(null)
 
   const analyzeContentMutation = useAnalyzeContent()
@@ -595,51 +596,114 @@ export function OrchestratorControls({ selectedContent }: OrchestratorControlsPr
           </Box>
           
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-            {/* Content Type Indicator */}
+            {/* Content Type Selectors */}
             <Box sx={{ 
               display: 'flex', 
               flexDirection: 'column',
-              gap: 1.5,
+              gap: 2,
               p: 2, 
               borderRadius: 2, 
               bgcolor: 'primary.50',
               border: 1,
               borderColor: 'primary.200'
             }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexGrow: 1 }}>
-                <ArticleIcon sx={{ color: 'primary.main' }} />
-                <Box sx={{ flexGrow: 1 }}>
-                  <Typography variant="body2" sx={{ fontWeight: 600, color: 'primary.dark' }}>
-                    Input Type: <span style={{ textTransform: 'capitalize' }}>{contentType.replace('_', ' ')}</span>
-                  </Typography>
-                  <Typography variant="caption" color="primary.main">
-                    Will route to: /api/v1/process/{contentType.replace('_', '-')}
-                  </Typography>
-                </Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
+                <BoltIcon sx={{ color: 'primary.main' }} />
+                <Typography variant="body2" sx={{ fontWeight: 600, color: 'primary.dark' }}>
+                  Processing Configuration
+                </Typography>
                 <Chip
                   label="Deterministic"
                   color="primary"
                   size="small"
-                  sx={{ fontWeight: 700 }}
+                  sx={{ fontWeight: 700, ml: 'auto' }}
                 />
               </Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                <ArticleIcon sx={{ color: 'secondary.main' }} />
-                <Box sx={{ flexGrow: 1 }}>
-                  <Typography variant="body2" sx={{ fontWeight: 600, color: 'secondary.dark' }}>
-                    Output Type: <span style={{ textTransform: 'capitalize' }}>{outputContentType.replace('_', ' ')}</span>
-                    {outputContentType === 'social_media_post' && socialMediaPlatform && (
-                      <span> - {socialMediaPlatform.charAt(0).toUpperCase() + socialMediaPlatform.slice(1)}
-                      {socialMediaPlatform === 'email' && emailType && ` (${emailType})`}
-                      </span>
-                    )}
-                  </Typography>
-                  <Typography variant="caption" color="secondary.main">
-                    Generated content will be formatted as: {outputContentType.replace('_', ' ')}
-                    {outputContentType === 'social_media_post' && socialMediaPlatform && ` for ${socialMediaPlatform}`}
-                  </Typography>
-                </Box>
-              </Box>
+              
+              <FormControl fullWidth size="small">
+                <InputLabel>Input Content Type</InputLabel>
+                <Select
+                  value={contentType}
+                  onChange={(e) => setContentType(e.target.value as 'blog_post' | 'transcript' | 'release_notes')}
+                  label="Input Content Type"
+                >
+                  <MenuItem value="blog_post">Blog Post</MenuItem>
+                  <MenuItem value="transcript">Transcript</MenuItem>
+                  <MenuItem value="release_notes">Release Notes</MenuItem>
+                </Select>
+                <Typography variant="caption" color="primary.main" sx={{ mt: 0.5, display: 'block' }}>
+                  Will route to: /api/v1/process/{contentType.replace('_', '-')}
+                </Typography>
+              </FormControl>
+              
+              <FormControl fullWidth size="small">
+                <InputLabel>Output Content Type</InputLabel>
+                <Select
+                  value={outputContentType}
+                  onChange={(e) => {
+                    const newType = e.target.value as 'blog_post' | 'press_release' | 'case_study' | 'social_media_post'
+                    setOutputContentType(newType)
+                    // Reset social media fields if not social media post
+                    if (newType !== 'social_media_post') {
+                      setSocialMediaPlatform('')
+                      setEmailType('')
+                    } else if (!socialMediaPlatform) {
+                      // Set default platform if switching to social media post
+                      setSocialMediaPlatform('linkedin')
+                    }
+                  }}
+                  label="Output Content Type"
+                >
+                  <MenuItem value="blog_post">Blog Post</MenuItem>
+                  <MenuItem value="press_release">Press Release</MenuItem>
+                  <MenuItem value="case_study">Case Study</MenuItem>
+                  <MenuItem value="social_media_post">Social Media Post</MenuItem>
+                </Select>
+                <Typography variant="caption" color="secondary.main" sx={{ mt: 0.5, display: 'block' }}>
+                  Generated content will be formatted as: {outputContentType.replace('_', ' ')}
+                </Typography>
+              </FormControl>
+              
+              {outputContentType === 'social_media_post' && (
+                <>
+                  <FormControl fullWidth size="small">
+                    <InputLabel>Social Media Platform</InputLabel>
+                    <Select
+                      value={socialMediaPlatform}
+                      onChange={(e) => {
+                        const platform = e.target.value as 'linkedin' | 'hackernews' | 'email'
+                        setSocialMediaPlatform(platform)
+                        // Reset email type if not email platform
+                        if (platform !== 'email') {
+                          setEmailType('')
+                        } else if (!emailType) {
+                          // Set default email type if switching to email
+                          setEmailType('newsletter')
+                        }
+                      }}
+                      label="Social Media Platform"
+                    >
+                      <MenuItem value="linkedin">LinkedIn</MenuItem>
+                      <MenuItem value="hackernews">Hackernews</MenuItem>
+                      <MenuItem value="email">Email</MenuItem>
+                    </Select>
+                  </FormControl>
+                  
+                  {socialMediaPlatform === 'email' && (
+                    <FormControl fullWidth size="small">
+                      <InputLabel>Email Type</InputLabel>
+                      <Select
+                        value={emailType}
+                        onChange={(e) => setEmailType(e.target.value as 'newsletter' | 'promotional')}
+                        label="Email Type"
+                      >
+                        <MenuItem value="newsletter">Newsletter</MenuItem>
+                        <MenuItem value="promotional">Promotional</MenuItem>
+                      </Select>
+                    </FormControl>
+                  )}
+                </>
+              )}
             </Box>
 
             {/* Pipeline Visualizer */}

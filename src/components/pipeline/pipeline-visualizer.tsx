@@ -1,5 +1,6 @@
 'use client'
 
+import { useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { CheckCircle, Circle, Loader2, XCircle, AlertCircle, Shield } from 'lucide-react'
 
@@ -140,14 +141,14 @@ export function PipelineVisualizer({ steps }: PipelineVisualizerProps) {
 
 // Helper hook for managing pipeline state
 export function usePipelineSteps() {
-  const defaultSteps: PipelineStep[] = [
+  const defaultSteps: PipelineStep[] = useMemo(() => [
     { id: 'validate', name: 'Validate', status: 'pending' },
     { id: 'analyze', name: 'Analyze', status: 'pending' },
     { id: 'extract', name: 'Extract SEO', status: 'pending' },
     { id: 'generate', name: 'Generate', status: 'pending' },
     { id: 'optimize', name: 'Optimize', status: 'pending' },
     { id: 'format', name: 'Format', status: 'pending' },
-  ]
+  ], [])
 
   return { steps: defaultSteps }
 }
