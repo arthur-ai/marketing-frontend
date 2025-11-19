@@ -504,10 +504,17 @@ export default function ResultsPage() {
         const data = response.data;
         console.log('Final result API response:', data);
         
-        // Handle nested result structure: result.result
+        // Handle nested result structure: result.pipeline_result or result.result
         let resultData = data.result;
-        if (resultData && resultData.result) {
-          resultData = resultData.result;
+        if (resultData) {
+          // Check for pipeline_result first (new structure)
+          if (resultData.pipeline_result) {
+            resultData = resultData.pipeline_result;
+          } 
+          // Fallback to nested result (old structure)
+          else if (resultData.result) {
+            resultData = resultData.result;
+          }
           
           // Extract step_results and populate stepData
           if (resultData.step_results) {
@@ -522,6 +529,11 @@ export default function ResultsPage() {
                 setStepData((prev) => ({ ...prev, [cacheKey]: stepResult }));
               }
             });
+          }
+          
+          // Also include input_content from the outer result if available
+          if (data.result?.input_content && !resultData.input_content) {
+            resultData.input_content = data.result.input_content;
           }
         }
         
@@ -545,10 +557,17 @@ export default function ResultsPage() {
           const jobData = jobResponse.data;
           console.log('Job details response:', jobData);
           if (jobData.job?.result) {
-            // Handle nested result structure
+            // Handle nested result structure: pipeline_result or result
             let resultData = jobData.job.result;
-            if (resultData && resultData.result) {
-              resultData = resultData.result;
+            if (resultData) {
+              // Check for pipeline_result first (new structure)
+              if (resultData.pipeline_result) {
+                resultData = resultData.pipeline_result;
+              } 
+              // Fallback to nested result (old structure)
+              else if (resultData.result) {
+                resultData = resultData.result;
+              }
               
               // Extract step_results and populate stepData
               if (resultData.step_results) {
@@ -563,6 +582,11 @@ export default function ResultsPage() {
                     setStepData((prev) => ({ ...prev, [cacheKey]: stepResult }));
                   }
                 });
+              }
+              
+              // Also include input_content from the outer result if available
+              if (jobData.job.result?.input_content && !resultData.input_content) {
+                resultData.input_content = jobData.job.result.input_content;
               }
             }
             
@@ -648,8 +672,14 @@ export default function ResultsPage() {
         let qualityWarnings = undefined;
         
         if (job.result && job.status === 'completed') {
-          // Handle nested result structure: result.result.step_results
-          const actualResult = (job.result as any).result || job.result;
+          // Handle nested result structure: result.pipeline_result or result.result
+          let actualResult = job.result;
+          if ((job.result as any).pipeline_result) {
+            actualResult = (job.result as any).pipeline_result;
+          } else if ((job.result as any).result) {
+            actualResult = (job.result as any).result;
+          }
+          
           const resultMetadata = actualResult.metadata || {};
           const stepInfo = resultMetadata.step_info || [];
           
@@ -760,8 +790,15 @@ export default function ResultsPage() {
                   if (subjobResultResponse.status === 200) {
                     const subjobResultData = subjobResultResponse.data;
                     let subjobActualResult = subjobResultData.result;
-                    if (subjobActualResult && subjobActualResult.result) {
-                      subjobActualResult = subjobActualResult.result;
+                    if (subjobActualResult) {
+                      // Check for pipeline_result first (new structure)
+                      if (subjobActualResult.pipeline_result) {
+                        subjobActualResult = subjobActualResult.pipeline_result;
+                      } 
+                      // Fallback to nested result (old structure)
+                      else if (subjobActualResult.result) {
+                        subjobActualResult = subjobActualResult.result;
+                      }
                     }
                     
                     if (subjobActualResult?.step_results) {
