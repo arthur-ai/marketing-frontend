@@ -154,6 +154,14 @@ export function useJobApprovals(jobId: string, status?: string) {
   })
 }
 
+export function useStepResult(jobId: string, stepName: string, enabled = true) {
+  return useQuery({
+    queryKey: ['step-result', jobId, stepName],
+    queryFn: () => api.getStepResult(jobId, stepName),
+    enabled: !!jobId && !!stepName && enabled,
+  })
+}
+
 export function useApprovalStats() {
   return useQuery({
     queryKey: ['approvals', 'stats'],

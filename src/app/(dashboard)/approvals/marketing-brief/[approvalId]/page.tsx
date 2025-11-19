@@ -36,6 +36,7 @@ import { vs2015 } from 'react-syntax-highlighter/dist/cjs/styles/hljs'
 import { StepEditor } from '@/components/approvals/StepEditor'
 import { MarkdownSection } from '@/components/approvals/sections/shared/MarkdownSection'
 import { formatApprovalOutput } from '@/lib/approval-formatter'
+import { getJobRoute } from '@/lib/job-routing'
 
 SyntaxHighlighter.registerLanguage('json', json)
 
@@ -194,6 +195,12 @@ export default function MarketingBriefApprovalPage() {
               />
             </Box>
           </Box>
+          <Button
+            variant="outlined"
+            onClick={() => router.push(getJobRoute('marketing_brief', approval.job_id))}
+          >
+            View in Job
+          </Button>
         </Box>
       </Box>
 

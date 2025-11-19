@@ -13,6 +13,7 @@ import { vs2015 } from 'react-syntax-highlighter/dist/cjs/styles/hljs'
 import { StepEditor } from '@/components/approvals/StepEditor'
 import { MarkdownSection } from '@/components/approvals/sections/shared/MarkdownSection'
 import { formatApprovalOutput } from '@/lib/approval-formatter'
+import { getJobRoute } from '@/lib/job-routing'
 
 SyntaxHighlighter.registerLanguage('json', json)
 
@@ -139,6 +140,12 @@ export default function SuggestedLinksApprovalPage() {
               <Chip label={approval.status} color={approval.status === 'pending' ? 'warning' : approval.status === 'approved' ? 'success' : 'error'} />
             </Box>
           </Box>
+          <Button
+            variant="outlined"
+            onClick={() => router.push(getJobRoute(STEP_NAME, approval.job_id))}
+          >
+            View in Job
+          </Button>
         </Box>
       </Box>
 

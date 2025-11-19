@@ -28,6 +28,7 @@ import {
 } from '@mui/icons-material'
 import { usePendingApprovals } from '@/hooks/useApi'
 import { getApprovalRoute } from '@/lib/approval-routing'
+import { getJobRoute } from '@/lib/job-routing'
 
 export default function ApprovalsPage() {
   const router = useRouter()
@@ -210,17 +211,31 @@ export default function ApprovalsPage() {
                             component: 'div' as const,
                           }}
                         />
-                        <Button
-                          variant="contained"
-                          color="primary"
-                          size="small"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            router.push(getApprovalRoute(approval.pipeline_step, approval.id))
-                          }}
-                        >
-                          Review
-                        </Button>
+                        <Box sx={{ display: 'flex', gap: 1 }}>
+                          {approval.job_id && (
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                router.push(getJobRoute(approval.pipeline_step, approval.job_id))
+                              }}
+                            >
+                              View Job
+                            </Button>
+                          )}
+                          <Button
+                            variant="contained"
+                            color="primary"
+                            size="small"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              router.push(getApprovalRoute(approval.pipeline_step, approval.id))
+                            }}
+                          >
+                            Review
+                          </Button>
+                        </Box>
                       </ListItemButton>
                     </ListItem>
                     {index < approvals.length - 1 && <Divider sx={{ my: 1 }} />}

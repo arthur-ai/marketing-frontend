@@ -1,19 +1,23 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useMemo, useId } from 'react'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import Chip from '@mui/material/Chip'
 import CircularProgress from '@mui/material/CircularProgress'
 import Paper from '@mui/material/Paper'
+import FormControl from '@mui/material/FormControl'
+import Select from '@mui/material/Select'
+import MenuItem from '@mui/material/MenuItem'
+import InputLabel from '@mui/material/InputLabel'
 import ArticleIcon from '@mui/icons-material/Article'
 import MicIcon from '@mui/icons-material/Mic'
 import CampaignIcon from '@mui/icons-material/Campaign'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import PersonIcon from '@mui/icons-material/Person'
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday'
-import { useSourceContent } from '@/hooks/useApi'
-import { ContentItem } from '@/types/api'
+import { useSourceContent, useContentSources } from '@/hooks/useApi'
+import type { ContentItem } from '@/types/api'
 
 interface ContentSelectorProps {
   onContentSelect: (content: ContentItem) => void
@@ -21,7 +25,30 @@ interface ContentSelectorProps {
 }
 
 export function ContentSelector({ onContentSelect, selectedContent }: ContentSelectorProps) {
-  const [selectedSource, setSelectedSource] = useState<string>('s3_content')
+  // Fetch available content sources
+  const { data: sourcesData } = useContentSources()
+  const sources = useMemo(() => sourcesData?.data?.sources || [], [sourcesData?.data?.sources])
+  
+  const [selectedSource, setSelectedSource] = useState<string>('all')
+  const [initialized, setInitialized] = useState(false)
+  const selectId = useId()
+  
+  // Set the default source when sources are loaded
+  useEffect(() => {
+    if (sources.length > 0 && !initialized) {
+      // First, try to find an enabled and healthy source
+      const enabledHealthySource = sources.find(
+        (source) => source.metadata?.enabled !== false && source.healthy
+      )
+      if (enabledHealthySource) {
+        setSelectedSource(enabledHealthySource.name)
+      } else {
+        // Fall back to "all" to fetch from all sources
+        setSelectedSource('all')
+      }
+      setInitialized(true)
+    }
+  }, [sources, initialized])
   
   // Fetch content from the selected source
   const { data: contentData, isLoading, error } = useSourceContent(selectedSource, 20)
@@ -88,6 +115,29 @@ export function ContentSelector({ onContentSelect, selectedContent }: ContentSel
 
   return (
     <Box>
+      {/* Source selector */}
+      {sources.length > 0 && (
+        <Box sx={{ mb: 3 }}>
+          <FormControl fullWidth size="small">
+            <InputLabel id={`${selectId}-label`}>Content Source</InputLabel>
+            <Select
+              labelId={`${selectId}-label`}
+              id={selectId}
+              value={selectedSource}
+              label="Content Source"
+              onChange={(e) => setSelectedSource(e.target.value)}
+            >
+              <MenuItem value="all">All Sources</MenuItem>
+              {sources.map((source) => (
+                <MenuItem key={source.name} value={source.name}>
+                  {source.name} {source.healthy ? '✓' : '✗'} {source.metadata?.enabled === false ? '(disabled)' : ''}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Box>
+      )}
+      
       {contentItems.length === 0 ? (
         <Box sx={{ textAlign: 'center', py: 8 }}>
           <ArticleIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 2 }} />

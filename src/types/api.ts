@@ -266,21 +266,27 @@ export interface FileUploadStatusResponse {
 }
 
 // Processor-specific request types
+export type OutputContentType = 'blog_post' | 'press_release' | 'case_study' | 'social_media_post'
+export type SocialMediaPlatform = 'linkedin' | 'hackernews' | 'email'
+export type EmailType = 'newsletter' | 'promotional'
+
 export interface BlogProcessorRequest {
   content: BlogPostContent
-  output_content_type?: 'blog_post' | 'press_release' | 'case_study'
+  output_content_type?: OutputContentType
+  social_media_platform?: SocialMediaPlatform
+  email_type?: EmailType
   options?: Record<string, any>
 }
 
 export interface ReleaseNotesProcessorRequest {
   content: ReleaseNotesContent
-  output_content_type?: 'blog_post' | 'press_release' | 'case_study'
+  output_content_type?: OutputContentType
   options?: Record<string, any>
 }
 
 export interface TranscriptProcessorRequest {
   content: TranscriptContent
-  output_content_type?: 'blog_post' | 'press_release' | 'case_study'
+  output_content_type?: OutputContentType
   options?: Record<string, any>
 }
 

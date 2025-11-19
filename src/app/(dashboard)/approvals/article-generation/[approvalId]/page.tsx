@@ -36,6 +36,7 @@ import { vs2015 } from 'react-syntax-highlighter/dist/cjs/styles/hljs'
 import { StepEditor } from '@/components/approvals/StepEditor'
 import { MarkdownSection } from '@/components/approvals/sections/shared/MarkdownSection'
 import { formatApprovalOutput } from '@/lib/approval-formatter'
+import { getJobRoute } from '@/lib/job-routing'
 
 SyntaxHighlighter.registerLanguage('json', json)
 
@@ -162,6 +163,12 @@ export default function ArticleGenerationApprovalPage() {
               <Chip label={approval.status} color={approval.status === 'pending' ? 'warning' : approval.status === 'approved' ? 'success' : 'error'} />
             </Box>
           </Box>
+          <Button
+            variant="outlined"
+            onClick={() => router.push(getJobRoute('article_generation', approval.job_id))}
+          >
+            View in Job
+          </Button>
         </Box>
       </Box>
 
@@ -226,14 +233,89 @@ export default function ArticleGenerationApprovalPage() {
 
           <Accordion expanded={expandedInput} onChange={(_, isExpanded) => setExpandedInput(isExpanded)}>
             <AccordionSummary expandIcon={<ExpandMore />}>
-              <Typography variant="h6" sx={{ fontWeight: 600 }}>Input Data</Typography>
+              <Typography variant="h6" sx={{ fontWeight: 600 }}>Input Data (SEO Keywords + Marketing Brief)</Typography>
             </AccordionSummary>
             <AccordionDetails>
-              <Paper elevation={0} sx={{ p: 0, bgcolor: 'grey.900', borderRadius: 2, border: '1px solid', borderColor: 'divider', overflow: 'auto', maxHeight: '600px' }}>
-                <SyntaxHighlighter language="json" style={vs2015} customStyle={{ margin: 0, borderRadius: '0.5rem', fontSize: '0.875rem', padding: '1.5rem', background: 'transparent' }}>
-                  {JSON.stringify(approval.input_data, null, 2)}
-                </SyntaxHighlighter>
-              </Paper>
+              <Stack spacing={2}>
+                {approval.input_data?.seo_keywords && (
+                  <Box>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1, color: 'primary.main' }}>
+                      From Step 1: SEO Keywords
+                    </Typography>
+                    <Paper elevation={0} sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
+                      <Typography variant="body2" component="div">
+                        <strong>Main Keyword:</strong> {approval.input_data.seo_keywords.main_keyword || 'N/A'}
+                        <br />
+                        <strong>Primary Keywords:</strong> {Array.isArray(approval.input_data.seo_keywords.primary_keywords) 
+                          ? approval.input_data.seo_keywords.primary_keywords.join(', ') 
+                          : 'N/A'}
+                        <br />
+                        {approval.input_data.seo_keywords.secondary_keywords && (
+                          <>
+                            <strong>Secondary Keywords:</strong> {Array.isArray(approval.input_data.seo_keywords.secondary_keywords)
+                              ? approval.input_data.seo_keywords.secondary_keywords.join(', ')
+                              : 'N/A'}
+                            <br />
+                          </>
+                        )}
+                        {approval.input_data.seo_keywords.search_intent && (
+                          <>
+                            <strong>Search Intent:</strong> {approval.input_data.seo_keywords.search_intent}
+                          </>
+                        )}
+                      </Typography>
+                    </Paper>
+                  </Box>
+                )}
+                {approval.input_data?.marketing_brief && (
+                  <Box>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1, color: 'primary.main' }}>
+                      From Step 2: Marketing Brief
+                    </Typography>
+                    <Paper elevation={0} sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}>
+                      <Typography variant="body2" component="div">
+                        {approval.input_data.marketing_brief.target_audience && (
+                          <>
+                            <strong>Target Audience:</strong> {Array.isArray(approval.input_data.marketing_brief.target_audience)
+                              ? approval.input_data.marketing_brief.target_audience.join(', ')
+                              : approval.input_data.marketing_brief.target_audience}
+                            <br />
+                          </>
+                        )}
+                        {approval.input_data.marketing_brief.key_messages && (
+                          <>
+                            <strong>Key Messages:</strong> {Array.isArray(approval.input_data.marketing_brief.key_messages)
+                              ? approval.input_data.marketing_brief.key_messages.join(', ')
+                              : approval.input_data.marketing_brief.key_messages}
+                            <br />
+                          </>
+                        )}
+                        {approval.input_data.marketing_brief.content_strategy && (
+                          <>
+                            <strong>Content Strategy:</strong> {approval.input_data.marketing_brief.content_strategy}
+                            <br />
+                          </>
+                        )}
+                        {approval.input_data.marketing_brief.tone_and_voice && (
+                          <>
+                            <strong>Tone and Voice:</strong> {approval.input_data.marketing_brief.tone_and_voice}
+                          </>
+                        )}
+                      </Typography>
+                    </Paper>
+                  </Box>
+                )}
+                <Box>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+                    Full Input Data (JSON)
+                  </Typography>
+                  <Paper elevation={0} sx={{ p: 0, bgcolor: 'grey.900', borderRadius: 2, border: '1px solid', borderColor: 'divider', overflow: 'auto', maxHeight: '600px' }}>
+                    <SyntaxHighlighter language="json" style={vs2015} customStyle={{ margin: 0, borderRadius: '0.5rem', fontSize: '0.875rem', padding: '1.5rem', background: 'transparent' }}>
+                      {JSON.stringify(approval.input_data, null, 2)}
+                    </SyntaxHighlighter>
+                  </Paper>
+                </Box>
+              </Stack>
             </AccordionDetails>
           </Accordion>
 

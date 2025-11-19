@@ -33,6 +33,7 @@ import json from 'react-syntax-highlighter/dist/cjs/languages/hljs/json'
 import { vs2015 } from 'react-syntax-highlighter/dist/cjs/styles/hljs'
 import { SEOKeywordsSelection, SelectedKeywords } from '@/components/approvals/seo/SEOKeywordsSelection'
 import { SEOAnalysisMetrics } from '@/components/approvals/sections/seo/SEOAnalysisMetrics'
+import { getJobRoute } from '@/lib/job-routing'
 
 SyntaxHighlighter.registerLanguage('json', json)
 
@@ -309,6 +310,12 @@ export default function SEOKeywordsApprovalPage() {
               />
             </Box>
           </Box>
+          <Button
+            variant="outlined"
+            onClick={() => router.push(getJobRoute('seo_keywords', approval.job_id))}
+          >
+            View in Job
+          </Button>
         </Box>
       </Box>
 

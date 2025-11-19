@@ -52,11 +52,33 @@ export function OrchestratorControls({ selectedContent }: OrchestratorControlsPr
   const [manualTitle, setManualTitle] = useState('')
   const [manualContent, setManualContent] = useState('')
   const [contentType, setContentType] = useState<'blog_post' | 'transcript' | 'release_notes'>('blog_post')
-  const [outputContentType, setOutputContentType] = useState<'blog_post' | 'press_release' | 'case_study'>('blog_post')
+  const [outputContentType, setOutputContentType] = useState<'blog_post' | 'press_release' | 'case_study' | 'social_media_post'>('blog_post')
+  const [socialMediaPlatform, setSocialMediaPlatform] = useState<'linkedin' | 'hackernews' | 'email' | ''>('')
+  const [emailType, setEmailType] = useState<'newsletter' | 'promotional' | ''>('')
   const [useManualInput, setUseManualInput] = useState(false)
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
   const { steps: pipelineVisualizerSteps } = usePipelineSteps()
-  const [currentPipelineSteps, setCurrentPipelineSteps] = useState<PipelineStep[]>(pipelineVisualizerSteps)
+  
+  // Social media pipeline steps
+  const socialMediaSteps: PipelineStep[] = [
+    { id: 'seo_keywords', name: 'SEO Keywords', status: 'pending', requiresApproval: true },
+    { id: 'social_media_marketing_brief', name: 'Marketing Brief', status: 'pending', requiresApproval: true },
+    { id: 'social_media_angle_hook', name: 'Angle & Hook', status: 'pending', requiresApproval: true },
+    { id: 'social_media_post_generation', name: 'Post Generation', status: 'pending', requiresApproval: true },
+  ]
+  
+  const [currentPipelineSteps, setCurrentPipelineSteps] = useState<PipelineStep[]>(
+    outputContentType === 'social_media_post' ? socialMediaSteps : pipelineVisualizerSteps
+  )
+  
+  // Update steps when output type changes
+  useEffect(() => {
+    if (outputContentType === 'social_media_post') {
+      setCurrentPipelineSteps(socialMediaSteps.map(s => ({ ...s, status: 'pending' as const })))
+    } else {
+      setCurrentPipelineSteps(pipelineVisualizerSteps.map(s => ({ ...s, status: 'pending' as const })))
+    }
+  }, [outputContentType, pipelineVisualizerSteps])
   const [currentJobId, setCurrentJobId] = useState<string | null>(null)
 
   const analyzeContentMutation = useAnalyzeContent()
@@ -201,8 +223,12 @@ export function OrchestratorControls({ selectedContent }: OrchestratorControlsPr
     setError(null)
     setResults(null)
 
-    // Initialize pipeline steps
-    setCurrentPipelineSteps(pipelineVisualizerSteps)
+    // Initialize pipeline steps based on output type
+    if (outputContentType === 'social_media_post') {
+      setCurrentPipelineSteps(socialMediaSteps)
+    } else {
+      setCurrentPipelineSteps(pipelineVisualizerSteps)
+    }
 
     // Show processing toast
     const processingToast = showProcessingToast(`Processing ${contentType.replace('_', ' ')}...`)
@@ -229,10 +255,21 @@ export function OrchestratorControls({ selectedContent }: OrchestratorControlsPr
       let jobResponse: { data: { job_id: string } }
       switch (contentType) {
         case 'blog_post':
-          jobResponse = await processBlogMutation.mutateAsync({ 
+          const blogRequest: any = { 
             content: contentData,
             output_content_type: outputContentType
-          })
+          }
+          // Add social media parameters if output type is social_media_post
+          if (outputContentType === 'social_media_post') {
+            if (!socialMediaPlatform) {
+              throw new Error('Please select a social media platform')
+            }
+            blogRequest.social_media_platform = socialMediaPlatform
+            if (socialMediaPlatform === 'email' && emailType) {
+              blogRequest.email_type = emailType
+            }
+          }
+          jobResponse = await processBlogMutation.mutateAsync(blogRequest)
           break
         case 'release_notes':
           jobResponse = await processReleaseNotesMutation.mutateAsync({ 
@@ -410,14 +447,67 @@ export function OrchestratorControls({ selectedContent }: OrchestratorControlsPr
                 <InputLabel>Output Content Type</InputLabel>
                 <Select
                   value={outputContentType}
-                  onChange={(e) => setOutputContentType(e.target.value as 'blog_post' | 'press_release' | 'case_study')}
+                  onChange={(e) => {
+                    const newType = e.target.value as 'blog_post' | 'press_release' | 'case_study' | 'social_media_post'
+                    setOutputContentType(newType)
+                    // Reset social media fields if not social media post
+                    if (newType !== 'social_media_post') {
+                      setSocialMediaPlatform('')
+                      setEmailType('')
+                    } else if (!socialMediaPlatform) {
+                      // Set default platform if switching to social media post
+                      setSocialMediaPlatform('linkedin')
+                    }
+                  }}
                   label="Output Content Type"
                 >
                   <MenuItem value="blog_post">Blog Post</MenuItem>
                   <MenuItem value="press_release">Press Release</MenuItem>
                   <MenuItem value="case_study">Case Study</MenuItem>
+                  <MenuItem value="social_media_post">Social Media Post</MenuItem>
                 </Select>
               </FormControl>
+              
+              {outputContentType === 'social_media_post' && (
+                <>
+                  <FormControl fullWidth>
+                    <InputLabel>Social Media Platform</InputLabel>
+                    <Select
+                      value={socialMediaPlatform}
+                      onChange={(e) => {
+                        const platform = e.target.value as 'linkedin' | 'hackernews' | 'email'
+                        setSocialMediaPlatform(platform)
+                        // Reset email type if not email platform
+                        if (platform !== 'email') {
+                          setEmailType('')
+                        } else if (!emailType) {
+                          // Set default email type if switching to email
+                          setEmailType('newsletter')
+                        }
+                      }}
+                      label="Social Media Platform"
+                    >
+                      <MenuItem value="linkedin">LinkedIn</MenuItem>
+                      <MenuItem value="hackernews">Hackernews</MenuItem>
+                      <MenuItem value="email">Email</MenuItem>
+                    </Select>
+                  </FormControl>
+                  
+                  {socialMediaPlatform === 'email' && (
+                    <FormControl fullWidth>
+                      <InputLabel>Email Type</InputLabel>
+                      <Select
+                        value={emailType}
+                        onChange={(e) => setEmailType(e.target.value as 'newsletter' | 'promotional')}
+                        label="Email Type"
+                      >
+                        <MenuItem value="newsletter">Newsletter</MenuItem>
+                        <MenuItem value="promotional">Promotional</MenuItem>
+                      </Select>
+                    </FormControl>
+                  )}
+                </>
+              )}
               
               {(uploadedFile || manualContent) && (
                 <Box>
@@ -538,9 +628,15 @@ export function OrchestratorControls({ selectedContent }: OrchestratorControlsPr
                 <Box sx={{ flexGrow: 1 }}>
                   <Typography variant="body2" sx={{ fontWeight: 600, color: 'secondary.dark' }}>
                     Output Type: <span style={{ textTransform: 'capitalize' }}>{outputContentType.replace('_', ' ')}</span>
+                    {outputContentType === 'social_media_post' && socialMediaPlatform && (
+                      <span> - {socialMediaPlatform.charAt(0).toUpperCase() + socialMediaPlatform.slice(1)}
+                      {socialMediaPlatform === 'email' && emailType && ` (${emailType})`}
+                      </span>
+                    )}
                   </Typography>
                   <Typography variant="caption" color="secondary.main">
                     Generated content will be formatted as: {outputContentType.replace('_', ' ')}
+                    {outputContentType === 'social_media_post' && socialMediaPlatform && ` for ${socialMediaPlatform}`}
                   </Typography>
                 </Box>
               </Box>

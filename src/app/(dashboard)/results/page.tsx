@@ -43,6 +43,7 @@ import { useJobApprovals, useResumeJob, useApproval } from '@/hooks/useApi';
 import { api, apiClient } from '@/lib/api';
 import { showSuccessToast, showErrorToast } from '@/lib/toast-utils';
 import { getApprovalRoute } from '@/lib/approval-routing';
+import { getJobRoute } from '@/lib/job-routing';
 import { SubjobVisualizer } from '@/components/results/subjob-visualizer';
 import { PerformanceMetrics } from '@/components/results/performance-metrics';
 import { QualityWarningsDisplay } from '@/components/results/quality-warnings-display';
@@ -1415,27 +1416,36 @@ export default function ResultsPage() {
                 <Box sx={{ mb: 3 }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <Box>
-                      <Typography variant="h6" gutterBottom>
-                        {(() => {
-                          // Format: "Original File - Date Time - End State"
-                          const originalFile = selectedJob.metadata.title || 
-                                             selectedJob.metadata.content_id || 
-                                             'Unknown File';
-                          const date = selectedJob.metadata.completed_at || selectedJob.metadata.started_at;
-                          const dateTimeStr = date ? new Date(date).toLocaleString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            year: 'numeric',
-                            hour: 'numeric',
-                            minute: '2-digit'
-                          }) : 'Unknown date';
-                          const endState = selectedJob.metadata.status === 'completed' ? 'blog post' :
-                                         selectedJob.metadata.status === 'failed' ? 'failed' :
-                                         selectedJob.metadata.status === 'waiting_for_approval' ? 'waiting' :
-                                         selectedJob.metadata.status || 'processing';
-                          return `${originalFile} - ${dateTimeStr} - ${endState}`;
-                        })()}
-                      </Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
+                        <Typography variant="h6" gutterBottom={false}>
+                          {(() => {
+                            // Format: "Original File - Date Time - End State"
+                            const originalFile = selectedJob.metadata.title || 
+                                               selectedJob.metadata.content_id || 
+                                               'Unknown File';
+                            const date = selectedJob.metadata.completed_at || selectedJob.metadata.started_at;
+                            const dateTimeStr = date ? new Date(date).toLocaleString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                              hour: 'numeric',
+                              minute: '2-digit'
+                            }) : 'Unknown date';
+                            const endState = selectedJob.metadata.status === 'completed' ? 'blog post' :
+                                           selectedJob.metadata.status === 'failed' ? 'failed' :
+                                           selectedJob.metadata.status === 'waiting_for_approval' ? 'waiting' :
+                                           selectedJob.metadata.status || 'processing';
+                            return `${originalFile} - ${dateTimeStr} - ${endState}`;
+                          })()}
+                        </Typography>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          onClick={() => router.push(`/jobs/${selectedJob.job_id}`)}
+                        >
+                          View Job
+                        </Button>
+                      </Box>
                       {selectedJob.metadata.title && (
                         <Typography variant="subtitle2" color="text.secondary">
                           {selectedJob.metadata.title}
@@ -1657,14 +1667,23 @@ export default function ResultsPage() {
                                     bgcolor: 'warning.50',
                                   }}
                                   secondaryAction={
-                                    <Button
-                                      size="small"
-                                      variant="outlined"
-                                      color="warning"
-                                      onClick={() => router.push(getApprovalRoute(approval.pipeline_step, approval.id))}
-                                    >
-                                      Review
-                                    </Button>
+                                    <Box sx={{ display: 'flex', gap: 1 }}>
+                                      <Button
+                                        size="small"
+                                        variant="outlined"
+                                        onClick={() => router.push(getJobRoute(approval.pipeline_step, approval.job_id))}
+                                      >
+                                        View Job
+                                      </Button>
+                                      <Button
+                                        size="small"
+                                        variant="outlined"
+                                        color="warning"
+                                        onClick={() => router.push(getApprovalRoute(approval.pipeline_step, approval.id))}
+                                      >
+                                        Review
+                                      </Button>
+                                    </Box>
                                   }
                                 >
                                   <ListItemText

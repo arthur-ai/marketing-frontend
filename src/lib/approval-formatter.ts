@@ -161,8 +161,71 @@ export function formatApprovalOutput(output: any, stepName: string): string {
     formatted += qualityMetrics + '\n\n---\n\n'
   }
 
-  // Format the main output with step-specific enhancements
-  formatted += formatObjectAsMarkdown(output, 0)
+  // Step-specific formatting for article_generation
+  if (stepName === 'article_generation') {
+    // Format article title prominently
+    if (output.article_title) {
+      formatted += `## ${output.article_title}\n\n`
+    }
+    
+    // Format hook if available
+    if (output.hook) {
+      formatted += `**Opening Hook:**\n${output.hook}\n\n---\n\n`
+    }
+    
+    // Format outline with emphasis
+    if (output.outline) {
+      formatted += `### Article Outline\n\n`
+      if (Array.isArray(output.outline)) {
+        output.outline.forEach((header: string, index: number) => {
+          formatted += `${index + 1}. ${header}\n`
+        })
+      } else {
+        formatted += `${output.outline}\n`
+      }
+      formatted += '\n---\n\n'
+    }
+    
+    // Format word count if available
+    if (output.word_count) {
+      formatted += `**Word Count:** ${output.word_count} words\n\n`
+    }
+    
+    // Format article content
+    if (output.article_content) {
+      formatted += `### Article Content\n\n${output.article_content}\n\n---\n\n`
+    }
+    
+    // Format key takeaways
+    if (output.key_takeaways && Array.isArray(output.key_takeaways) && output.key_takeaways.length > 0) {
+      formatted += `### Key Takeaways\n\n`
+      output.key_takeaways.forEach((takeaway: string, index: number) => {
+        formatted += `${index + 1}. ${takeaway}\n`
+      })
+      formatted += '\n---\n\n'
+    }
+    
+    // Format call to action
+    if (output.call_to_action) {
+      formatted += `### Call to Action\n\n${output.call_to_action}\n\n`
+    }
+    
+    // Format any remaining fields
+    const remainingFields: Record<string, any> = {}
+    const handledFields = ['article_title', 'hook', 'outline', 'word_count', 'article_content', 'key_takeaways', 'call_to_action', 'confidence_score', 'readability_score', 'engagement_score']
+    for (const [key, value] of Object.entries(output)) {
+      if (!handledFields.includes(key) && value !== null && value !== undefined) {
+        remainingFields[key] = value
+      }
+    }
+    if (Object.keys(remainingFields).length > 0) {
+      formatted += '\n---\n\n### Additional Information\n\n'
+      formatted += formatObjectAsMarkdown(remainingFields, 0)
+    }
+  } else {
+    // Format the main output with step-specific enhancements for other steps
+    formatted += formatObjectAsMarkdown(output, 0)
+  }
 
   return formatted
 }
