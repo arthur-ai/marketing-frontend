@@ -108,8 +108,46 @@ export function OrchestratorControls({ selectedContent }: OrchestratorControlsPr
     // Handle job completion
     if (status === 'completed') {
       setIsProcessing(false)
-      setResults(jobStatus.data.result || {})
+      const result = jobStatus.data.result || {}
+      setResults(result)
       setProcessingStep('Processing completed successfully!')
+      
+      // Update pipeline visualizer with completed steps from result
+      if (result.pipeline_result || result.result) {
+        const pipelineResult = result.pipeline_result || result.result
+        const stepInfo = pipelineResult.metadata?.step_info || []
+        
+        if (stepInfo.length > 0) {
+          setCurrentPipelineSteps(prev =>
+            prev.map((step) => {
+              const stepInfoEntry = stepInfo.find((si: any) => 
+                si.step_name === step.id || 
+                si.step_name?.replace('_', ' ') === step.name.toLowerCase()
+              )
+              if (stepInfoEntry) {
+                return {
+                  ...step,
+                  status: stepInfoEntry.status === 'success' ? 'completed' as const :
+                         stepInfoEntry.status === 'failed' ? 'failed' as const :
+                         'completed' as const
+                }
+              }
+              return step
+            })
+          )
+        } else {
+          // Mark all steps as completed if no step_info available
+          setCurrentPipelineSteps(prev =>
+            prev.map(step => ({ ...step, status: 'completed' as const }))
+          )
+        }
+      } else {
+        // Mark all steps as completed
+        setCurrentPipelineSteps(prev =>
+          prev.map(step => ({ ...step, status: 'completed' as const }))
+        )
+      }
+      
       setCurrentJobId(null) // Stop polling
       
       showSuccessToast(
@@ -133,14 +171,61 @@ export function OrchestratorControls({ selectedContent }: OrchestratorControlsPr
 
     // Update progress on pipeline visualizer
     if (status === 'processing' && progress > 0) {
-      // Calculate which step we're on based on progress
-      const stepIndex = Math.floor((progress / 100) * currentPipelineSteps.length)
-      setCurrentPipelineSteps(prev =>
-        prev.map((step, index) => ({
-          ...step,
-          status: index < stepIndex ? 'completed' : index === stepIndex ? 'in-progress' : 'pending'
-        }))
-      )
+      // Try to map current_step to pipeline steps
+      if (currentStep) {
+        // Map step names to pipeline step IDs
+        const stepNameMap: Record<string, string> = {
+          'seo_keywords': 'seo_keywords',
+          'social_media_marketing_brief': 'social_media_marketing_brief',
+          'social_media_angle_hook': 'social_media_angle_hook',
+          'social_media_post_generation': 'social_media_post_generation',
+          // Also handle step descriptions
+          'Step 1/4: seo keywords': 'seo_keywords',
+          'Step 2/4: marketing brief': 'social_media_marketing_brief',
+          'Step 3/4: angle hook': 'social_media_angle_hook',
+          'Step 4/4: post generation': 'social_media_post_generation',
+        }
+        
+        // Find matching step
+        const currentStepId = stepNameMap[currentStep.toLowerCase()] || 
+          currentPipelineSteps.find(step => 
+            currentStep.toLowerCase().includes(step.id.toLowerCase()) ||
+            step.id.toLowerCase().includes(currentStep.toLowerCase())
+          )?.id
+        
+        if (currentStepId) {
+          setCurrentPipelineSteps(prev => {
+            const currentStepIndex = prev.findIndex(s => s.id === currentStepId)
+            return prev.map((step, index) => {
+              if (step.id === currentStepId) {
+                return { ...step, status: 'in-progress' as const }
+              } else if (index < currentStepIndex) {
+                return { ...step, status: 'completed' as const }
+              } else {
+                return { ...step, status: 'pending' as const }
+              }
+            })
+          })
+        } else {
+          // Fallback to progress-based calculation
+          const stepIndex = Math.floor((progress / 100) * currentPipelineSteps.length)
+          setCurrentPipelineSteps(prev =>
+            prev.map((step, index) => ({
+              ...step,
+              status: index < stepIndex ? 'completed' : index === stepIndex ? 'in-progress' : 'pending'
+            }))
+          )
+        }
+      } else {
+        // Calculate which step we're on based on progress
+        const stepIndex = Math.floor((progress / 100) * currentPipelineSteps.length)
+        setCurrentPipelineSteps(prev =>
+          prev.map((step, index) => ({
+            ...step,
+            status: index < stepIndex ? 'completed' : index === stepIndex ? 'in-progress' : 'pending'
+          }))
+        )
+      }
     }
   }, [jobStatus, contentType, currentPipelineSteps.length])
 

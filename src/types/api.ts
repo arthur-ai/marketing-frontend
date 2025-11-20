@@ -356,9 +356,11 @@ export interface ApprovalListItem {
   job_id: string
   agent_name: string
   step_name: string
+  pipeline_step?: string
   status: ApprovalStatus
   created_at: string
   reviewed_at?: string
+  input_title?: string
 }
 
 export interface PendingApprovalsResponse {

@@ -35,18 +35,16 @@ export default function ApprovalsPage() {
   // Enable polling on approvals page
   const { data, isLoading, refetch } = usePendingApprovals(undefined, true)
 
-  const formatTimeAgo = (dateString: string) => {
+  const formatDateTime = (dateString: string) => {
     const date = new Date(dateString)
-    const now = new Date()
-    const seconds = Math.floor((now.getTime() - date.getTime()) / 1000)
-    
-    if (seconds < 60) return `${seconds}s ago`
-    const minutes = Math.floor(seconds / 60)
-    if (minutes < 60) return `${minutes}m ago`
-    const hours = Math.floor(minutes / 60)
-    if (hours < 24) return `${hours}h ago`
-    const days = Math.floor(hours / 24)
-    return `${days}d ago`
+    const options: Intl.DateTimeFormatOptions = {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    }
+    return date.toLocaleDateString('en-US', options)
   }
 
   const getStatusColor = (status: string) => {
@@ -171,9 +169,7 @@ export default function ApprovalsPage() {
                           primary={
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
                               <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                                {(approval.pipeline_step || 'Unknown Step')
-                                  .replace(/_/g, ' ')
-                                  .toUpperCase()}
+                                {approval.step_name}
                               </Typography>
                               <Chip
                                 label={approval.status}
@@ -187,25 +183,28 @@ export default function ApprovalsPage() {
                             component: 'div' as const,
                           }}
                           secondary={
-                            <Stack spacing={0.5} sx={{ mt: 0.5 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', mt: 0.5 }}>
+                              {approval.input_title && (
+                                <>
+                                  <Typography variant="caption" color="text.secondary">
+                                    {approval.input_title}
+                                  </Typography>
+                                  <Typography variant="caption" color="text.disabled">•</Typography>
+                                </>
+                              )}
+                              <AccessTime sx={{ fontSize: 14 }} />
                               <Typography variant="caption" color="text.secondary">
-                                {approval.step_name}
+                                Created {formatDateTime(approval.created_at)}
                               </Typography>
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                <AccessTime sx={{ fontSize: 14 }} />
-                                <Typography variant="caption" color="text.secondary">
-                                  Created {formatTimeAgo(approval.created_at)}
-                                </Typography>
-                                {approval.job_id && (
-                                  <>
-                                    <Typography variant="caption" color="text.disabled">•</Typography>
-                                    <Typography variant="caption" color="text.secondary">
-                                      Job: {approval.job_id.substring(0, 8)}...
-                                    </Typography>
-                                  </>
-                                )}
-                              </Box>
-                            </Stack>
+                              {approval.job_id && (
+                                <>
+                                  <Typography variant="caption" color="text.disabled">•</Typography>
+                                  <Typography variant="caption" color="text.secondary">
+                                    Job: {approval.job_id.substring(0, 8)}...
+                                  </Typography>
+                                </>
+                              )}
+                            </Box>
                           }
                           secondaryTypographyProps={{
                             component: 'div' as const,
