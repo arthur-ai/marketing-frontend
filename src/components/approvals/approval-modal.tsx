@@ -321,6 +321,7 @@ export function ApprovalModal({ approval, isOpen, onClose, onRetry }: ApprovalMo
 
   const getStepBadgeColor = (stepName: string) => {
     const colors: Record<string, string> = {
+      transcript_preprocessing_approval: 'bg-teal-500',
       seo_keywords: 'bg-green-500',
       marketing_brief: 'bg-red-500',
       article_generation: 'bg-purple-500',
@@ -436,6 +437,10 @@ export function ApprovalModal({ approval, isOpen, onClose, onRetry }: ApprovalMo
                         }
                       }}
                     />
+                  ) : approval.pipeline_step === 'seo_keywords' ? (
+                    <ReactMarkdown>
+                      {formatApprovalOutput(approval.output_data, approval.pipeline_step || 'unknown')}
+                    </ReactMarkdown>
                   ) : (
                     <ReactMarkdown>
                       {formatApprovalOutput(approval.output_data, approval.pipeline_step || 'unknown')}

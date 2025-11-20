@@ -25,6 +25,13 @@ import type { ApprovalSettings } from '@/types/api'
 
 const AVAILABLE_STEPS = [
   {
+    id: 'transcript_preprocessing_approval',
+    name: 'Transcript Preprocessing Approval',
+    description: 'Validate transcript fields (speakers, duration, content) before processing',
+    color: 'info',
+    impact: 'high'
+  },
+  {
     id: 'content_pipeline',
     name: 'Content Pipeline',
     description: 'Main content orchestration and processing',
@@ -79,6 +86,27 @@ const AVAILABLE_STEPS = [
     description: 'Suggest internal links to add to the article',
     color: 'default',
     impact: 'low'
+  },
+  {
+    id: 'social_media_marketing_brief',
+    name: 'Social Media Marketing Brief',
+    description: 'Platform-specific marketing brief for social media',
+    color: 'secondary',
+    impact: 'high'
+  },
+  {
+    id: 'social_media_angle_hook',
+    name: 'Social Media Angle & Hook',
+    description: 'Engaging angles and hooks for social media posts',
+    color: 'info',
+    impact: 'medium'
+  },
+  {
+    id: 'social_media_post_generation',
+    name: 'Social Media Post Generation',
+    description: 'Generate platform-specific social media posts',
+    color: 'primary',
+    impact: 'high'
   }
 ]
 

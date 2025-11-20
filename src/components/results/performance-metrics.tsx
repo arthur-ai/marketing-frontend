@@ -10,7 +10,7 @@ interface PerformanceMetricsProps {
 
 // Approximate token pricing (adjust based on your model)
 const TOKEN_COST_PER_1K = {
-  'gpt-4o-mini': 0.00015, // $0.15 per 1M input, $0.60 per 1M output (average)
+  'gpt-5.1': 0.00015, // $0.15 per 1M input, $0.60 per 1M output (average)
   'gpt-4': 0.03, // $30 per 1M input, $60 per 1M output (average)
   'default': 0.001 // Default estimate
 }

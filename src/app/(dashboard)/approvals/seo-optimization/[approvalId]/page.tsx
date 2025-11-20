@@ -51,7 +51,7 @@ export default function SEOOptimizationApprovalPage() {
   
   const [comment, setComment] = useState('')
   const [modifiedOutput, setModifiedOutput] = useState('')
-  const [decision, setDecision] = useState<'approve' | 'reject' | 'modify' | null>(null)
+  const [decision, setDecision] = useState<'approve' | 'reject' | 'modify' | 'rerun' | null>(null)
   const [editedData, setEditedData] = useState<any>(null)
   const [hasEditorChanges, setHasEditorChanges] = useState(false)
   const [expandedOutput, setExpandedOutput] = useState(false)
@@ -90,7 +90,7 @@ export default function SEOOptimizationApprovalPage() {
 
   const isAlreadyDecided = approval.status !== 'pending'
 
-  const handleDecision = async (selectedDecision: 'approve' | 'reject' | 'modify', editedDataOverride?: any) => {
+  const handleDecision = async (selectedDecision: 'approve' | 'reject' | 'modify' | 'rerun', editedDataOverride?: any) => {
     if (isAlreadyDecided) {
       showErrorToast('Already Decided', `This approval has already been ${approval.status}.`)
       return
@@ -98,21 +98,29 @@ export default function SEOOptimizationApprovalPage() {
 
     try {
       let modifiedOutputData = undefined
+      // Determine actual decision: if rerun was selected or if modify with only comment (no edits)
+      let actualDecision = selectedDecision
       if (selectedDecision === 'modify') {
-        if (editedDataOverride) {
-          modifiedOutputData = editedDataOverride
-        } else if (modifiedOutput) {
-          try {
-            modifiedOutputData = JSON.parse(modifiedOutput)
-          } catch (e) {
-            showErrorToast('Invalid JSON', 'The modified output contains invalid JSON')
-            return
+        // If modify is clicked with only comment (no output edits), treat as rerun
+        if (!hasEditorChanges && !editedDataOverride && comment.trim()) {
+          actualDecision = 'rerun'
+        } else {
+          // Normal modify with output edits
+          if (editedDataOverride) {
+            modifiedOutputData = editedDataOverride
+          } else if (modifiedOutput) {
+            try {
+              modifiedOutputData = JSON.parse(modifiedOutput)
+            } catch (e) {
+              showErrorToast('Invalid JSON', 'The modified output contains invalid JSON')
+              return
+            }
           }
         }
       }
 
       const decisionRequest: ApprovalDecisionRequest = {
-        decision: selectedDecision,
+        decision: actualDecision,
         comment: comment || undefined,
         modified_output: modifiedOutputData,
         reviewed_by: 'current_user',
@@ -123,7 +131,8 @@ export default function SEOOptimizationApprovalPage() {
         decision: decisionRequest,
       })
 
-      showSuccessToast(`Approval ${selectedDecision}d`, `SEO Optimization has been ${selectedDecision}d`)
+      const actionText = actualDecision === 'rerun' ? 'rerun' : `${actualDecision}d`
+      showSuccessToast(`Approval ${actionText}`, `SEO Optimization has been ${actionText}`)
       router.push('/approvals')
     } catch (error) {
       showErrorToast('Decision failed', error instanceof Error ? error.message : 'Failed to submit decision')
@@ -276,14 +285,16 @@ export default function SEOOptimizationApprovalPage() {
           <Stack direction="row" spacing={2} justifyContent="flex-end">
             <Button variant="outlined" onClick={() => router.push('/approvals')} disabled={decideApprovalMutation.isPending}>Cancel</Button>
             <Button variant="outlined" color="error" startIcon={<Cancel />} onClick={handleCancelJob} disabled={cancelJobMutation.isPending || isAlreadyDecided}>Cancel Job</Button>
-            <Button variant="outlined" startIcon={<Edit />} onClick={() => { if (decision === 'modify') { setDecision(null); setModifiedOutput(''); setEditedData(null); setHasEditorChanges(false) } else { setDecision('modify'); if (editedData && hasEditorChanges) setModifiedOutput(JSON.stringify(editedData, null, 2)) } }} disabled={decideApprovalMutation.isPending || isAlreadyDecided || (!hasEditorChanges && !comment.trim() && decision !== 'modify')} color={hasEditorChanges ? 'primary' : comment.trim() ? 'primary' : 'inherit'}>
-              {decision === 'modify' ? 'Cancel Modify' : hasEditorChanges ? 'Modify (Changes Made)' : comment.trim() ? 'Modify (With Comments)' : 'Modify'}
+            <Button variant="outlined" startIcon={<Edit />} onClick={() => { if (decision === 'modify') { setDecision(null); setModifiedOutput(''); setEditedData(null); setHasEditorChanges(false) } else { setDecision('modify'); if (editedData && hasEditorChanges) setModifiedOutput(JSON.stringify(editedData, null, 2)) } }} disabled={decideApprovalMutation.isPending || isAlreadyDecided || !comment.trim() || decision === 'modify'} color={hasEditorChanges ? 'primary' : comment.trim() ? 'primary' : 'inherit'}>
+              {decision === 'modify' ? 'Cancel Modify' : hasEditorChanges ? 'Modify (Changes Made)' : comment.trim() ? 'Rerun with Comments' : 'Modify'}
             </Button>
             <Button variant="contained" color="error" startIcon={<Cancel />} onClick={() => handleDecision('reject')} disabled={decideApprovalMutation.isPending || decision !== null || isAlreadyDecided}>Reject</Button>
-            <Button variant="contained" color="success" startIcon={<CheckCircle />} onClick={() => handleDecision('approve')} disabled={decideApprovalMutation.isPending || (decision === 'modify' && !hasEditorChanges) || isAlreadyDecided}>Approve</Button>
+            <Button variant="contained" color="success" startIcon={<CheckCircle />} onClick={() => handleDecision('approve')} disabled={decideApprovalMutation.isPending || (decision === 'modify' && !hasEditorChanges) || isAlreadyDecided}>
+              {hasEditorChanges ? 'Submit Modified' : 'Approve'}
+            </Button>
             {decision === 'modify' && (
-              <Button variant="contained" color="primary" startIcon={<Save />} onClick={() => { if (editedData && hasEditorChanges) handleDecision('modify', editedData); else handleDecision('modify') }} disabled={decideApprovalMutation.isPending || (!hasEditorChanges && !modifiedOutput && !comment.trim()) || isAlreadyDecided}>
-                Submit Modified
+              <Button variant="contained" color="primary" startIcon={<Save />} onClick={() => { if (hasEditorChanges && editedData) handleDecision('modify', editedData); else if (comment.trim()) handleDecision('modify') }} disabled={decideApprovalMutation.isPending || (!hasEditorChanges && !comment.trim()) || isAlreadyDecided}>
+                {hasEditorChanges ? 'Submit Modified' : 'Rerun with Comments'}
               </Button>
             )}
           </Stack>

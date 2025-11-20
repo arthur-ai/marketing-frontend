@@ -324,8 +324,8 @@ export interface TranscriptProcessorResponse extends ProcessorResponse {
 }
 
 // Approval System Types
-export type ApprovalStatus = 'pending' | 'approved' | 'rejected' | 'modified'
-export type ApprovalDecision = 'approve' | 'reject' | 'modify'
+export type ApprovalStatus = 'pending' | 'approved' | 'rejected' | 'modified' | 'rerun'
+export type ApprovalDecision = 'approve' | 'reject' | 'modify' | 'rerun'
 
 export interface SelectedKeywords {
   primary?: string[]
@@ -392,6 +392,7 @@ export interface ApprovalStats {
   approved: number
   rejected: number
   modified: number
+  rerun: number
   avg_review_time_seconds?: number
   approval_rate: number
 }

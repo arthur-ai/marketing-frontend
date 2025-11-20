@@ -51,7 +51,7 @@ export default function MarketingBriefApprovalPage() {
   
   const [comment, setComment] = useState('')
   const [modifiedOutput, setModifiedOutput] = useState('')
-  const [decision, setDecision] = useState<'approve' | 'reject' | 'modify' | null>(null)
+  const [decision, setDecision] = useState<'approve' | 'reject' | 'modify' | 'rerun' | null>(null)
   const [editedData, setEditedData] = useState<any>(null)
   const [hasEditorChanges, setHasEditorChanges] = useState(false)
   const [expandedOutput, setExpandedOutput] = useState(false)
@@ -95,7 +95,7 @@ export default function MarketingBriefApprovalPage() {
 
   const isAlreadyDecided = approval.status !== 'pending'
 
-  const handleDecision = async (selectedDecision: 'approve' | 'reject' | 'modify', editedDataOverride?: any) => {
+  const handleDecision = async (selectedDecision: 'approve' | 'reject' | 'modify' | 'rerun', editedDataOverride?: any) => {
     if (isAlreadyDecided) {
       showErrorToast(
         'Already Decided',
@@ -106,21 +106,29 @@ export default function MarketingBriefApprovalPage() {
 
     try {
       let modifiedOutputData = undefined
+      // Determine actual decision: if rerun was selected or if modify with only comment (no edits)
+      let actualDecision = selectedDecision
       if (selectedDecision === 'modify') {
-        if (editedDataOverride) {
-          modifiedOutputData = editedDataOverride
-        } else if (modifiedOutput) {
-          try {
-            modifiedOutputData = JSON.parse(modifiedOutput)
-          } catch (e) {
-            showErrorToast('Invalid JSON', 'The modified output contains invalid JSON')
-            return
+        // If modify is clicked with only comment (no output edits), treat as rerun
+        if (!hasEditorChanges && !editedDataOverride && comment.trim()) {
+          actualDecision = 'rerun'
+        } else {
+          // Normal modify with output edits
+          if (editedDataOverride) {
+            modifiedOutputData = editedDataOverride
+          } else if (modifiedOutput) {
+            try {
+              modifiedOutputData = JSON.parse(modifiedOutput)
+            } catch (e) {
+              showErrorToast('Invalid JSON', 'The modified output contains invalid JSON')
+              return
+            }
           }
         }
       }
 
       const decisionRequest: ApprovalDecisionRequest = {
-        decision: selectedDecision,
+        decision: actualDecision,
         comment: comment || undefined,
         modified_output: modifiedOutputData,
         reviewed_by: 'current_user',
@@ -131,9 +139,10 @@ export default function MarketingBriefApprovalPage() {
         decision: decisionRequest,
       })
 
+      const actionText = actualDecision === 'rerun' ? 'rerun' : `${actualDecision}d`
       showSuccessToast(
-        `Approval ${selectedDecision}d`,
-        `Marketing Brief has been ${selectedDecision}d`
+        `Approval ${actionText}`,
+        `Marketing Brief has been ${actionText}`
       )
       
       router.push('/approvals')
@@ -450,10 +459,10 @@ export default function MarketingBriefApprovalPage() {
                   }
                 }
               }}
-              disabled={decideApprovalMutation.isPending || isAlreadyDecided || (!hasEditorChanges && !comment.trim() && decision !== 'modify')}
+              disabled={decideApprovalMutation.isPending || isAlreadyDecided || !comment.trim() || decision === 'modify'}
               color={hasEditorChanges ? 'primary' : comment.trim() ? 'primary' : 'inherit'}
             >
-              {decision === 'modify' ? 'Cancel Modify' : hasEditorChanges ? 'Modify (Changes Made)' : comment.trim() ? 'Modify (With Comments)' : 'Modify'}
+              {decision === 'modify' ? 'Cancel Modify' : hasEditorChanges ? 'Modify (Changes Made)' : comment.trim() ? 'Rerun with Comments' : 'Modify'}
             </Button>
             <Button
               variant="contained"
@@ -471,7 +480,7 @@ export default function MarketingBriefApprovalPage() {
               onClick={() => handleDecision('approve')}
               disabled={decideApprovalMutation.isPending || (decision === 'modify' && !hasEditorChanges) || isAlreadyDecided}
             >
-              Approve
+              {hasEditorChanges ? 'Submit Modified' : 'Approve'}
             </Button>
             {decision === 'modify' && (
               <Button
@@ -479,15 +488,15 @@ export default function MarketingBriefApprovalPage() {
                 color="primary"
                 startIcon={<Save />}
                 onClick={() => {
-                  if (editedData && hasEditorChanges) {
+                  if (hasEditorChanges && editedData) {
                     handleDecision('modify', editedData)
-                  } else {
-                    handleDecision('modify')
+                  } else if (comment.trim()) {
+                    handleDecision('modify') // Will trigger rerun if no edits
                   }
                 }}
-                disabled={decideApprovalMutation.isPending || (!hasEditorChanges && !modifiedOutput && !comment.trim()) || isAlreadyDecided}
+                disabled={decideApprovalMutation.isPending || (!hasEditorChanges && !comment.trim()) || isAlreadyDecided}
               >
-                Submit Modified
+                {hasEditorChanges ? 'Submit Modified' : 'Rerun with Comments'}
               </Button>
             )}
           </Stack>

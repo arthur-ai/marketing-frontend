@@ -23,6 +23,7 @@ import {
   CheckCircle,
   Cancel,
   ExpandMore,
+  Refresh,
 } from '@mui/icons-material'
 import { useState, useEffect } from 'react'
 import { useApproval, useDecideApproval, useCancelJob } from '@/hooks/useApi'
@@ -282,6 +283,48 @@ export default function SEOKeywordsApprovalPage() {
     }
   }
 
+  const handleRerun = async () => {
+    if (isAlreadyDecided) {
+      showErrorToast(
+        'Already Decided',
+        `This approval has already been ${approval.status}.`
+      )
+      return
+    }
+
+    if (!comment.trim()) {
+      showErrorToast(
+        'Comment Required',
+        'Please add a comment to provide guidance for the rerun.'
+      )
+      return
+    }
+
+    try {
+      const decisionRequest: ApprovalDecisionRequest = {
+        decision: 'rerun',
+        comment: comment,
+        reviewed_by: 'current_user',
+      }
+
+      await decideApprovalMutation.mutateAsync({
+        approvalId: approval.id,
+        decision: decisionRequest,
+      })
+
+      showSuccessToast(
+        'Rerun Initiated',
+        'SEO Keywords step will be rerun with your comments. A new approval will be created for the regenerated output.'
+      )
+      router.push('/approvals')
+    } catch (error) {
+      showErrorToast(
+        'Rerun Failed',
+        error instanceof Error ? error.message : 'Failed to initiate rerun'
+      )
+    }
+  }
+
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       {/* Header */}
@@ -497,6 +540,15 @@ export default function SEOKeywordsApprovalPage() {
               disabled={cancelJobMutation.isPending || isAlreadyDecided}
             >
               Cancel Job
+            </Button>
+            <Button
+              variant="outlined"
+              color="primary"
+              startIcon={<Refresh />}
+              onClick={handleRerun}
+              disabled={decideApprovalMutation.isPending || isAlreadyDecided || !comment.trim()}
+            >
+              Rerun with Comments
             </Button>
             <Button
               variant="contained"

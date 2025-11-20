@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { MarketingBriefEditor } from './editors/MarketingBriefEditor'
 import { ArticleGenerationEditor } from './editors/ArticleGenerationEditor'
 import { SEOOptimizationEditor } from './editors/SEOOptimizationEditor'
+import { TranscriptPreprocessingEditor } from './editors/TranscriptPreprocessingEditor'
 import { GenericEditor } from './editors/GenericEditor'
 
 interface StepEditorProps {
@@ -76,6 +77,16 @@ export function StepEditor({
       // SEO keywords has its own specialized UI in the approval page
       // Return null here, it's handled separately
       return null
+
+    case 'transcript_preprocessing_approval':
+      return (
+        <TranscriptPreprocessingEditor
+          initialData={initialData}
+          onDataChange={handleDataChange}
+          isEditing={isEditing}
+          onToggleEdit={handleToggleEdit}
+        />
+      )
 
     default:
       // Generic editor for other steps
