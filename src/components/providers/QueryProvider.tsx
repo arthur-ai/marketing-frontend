@@ -9,6 +9,7 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
     defaultOptions: {
       queries: {
         staleTime: 60 * 1000, // 1 minute
+        gcTime: 10 * 60 * 1000, // 10 minutes - garbage collect unused cache entries
         retry: 3,
         retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
       },
