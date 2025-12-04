@@ -64,7 +64,7 @@ interface SelectedKeywords {
 export function ApprovalModal({ approval, isOpen, onClose, onRetry }: ApprovalModalProps) {
   const [comment, setComment] = useState('')
   const [modifiedOutput, setModifiedOutput] = useState('')
-  const [decision, setDecision] = useState<'approve' | 'reject' | 'modify' | null>(null)
+  const [decision, setDecision] = useState<'approve' | 'reject' | 'modify' | 'rerun' | null>(null)
   const [showRetryOption, setShowRetryOption] = useState(false)
   const [selectedKeywords, setSelectedKeywords] = useState<SelectedKeywords>({
     main_keyword: '',
@@ -224,27 +224,35 @@ export function ApprovalModal({ approval, isOpen, onClose, onRetry }: ApprovalMo
     }
   }
 
-  const handleDecision = async (selectedDecision: 'approve' | 'reject' | 'modify', editedDataOverride?: any) => {
+  const handleDecision = async (selectedDecision: 'approve' | 'reject' | 'modify' | 'rerun', editedDataOverride?: any) => {
     try {
       setDecision(selectedDecision)
 
       // Use editedDataOverride if provided, otherwise parse modifiedOutput
       let modifiedOutputData = undefined
+      // Determine actual decision: if rerun was selected or if modify with only comment (no edits)
+      let actualDecision = selectedDecision
       if (selectedDecision === 'modify') {
-        if (editedDataOverride) {
-          modifiedOutputData = editedDataOverride
-        } else if (modifiedOutput) {
-          try {
-            modifiedOutputData = JSON.parse(modifiedOutput)
-          } catch (e) {
-            showErrorToast('Invalid JSON', 'The modified output contains invalid JSON')
-            return
+        // If modify is clicked with only comment (no output edits), treat as rerun
+        if (!hasEditorChanges && !editedDataOverride && !modifiedOutput.trim() && comment.trim()) {
+          actualDecision = 'rerun'
+        } else {
+          // Normal modify with output edits
+          if (editedDataOverride) {
+            modifiedOutputData = editedDataOverride
+          } else if (modifiedOutput.trim()) {
+            try {
+              modifiedOutputData = JSON.parse(modifiedOutput)
+            } catch (e) {
+              showErrorToast('Invalid JSON', 'The modified output contains invalid JSON')
+              return
+            }
           }
         }
       }
 
       const decisionRequest: ApprovalDecisionRequest = {
-        decision: selectedDecision,
+        decision: actualDecision,
         comment: comment || undefined,
         modified_output: modifiedOutputData,
         reviewed_by: 'current_user', // Replace with actual user ID
@@ -271,14 +279,17 @@ export function ApprovalModal({ approval, isOpen, onClose, onRetry }: ApprovalMo
           } : undefined
         )
       } else {
+        const actionText = actualDecision === 'rerun' ? 'rerun' : `${actualDecision}d`
         showSuccessToast(
-          `Approval ${selectedDecision}d`,
-          `Content from ${approval.pipeline_step || 'step'} has been ${selectedDecision}d`
+          `Approval ${actionText}`,
+          `Content from ${approval.pipeline_step || 'step'} has been ${actionText}`
         )
         
         // Reset state and close
         setComment('')
         setModifiedOutput('')
+        setEditedData(null)
+        setHasEditorChanges(false)
         setDecision(null)
         setShowRetryOption(false)
         onClose()
@@ -322,6 +333,7 @@ export function ApprovalModal({ approval, isOpen, onClose, onRetry }: ApprovalMo
   const getStepBadgeColor = (stepName: string) => {
     const colors: Record<string, string> = {
       transcript_preprocessing_approval: 'bg-teal-500',
+      blog_post_preprocessing_approval: 'bg-blue-500',
       seo_keywords: 'bg-green-500',
       marketing_brief: 'bg-red-500',
       article_generation: 'bg-purple-500',
@@ -1042,7 +1054,7 @@ export function ApprovalModal({ approval, isOpen, onClose, onRetry }: ApprovalMo
               <Button
                 variant="outline"
                 onClick={() => {
-                  if (decision === 'modify') {
+                  if (decision === 'modify' || decision === 'rerun') {
                     setDecision(null)
                     setModifiedOutput('')
                     setEditedData(null)
@@ -1055,35 +1067,43 @@ export function ApprovalModal({ approval, isOpen, onClose, onRetry }: ApprovalMo
                     }
                   }
                 }}
-                disabled={decideApprovalMutation.isPending || (!hasEditorChanges && decision !== 'modify')}
-                className={`flex items-center gap-2 ${hasEditorChanges ? 'border-blue-600 text-blue-600' : ''}`}
+                disabled={decideApprovalMutation.isPending || (!hasEditorChanges && !comment.trim() && decision !== 'modify' && decision !== 'rerun')}
+                className={`flex items-center gap-2 ${hasEditorChanges ? 'border-blue-600 text-blue-600' : comment.trim() ? 'border-blue-600 text-blue-600' : ''}`}
               >
                 <Edit className="h-4 w-4" />
-                {decision === 'modify' ? 'Cancel Modify' : hasEditorChanges ? 'Modify (Changes Made)' : 'Modify'}
+                {decision === 'modify' || decision === 'rerun' 
+                  ? 'Cancel Modify' 
+                  : hasEditorChanges 
+                    ? 'Modify (Changes Made)' 
+                    : comment.trim() 
+                      ? 'Rerun with Comments' 
+                      : 'Modify'}
               </Button>
 
               <Button
                 onClick={() => handleDecision('approve')}
-                disabled={decideApprovalMutation.isPending || (decision === 'modify' && !hasEditorChanges) || decision !== null}
+                disabled={decideApprovalMutation.isPending || ((decision === 'modify' || decision === 'rerun') && !hasEditorChanges) || decision !== null}
                 className="bg-green-600 hover:bg-green-700 text-white flex items-center gap-2"
               >
                 <CheckCircle className="h-4 w-4" />
-                Approve
+                {hasEditorChanges ? 'Submit Modified' : 'Approve'}
               </Button>
 
-              {decision === 'modify' && (
+              {(decision === 'modify' || decision === 'rerun') && (
                 <Button
                   onClick={() => {
-                    if (editedData && hasEditorChanges) {
+                    // Use edited data if available, otherwise trigger rerun if comment exists
+                    if (hasEditorChanges && editedData) {
                       handleDecision('modify', editedData)
-                    } else {
-                      handleDecision('modify')
+                    } else if (comment.trim()) {
+                      handleDecision('modify') // Will trigger rerun if no edits
                     }
                   }}
-                  disabled={decideApprovalMutation.isPending || (!hasEditorChanges && !modifiedOutput)}
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  disabled={decideApprovalMutation.isPending || (!hasEditorChanges && !comment.trim())}
+                  className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2"
                 >
-                  Submit Modified
+                  <RotateCcw className="h-4 w-4" />
+                  {hasEditorChanges ? 'Submit Modified' : 'Rerun with Comments'}
                 </Button>
               )}
             </>

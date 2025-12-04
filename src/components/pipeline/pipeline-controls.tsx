@@ -6,7 +6,9 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Play, FileText, CheckCircle, XCircle, Loader2 } from 'lucide-react'
-import type { ContentItem } from '@/types/api'
+import { PipelineModelConfig } from './pipeline-model-config'
+import { loadPipelineConfig } from '@/lib/pipeline-settings'
+import type { ContentItem, PipelineConfig } from '@/types/api'
 
 interface PipelineControlsProps {
   selectedContent?: ContentItem
@@ -15,6 +17,10 @@ interface PipelineControlsProps {
 export function PipelineControls({ selectedContent }: PipelineControlsProps) {
   const [isRunning, setIsRunning] = useState(false)
   const [lastResult, setLastResult] = useState<any>(null)
+  const [pipelineConfig, setPipelineConfig] = useState<PipelineConfig | undefined>(() => {
+    // Load saved config from localStorage
+    return loadPipelineConfig()
+  })
   
   const runPipelineMutation = useRunPipeline()
   const analyzeContentMutation = useAnalyzeContent()
@@ -53,7 +59,8 @@ export function PipelineControls({ selectedContent }: PipelineControlsProps) {
           content: selectedContent.content,
           snippet: selectedContent.snippet,
           type: 'blog_post' // Default type, could be dynamic
-        }
+        },
+        pipeline_config: pipelineConfig
       })
       setLastResult({ type: 'pipeline', data: result.data })
     } catch (error) {
@@ -93,6 +100,11 @@ export function PipelineControls({ selectedContent }: PipelineControlsProps) {
 
   return (
     <div className="space-y-4">
+      <PipelineModelConfig
+        config={pipelineConfig}
+        onChange={setPipelineConfig}
+      />
+      
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">

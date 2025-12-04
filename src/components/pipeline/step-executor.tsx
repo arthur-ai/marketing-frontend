@@ -27,6 +27,11 @@ import InfoIcon from '@mui/icons-material/Info'
 import PlayArrowIcon from '@mui/icons-material/PlayArrow'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
+import { Light as SyntaxHighlighter } from 'react-syntax-highlighter'
+import json from 'react-syntax-highlighter/dist/cjs/languages/hljs/json'
+import { vs2015 } from 'react-syntax-highlighter/dist/cjs/styles/hljs'
+
+SyntaxHighlighter.registerLanguage('json', json)
 
 interface ContentInput {
   id?: string
@@ -100,6 +105,21 @@ export function StepExecutor() {
       }
       return 2000 // Poll every 2 seconds
     },
+  })
+
+  // Fetch step result when job completes to get input snapshot and output
+  const { data: stepResultData } = useQuery({
+    queryKey: ['step-result-detail', jobId, selectedStep],
+    queryFn: async () => {
+      if (!jobId || !selectedStep || jobStatus?.status !== 'completed') return null
+      try {
+        const response = await api.getStepResult(jobId, selectedStep)
+        return response.data
+      } catch (e) {
+        return null
+      }
+    },
+    enabled: !!jobId && !!selectedStep && jobStatus?.status === 'completed',
   })
 
   // Execute step mutation
@@ -667,37 +687,140 @@ export function StepExecutor() {
                   sx={{ mb: 2, height: 8, borderRadius: 4 }}
                 />
               )}
-              {jobStatus.status === 'completed' && jobStatus.result && (
-                <Box sx={{ mt: 3 }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-                    Result
-                  </Typography>
-                  <Paper
-                    elevation={0}
-                    sx={{
-                      p: 2,
-                      bgcolor: 'background.paper',
-                      borderRadius: 1,
-                      border: 1,
-                      borderColor: 'divider',
-                      maxHeight: 400,
-                      overflow: 'auto',
-                    }}
-                  >
-                    <Typography
-                      component="pre"
-                      sx={{
-                        fontFamily: 'monospace',
-                        fontSize: '0.75rem',
-                        m: 0,
-                        whiteSpace: 'pre-wrap',
-                        wordBreak: 'break-word',
-                      }}
-                    >
-                      {JSON.stringify(jobStatus.result, null, 2)}
-                    </Typography>
-                  </Paper>
-                </Box>
+              {jobStatus.status === 'completed' && (
+                <>
+                  {/* Inputs Used Section */}
+                  {stepResultData?.input_snapshot && (
+                    <Box sx={{ mt: 3 }}>
+                      <Accordion defaultExpanded={false}>
+                        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                            Inputs Used
+                          </Typography>
+                          {stepResultData.context_keys_used && stepResultData.context_keys_used.length > 0 && (
+                            <Chip
+                              label={`${stepResultData.context_keys_used.length} context keys`}
+                              size="small"
+                              sx={{ ml: 2 }}
+                            />
+                          )}
+                        </AccordionSummary>
+                        <AccordionDetails>
+                          <Paper
+                            elevation={0}
+                            sx={{
+                              bgcolor: 'grey.900',
+                              p: 2,
+                              borderRadius: 1,
+                              overflow: 'auto',
+                              maxHeight: 400,
+                              position: 'relative',
+                            }}
+                          >
+                            <SyntaxHighlighter
+                              language="json"
+                              style={vs2015}
+                              customStyle={{
+                                margin: 0,
+                                borderRadius: '0.5rem',
+                                fontSize: '0.875rem',
+                                background: 'transparent',
+                              }}
+                            >
+                              {JSON.stringify(stepResultData.input_snapshot, null, 2)}
+                            </SyntaxHighlighter>
+                            <Box sx={{ position: 'absolute', top: 8, right: 8, display: 'flex', gap: 1 }}>
+                              <Button
+                                size="small"
+                                startIcon={<ContentCopyIcon />}
+                                onClick={() => {
+                                  navigator.clipboard.writeText(JSON.stringify(stepResultData.input_snapshot, null, 2))
+                                }}
+                                sx={{ bgcolor: 'rgba(0,0,0,0.5)', color: 'white', '&:hover': { bgcolor: 'rgba(0,0,0,0.7)' } }}
+                              >
+                                Copy
+                              </Button>
+                            </Box>
+                          </Paper>
+                          {stepResultData.context_keys_used && stepResultData.context_keys_used.length > 0 && (
+                            <Box sx={{ mt: 1 }}>
+                              <Typography variant="caption" color="text.secondary">
+                                Context keys used: {stepResultData.context_keys_used.join(', ')}
+                              </Typography>
+                            </Box>
+                          )}
+                        </AccordionDetails>
+                      </Accordion>
+                    </Box>
+                  )}
+
+                  {/* Output Generated Section */}
+                  {(stepResultData?.result || jobStatus.result) && (
+                    <Box sx={{ mt: 3 }}>
+                      <Accordion defaultExpanded={true}>
+                        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                            Output Generated
+                          </Typography>
+                        </AccordionSummary>
+                        <AccordionDetails>
+                          <Paper
+                            elevation={0}
+                            sx={{
+                              bgcolor: 'grey.900',
+                              p: 2,
+                              borderRadius: 1,
+                              overflow: 'auto',
+                              maxHeight: 400,
+                              position: 'relative',
+                            }}
+                          >
+                            <SyntaxHighlighter
+                              language="json"
+                              style={vs2015}
+                              customStyle={{
+                                margin: 0,
+                                borderRadius: '0.5rem',
+                                fontSize: '0.875rem',
+                                background: 'transparent',
+                              }}
+                            >
+                              {JSON.stringify(stepResultData?.result || jobStatus.result, null, 2)}
+                            </SyntaxHighlighter>
+                            <Box sx={{ position: 'absolute', top: 8, right: 8, display: 'flex', gap: 1 }}>
+                              <Button
+                                size="small"
+                                startIcon={<ContentCopyIcon />}
+                                onClick={() => {
+                                  navigator.clipboard.writeText(JSON.stringify(stepResultData?.result || jobStatus.result, null, 2))
+                                }}
+                                sx={{ bgcolor: 'rgba(0,0,0,0.5)', color: 'white', '&:hover': { bgcolor: 'rgba(0,0,0,0.7)' } }}
+                              >
+                                Copy
+                              </Button>
+                              <Button
+                                size="small"
+                                startIcon={<DownloadIcon />}
+                                onClick={() => {
+                                  const blob = new Blob([JSON.stringify(stepResultData?.result || jobStatus.result, null, 2)], { type: 'application/json' })
+                                  const url = URL.createObjectURL(blob)
+                                  const a = document.createElement('a')
+                                  a.href = url
+                                  a.download = `${selectedStep}_output_${jobId}.json`
+                                  a.click()
+                                  URL.revokeObjectURL(url)
+                                }}
+                                sx={{ bgcolor: 'rgba(0,0,0,0.5)', color: 'white', '&:hover': { bgcolor: 'rgba(0,0,0,0.7)' } }}
+                              >
+                                Download
+                              </Button>
+                            </Box>
+                          </Paper>
+                        </AccordionDetails>
+                      </Accordion>
+                    </Box>
+                  )}
+                </>
               )}
             </Card>
           )}

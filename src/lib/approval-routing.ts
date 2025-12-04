@@ -18,6 +18,7 @@ export function getApprovalRoute(pipelineStep: string | undefined, approvalId: s
     seo_optimization: 'seo-optimization',
     suggested_links: 'suggested-links',
     content_formatting: 'content-formatting',
+    blog_post_preprocessing_approval: 'blog-post-preprocessing',
   }
 
   const routeSegment = stepRouteMap[pipelineStep]

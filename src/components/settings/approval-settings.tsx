@@ -4,20 +4,15 @@ import { useState, useEffect } from 'react'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import Paper from '@mui/material/Paper'
-import Card from '@mui/material/Card'
-import CardContent from '@mui/material/CardContent'
 import Button from '@mui/material/Button'
 import Chip from '@mui/material/Chip'
 import Switch from '@mui/material/Switch'
 import Slider from '@mui/material/Slider'
 import TextField from '@mui/material/TextField'
 import CircularProgress from '@mui/material/CircularProgress'
-import SettingsIcon from '@mui/icons-material/Settings'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import AccessTimeIcon from '@mui/icons-material/AccessTime'
 import BoltIcon from '@mui/icons-material/Bolt'
-import SaveIcon from '@mui/icons-material/Save'
-import RotateLeftIcon from '@mui/icons-material/RotateLeft'
 import WarningIcon from '@mui/icons-material/Warning'
 import { useApprovalSettings, useUpdateApprovalSettings } from '@/hooks/useApi'
 import { showSuccessToast, showErrorToast } from '@/lib/toast-utils'
@@ -117,9 +112,31 @@ const AVAILABLE_STEPS = [
   }
 ]
 
-export function PipelineSettings() {
+interface ApprovalSettingsProps {
+  onSave?: () => void
+  onReset?: () => void
+  onSaveRequest?: () => Promise<boolean>
+  onChange?: (hasChanges: boolean) => void
+}
+
+// Export save function for parent to call
+let approvalSettingsSaveFn: (() => Promise<boolean>) | null = null
+
+export function getApprovalSettingsSaveFn() {
+  return approvalSettingsSaveFn
+}
+
+export function ApprovalSettings({ onSave, onReset, onSaveRequest, onChange }: ApprovalSettingsProps) {
   const { data: settingsData, isLoading } = useApprovalSettings()
   const updateSettings = useUpdateApprovalSettings()
+  
+  // Store original values for comparison
+  const [originalValues, setOriginalValues] = useState<{
+    enabled: boolean
+    selectedSteps: string[]
+    autoApproveThreshold: number | undefined
+    timeoutMinutes: number | undefined
+  } | null>(null)
   
   const [enabled, setEnabled] = useState(settingsData?.data?.require_approval ?? false)
   const [selectedSteps, setSelectedSteps] = useState<string[]>(
@@ -132,33 +149,52 @@ export function PipelineSettings() {
     settingsData?.data?.timeout_seconds ? settingsData.data.timeout_seconds / 60 : undefined
   )
 
-  // Update local state when data loads
+  // Update local state when data loads and store original values
   useEffect(() => {
     if (settingsData?.data) {
-      setEnabled(settingsData.data.require_approval)
-      setSelectedSteps(settingsData.data.approval_agents)
-      setAutoApproveThreshold(
-        settingsData.data.auto_approve_threshold 
+      const original = {
+        enabled: settingsData.data.require_approval,
+        selectedSteps: settingsData.data.approval_agents,
+        autoApproveThreshold: settingsData.data.auto_approve_threshold 
           ? settingsData.data.auto_approve_threshold * 100 
-          : undefined
-      )
-      setTimeoutMinutes(
-        settingsData.data.timeout_seconds 
+          : undefined,
+        timeoutMinutes: settingsData.data.timeout_seconds 
           ? settingsData.data.timeout_seconds / 60 
           : undefined
-      )
+      }
+      setOriginalValues(original)
+      setEnabled(original.enabled)
+      setSelectedSteps(original.selectedSteps)
+      setAutoApproveThreshold(original.autoApproveThreshold)
+      setTimeoutMinutes(original.timeoutMinutes)
     }
   }, [settingsData])
 
+  // Calculate hasChanges by comparing current values with original
+  const hasChanges = originalValues ? (
+    enabled !== originalValues.enabled ||
+    JSON.stringify([...selectedSteps].sort()) !== JSON.stringify([...originalValues.selectedSteps].sort()) ||
+    autoApproveThreshold !== originalValues.autoApproveThreshold ||
+    timeoutMinutes !== originalValues.timeoutMinutes
+  ) : false
+
+  // Notify parent when changes occur
+  useEffect(() => {
+    onChange?.(hasChanges)
+  }, [hasChanges, onChange])
+
   const toggleStep = (stepId: string) => {
-    setSelectedSteps(prev => 
-      prev.includes(stepId)
+    setSelectedSteps(prev => {
+      const newSteps = prev.includes(stepId)
         ? prev.filter(id => id !== stepId)
         : [...prev, stepId]
-    )
+      setHasChanges(true)
+      return newSteps
+    })
   }
 
-  const handleSave = async () => {
+  // Save function that can be called by parent
+  const saveApprovalSettings = async (): Promise<boolean> => {
     try {
       const newSettings: ApprovalSettings = {
         require_approval: enabled,
@@ -169,17 +205,29 @@ export function PipelineSettings() {
 
       await updateSettings.mutateAsync(newSettings)
       
+      setHasChanges(false)
       showSuccessToast(
-        'Settings saved',
+        'Approval settings saved',
         `Approvals ${enabled ? 'enabled' : 'disabled'} for ${selectedSteps.length} step(s)`
       )
+      onSave?.()
+      return true
     } catch (error) {
       showErrorToast(
-        'Failed to save settings',
+        'Failed to save approval settings',
         error instanceof Error ? error.message : 'Unknown error'
       )
+      return false
     }
   }
+
+  // Expose save function to parent
+  useEffect(() => {
+    approvalSettingsSaveFn = saveApprovalSettings
+    return () => {
+      approvalSettingsSaveFn = null
+    }
+  }, [enabled, selectedSteps, autoApproveThreshold, timeoutMinutes])
 
   const handleReset = () => {
     if (settingsData?.data) {
@@ -195,6 +243,8 @@ export function PipelineSettings() {
           ? settingsData.data.timeout_seconds / 60 
           : undefined
       )
+      setHasChanges(false)
+      onReset?.()
     }
   }
 
@@ -203,57 +253,51 @@ export function PipelineSettings() {
       .filter(s => s.impact === 'high')
       .map(s => s.id)
     setSelectedSteps(highImpactSteps)
+    setHasChanges(true)
   }
 
   const selectAllSteps = () => {
     setSelectedSteps(AVAILABLE_STEPS.map(s => s.id))
+    setHasChanges(true)
   }
 
   const deselectAll = () => {
     setSelectedSteps([])
+    setHasChanges(true)
+  }
+
+  const handleEnabledChange = (checked: boolean) => {
+    setEnabled(checked)
+    setHasChanges(true)
+  }
+
+  const handleThresholdChange = (value: number) => {
+    setAutoApproveThreshold(value)
+    setHasChanges(true)
+  }
+
+  const handleTimeoutChange = (value: number) => {
+    setTimeoutMinutes(value)
+    setHasChanges(true)
   }
 
   if (isLoading) {
     return (
-      <Card elevation={2} sx={{ borderRadius: 2 }}>
-        <CardContent sx={{ p: 3, display: 'flex', justifyContent: 'center' }}>
-          <CircularProgress />
-        </CardContent>
-      </Card>
+      <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+        <CircularProgress />
+      </Box>
     )
   }
 
   return (
-    <Paper elevation={2} sx={{ p: 3, borderRadius: 2 }}>
-      {/* Header */}
-      <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 4 }}>
-        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
-          <Box sx={{ 
-            p: 1, 
-            borderRadius: 2, 
-            bgcolor: 'primary.50',
-            color: 'primary.main',
-          }}>
-            <SettingsIcon />
-          </Box>
-          <Box>
-            <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5 }}>
-              Pipeline Approval Settings
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Configure which pipeline steps require human approval before proceeding
-            </Typography>
-          </Box>
-        </Box>
-        <Box sx={{ textAlign: 'right' }}>
-          <Typography variant="caption" sx={{ color: 'text.secondary', textTransform: 'uppercase', letterSpacing: 1 }}>
-            Status
-          </Typography>
-          <Typography variant="body2" sx={{ fontWeight: 600, color: enabled ? 'primary.main' : 'text.secondary' }}>
-            {enabled ? 'Enabled' : 'Disabled'}
-          </Typography>
-        </Box>
-      </Box>
+    <Box>
+      <Typography variant="h6" gutterBottom>
+        Approval Settings
+      </Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+        Configure which pipeline steps require human approval before proceeding. When enabled, the
+        pipeline will pause at selected steps for review.
+      </Typography>
 
       {/* Master Toggle */}
       <Paper 
@@ -269,18 +313,17 @@ export function PipelineSettings() {
       >
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <SettingsIcon sx={{ color: enabled ? 'primary.main' : 'text.secondary', fontSize: 20 }} />
             <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
               {enabled ? 'Approvals Enabled' : 'Approvals Disabled'}
             </Typography>
           </Box>
           <Switch
             checked={enabled}
-            onChange={(e) => setEnabled(e.target.checked)}
+            onChange={(e) => handleEnabledChange(e.target.checked)}
             color="primary"
           />
         </Box>
-        <Typography variant="body2" color="text.secondary" sx={{ ml: 4.5 }}>
+        <Typography variant="body2" color="text.secondary" sx={{ ml: 0 }}>
           {enabled 
             ? 'Pipeline will pause for review at selected steps'
             : 'Pipeline will run automatically without pausing'}
@@ -411,7 +454,7 @@ export function PipelineSettings() {
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                   <Slider
                     value={autoApproveThreshold ?? 0}
-                    onChange={(_, value) => setAutoApproveThreshold(value as number)}
+                    onChange={(_, value) => handleThresholdChange(value as number)}
                     min={0}
                     max={100}
                     sx={{ flex: 1 }}
@@ -419,7 +462,7 @@ export function PipelineSettings() {
                   <TextField
                     type="number"
                     value={autoApproveThreshold ?? 0}
-                    onChange={(e) => setAutoApproveThreshold(Number(e.target.value))}
+                    onChange={(e) => handleThresholdChange(Number(e.target.value))}
                     inputProps={{ min: 0, max: 100 }}
                     size="small"
                     sx={{ width: 80 }}
@@ -461,7 +504,7 @@ export function PipelineSettings() {
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                   <Slider
                     value={timeoutMinutes ?? 10}
-                    onChange={(_, value) => setTimeoutMinutes(value as number)}
+                    onChange={(_, value) => handleTimeoutChange(value as number)}
                     min={1}
                     max={60}
                     sx={{ flex: 1 }}
@@ -469,7 +512,7 @@ export function PipelineSettings() {
                   <TextField
                     type="number"
                     value={timeoutMinutes ?? 10}
-                    onChange={(e) => setTimeoutMinutes(Number(e.target.value))}
+                    onChange={(e) => handleTimeoutChange(Number(e.target.value))}
                     inputProps={{ min: 1, max: 60 }}
                     size="small"
                     sx={{ width: 80 }}
@@ -516,27 +559,14 @@ export function PipelineSettings() {
         </>
       )}
 
-      {/* Action Buttons */}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pt: 2, borderTop: 1, borderColor: 'divider' }}>
-        <Button
-          variant="outlined"
-          startIcon={<RotateLeftIcon />}
-          onClick={handleReset}
-          sx={{ textTransform: 'none' }}
-        >
-          Reset
-        </Button>
-
-        <Button
-          variant="contained"
-          startIcon={updateSettings.isPending ? <CircularProgress size={16} /> : <SaveIcon />}
-          onClick={handleSave}
-          disabled={updateSettings.isPending}
-          sx={{ textTransform: 'none' }}
-        >
-          {updateSettings.isPending ? 'Saving...' : 'Save Settings'}
-        </Button>
+      {/* Note about saving */}
+      <Box sx={{ mt: 3, p: 2, bgcolor: 'info.50', borderRadius: 2, border: 1, borderColor: 'info.200' }}>
+        <Typography variant="body2" color="text.secondary">
+          <strong>Note:</strong> Approval settings are saved directly to the backend when you click "Save Settings" 
+          in the main settings page. Changes take effect immediately after saving.
+        </Typography>
       </Box>
-    </Paper>
+    </Box>
   )
 }
+

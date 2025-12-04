@@ -14,6 +14,9 @@ import InputLabel from '@mui/material/InputLabel'
 import Chip from '@mui/material/Chip'
 import Alert from '@mui/material/Alert'
 import CircularProgress from '@mui/material/CircularProgress'
+import Checkbox from '@mui/material/Checkbox'
+import FormGroup from '@mui/material/FormGroup'
+import FormControlLabel from '@mui/material/FormControlLabel'
 import PlayArrowIcon from '@mui/icons-material/PlayArrow'
 import ArticleIcon from '@mui/icons-material/Article'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
@@ -34,6 +37,11 @@ import { ResultViewer } from '@/components/results/result-viewer'
 import { Dropzone, FilePreview } from '@/components/upload/dropzone'
 import { showProcessingToast, showSuccessToast } from '@/lib/toast-utils'
 import { motion, AnimatePresence } from 'framer-motion'
+import { getPlatformConfig } from '@/lib/platform-config'
+import { loadPipelineSettings } from '@/lib/pipeline-settings'
+import InfoIcon from '@mui/icons-material/Info'
+import Tooltip from '@mui/material/Tooltip'
+import Paper from '@mui/material/Paper'
 
 interface OrchestratorControlsProps {
   selectedContent?: {
@@ -62,7 +70,9 @@ export function OrchestratorControls({ selectedContent }: OrchestratorControlsPr
   const [contentType, setContentType] = useState<'blog_post' | 'transcript' | 'release_notes'>('blog_post')
   const [outputContentType, setOutputContentType] = useState<'blog_post' | 'press_release' | 'case_study' | 'social_media_post'>('blog_post')
   const [socialMediaPlatform, setSocialMediaPlatform] = useState<'linkedin' | 'hackernews' | 'email' | ''>('')
+  const [socialMediaPlatforms, setSocialMediaPlatforms] = useState<string[]>([])
   const [emailType, setEmailType] = useState<'newsletter' | 'promotional' | ''>('')
+  const [variationsCount, setVariationsCount] = useState<number>(1)
   const [useManualInput, setUseManualInput] = useState(false)
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
   const { steps: pipelineVisualizerSteps } = usePipelineSteps()
@@ -341,18 +351,37 @@ export function OrchestratorControls({ selectedContent }: OrchestratorControlsPr
       let jobResponse: { data: { job_id: string } }
       switch (contentType) {
         case 'blog_post':
+          // Load pipeline config from settings
+          const settings = loadPipelineSettings()
+          
           const blogRequest: any = { 
             content: contentData,
             output_content_type: outputContentType
           }
+          
+          // Add pipeline config if available (models must be configured in settings)
+          if (settings.pipeline_config) {
+            blogRequest.pipeline_config = settings.pipeline_config
+          }
+          
           // Add social media parameters if output type is social_media_post
           if (outputContentType === 'social_media_post') {
-            if (!socialMediaPlatform) {
-              throw new Error('Please select a social media platform')
+            if (socialMediaPlatforms.length === 0 && !socialMediaPlatform) {
+              throw new Error('Please select at least one social media platform')
             }
-            blogRequest.social_media_platform = socialMediaPlatform
-            if (socialMediaPlatform === 'email' && emailType) {
+            // Use multi-platform if multiple selected, otherwise single platform (backward compatibility)
+            if (socialMediaPlatforms.length > 1) {
+              blogRequest.social_media_platforms = socialMediaPlatforms
+            } else if (socialMediaPlatforms.length === 1) {
+              blogRequest.social_media_platform = socialMediaPlatforms[0]
+            } else {
+              blogRequest.social_media_platform = socialMediaPlatform
+            }
+            if ((socialMediaPlatforms.includes('email') || socialMediaPlatform === 'email') && emailType) {
               blogRequest.email_type = emailType
+            }
+            if (variationsCount > 1) {
+              blogRequest.variations_count = variationsCount
             }
           }
           jobResponse = await processBlogMutation.mutateAsync(blogRequest)
@@ -751,30 +780,84 @@ export function OrchestratorControls({ selectedContent }: OrchestratorControlsPr
               
               {outputContentType === 'social_media_post' && (
                 <>
-                  <FormControl fullWidth size="small">
-                    <InputLabel>Social Media Platform</InputLabel>
-                    <Select
-                      value={socialMediaPlatform}
-                      onChange={(e) => {
-                        const platform = e.target.value as 'linkedin' | 'hackernews' | 'email'
-                        setSocialMediaPlatform(platform)
-                        // Reset email type if not email platform
-                        if (platform !== 'email') {
-                          setEmailType('')
-                        } else if (!emailType) {
-                          // Set default email type if switching to email
-                          setEmailType('newsletter')
-                        }
-                      }}
-                      label="Social Media Platform"
-                    >
-                      <MenuItem value="linkedin">LinkedIn</MenuItem>
-                      <MenuItem value="hackernews">Hackernews</MenuItem>
-                      <MenuItem value="email">Email</MenuItem>
-                    </Select>
+                  <FormControl fullWidth>
+                    <InputLabel>Social Media Platforms</InputLabel>
+                    <Box sx={{ mt: 2, p: 2, border: 1, borderColor: 'divider', borderRadius: 1 }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+                        Select one or more platforms (up to 5)
+                      </Typography>
+                      <FormGroup>
+                        <FormControlLabel
+                          control={
+                            <Checkbox
+                              checked={socialMediaPlatforms.includes('linkedin')}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSocialMediaPlatforms([...socialMediaPlatforms, 'linkedin'])
+                                  setSocialMediaPlatform('linkedin') // Keep for backward compatibility
+                                } else {
+                                  setSocialMediaPlatforms(socialMediaPlatforms.filter(p => p !== 'linkedin'))
+                                  if (socialMediaPlatforms.length === 1) {
+                                    setSocialMediaPlatform('')
+                                  }
+                                }
+                              }}
+                            />
+                          }
+                          label="LinkedIn"
+                        />
+                        <FormControlLabel
+                          control={
+                            <Checkbox
+                              checked={socialMediaPlatforms.includes('hackernews')}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSocialMediaPlatforms([...socialMediaPlatforms, 'hackernews'])
+                                  setSocialMediaPlatform('hackernews')
+                                } else {
+                                  setSocialMediaPlatforms(socialMediaPlatforms.filter(p => p !== 'hackernews'))
+                                  if (socialMediaPlatforms.length === 1) {
+                                    setSocialMediaPlatform('')
+                                  }
+                                }
+                              }}
+                            />
+                          }
+                          label="HackerNews"
+                        />
+                        <FormControlLabel
+                          control={
+                            <Checkbox
+                              checked={socialMediaPlatforms.includes('email')}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSocialMediaPlatforms([...socialMediaPlatforms, 'email'])
+                                  setSocialMediaPlatform('email')
+                                  if (!emailType) {
+                                    setEmailType('newsletter')
+                                  }
+                                } else {
+                                  setSocialMediaPlatforms(socialMediaPlatforms.filter(p => p !== 'email'))
+                                  if (socialMediaPlatforms.length === 1) {
+                                    setSocialMediaPlatform('')
+                                    setEmailType('')
+                                  }
+                                }
+                              }}
+                            />
+                          }
+                          label="Email"
+                        />
+                      </FormGroup>
+                      {socialMediaPlatforms.length > 5 && (
+                        <Alert severity="warning" sx={{ mt: 1 }}>
+                          Maximum 5 platforms allowed. Please deselect some platforms.
+                        </Alert>
+                      )}
+                    </Box>
                   </FormControl>
                   
-                  {socialMediaPlatform === 'email' && (
+                  {socialMediaPlatforms.includes('email') && (
                     <FormControl fullWidth size="small">
                       <InputLabel>Email Type</InputLabel>
                       <Select
@@ -786,6 +869,39 @@ export function OrchestratorControls({ selectedContent }: OrchestratorControlsPr
                         <MenuItem value="promotional">Promotional</MenuItem>
                       </Select>
                     </FormControl>
+                  )}
+
+                  {/* Variations Count Selector */}
+                  <FormControl fullWidth size="small" sx={{ mt: 2 }}>
+                    <InputLabel>Generate Variations</InputLabel>
+                    <Select
+                      value={variationsCount}
+                      onChange={(e) => setVariationsCount(Number(e.target.value))}
+                      label="Generate Variations"
+                    >
+                      <MenuItem value={1}>1 (Single Version)</MenuItem>
+                      <MenuItem value={2}>2 Variations</MenuItem>
+                      <MenuItem value={3}>3 Variations</MenuItem>
+                    </Select>
+                    <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                      Generate multiple versions for A/B testing (increases processing time)
+                    </Typography>
+                  </FormControl>
+
+                  {/* Platform-Specific Hints - Show for first selected platform or all if multiple */}
+                  {socialMediaPlatforms.length > 0 && (
+                    <Box sx={{ mt: 2 }}>
+                      {socialMediaPlatforms.length === 1 ? (
+                        <PlatformHints 
+                          platform={socialMediaPlatforms[0]} 
+                          emailType={socialMediaPlatforms[0] === 'email' ? emailType || undefined : undefined}
+                        />
+                      ) : (
+                        <Alert severity="info" sx={{ mb: 1 }}>
+                          Generating posts for {socialMediaPlatforms.length} platforms in parallel
+                        </Alert>
+                      )}
+                    </Box>
                   )}
                 </>
               )}
@@ -879,5 +995,85 @@ export function OrchestratorControls({ selectedContent }: OrchestratorControlsPr
         )}
       </AnimatePresence>
     </Box>
+  )
+}
+
+// Platform-specific hints component
+function PlatformHints({ 
+  platform, 
+  emailType 
+}: { 
+  platform: string
+  emailType?: string 
+}) {
+  const config = getPlatformConfig(platform, emailType)
+  
+  if (!config) return null
+
+  return (
+    <Paper 
+      variant="outlined" 
+      sx={{ 
+        p: 2, 
+        mt: 2, 
+        bgcolor: 'background.default',
+        borderColor: 'primary.light'
+      }}
+    >
+      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+        <InfoIcon color="primary" sx={{ mr: 1, fontSize: 20 }} />
+        <Typography variant="subtitle2" fontWeight="bold">
+          {config.name} Guidelines
+        </Typography>
+        <Chip 
+          label={`${config.characterLimit} char limit`}
+          size="small"
+          color="primary"
+          variant="outlined"
+          sx={{ ml: 'auto', fontSize: '0.75rem' }}
+        />
+      </Box>
+      
+      <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+        Character Limit: <strong>{config.characterLimit.toLocaleString()}</strong> characters
+        {config.characterLimitWarning && (
+          <> (warning at {config.characterLimitWarning.toLocaleString()})</>
+        )}
+      </Typography>
+
+      <Box sx={{ mb: 1.5 }}>
+        <Typography variant="caption" fontWeight="bold" display="block" sx={{ mb: 0.5 }}>
+          Best Practices:
+        </Typography>
+        <Box component="ul" sx={{ m: 0, pl: 2 }}>
+          {config.bestPractices.map((practice, idx) => (
+            <li key={idx}>
+              <Typography variant="caption" color="text.secondary">
+                {practice}
+              </Typography>
+            </li>
+          ))}
+        </Box>
+      </Box>
+
+      {config.features.length > 0 && (
+        <Box>
+          <Typography variant="caption" fontWeight="bold" display="block" sx={{ mb: 0.5 }}>
+            Supported Features:
+          </Typography>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+            {config.features.map((feature) => (
+              <Chip
+                key={feature}
+                label={feature.replace('_', ' ')}
+                size="small"
+                variant="outlined"
+                sx={{ fontSize: '0.7rem', height: 20 }}
+              />
+            ))}
+          </Box>
+        </Box>
+      )}
+    </Paper>
   )
 }

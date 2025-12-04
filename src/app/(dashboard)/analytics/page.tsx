@@ -8,12 +8,15 @@ import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
 import Paper from '@mui/material/Paper'
 import CircularProgress from '@mui/material/CircularProgress'
+import Tabs from '@mui/material/Tabs'
+import Tab from '@mui/material/Tab'
 import ToggleButton from '@mui/material/ToggleButton'
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 import TrendingUpIcon from '@mui/icons-material/TrendingUp'
 import ArticleIcon from '@mui/icons-material/Article'
 import AccountTreeIcon from '@mui/icons-material/AccountTree'
 import AssessmentIcon from '@mui/icons-material/Assessment'
+import { PostPerformance } from '@/components/analytics/post-performance'
 import { 
   useDashboardStats, 
   usePipelineStats, 
@@ -41,6 +44,7 @@ const COLORS = ['#2563eb', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#6366f1'
 
 export default function AnalyticsPage() {
   const [trendDays, setTrendDays] = useState<number>(7)
+  const [activeTab, setActiveTab] = useState<number>(0)
   
   const { data: dashboardData, isLoading: dashboardLoading } = useDashboardStats()
   const { data: pipelineData, isLoading: pipelineLoading } = usePipelineStats()
@@ -115,6 +119,23 @@ export default function AnalyticsPage() {
           Comprehensive analytics and performance insights
         </Typography>
       </Box>
+
+      {/* Tabs */}
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+        <Tabs value={activeTab} onChange={(_, newValue) => setActiveTab(newValue)}>
+          <Tab label="General Analytics" />
+          <Tab label="Social Media Performance" />
+        </Tabs>
+      </Box>
+
+      {/* Social Media Performance Tab */}
+      {activeTab === 1 && (
+        <PostPerformance />
+      )}
+
+      {/* General Analytics Tab */}
+      {activeTab === 0 && (
+        <>
 
       {/* Summary Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
@@ -373,6 +394,8 @@ export default function AnalyticsPage() {
           </Paper>
         </Grid>
       </Grid>
+        </>
+      )}
     </Box>
   )
 }

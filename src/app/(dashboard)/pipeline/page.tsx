@@ -16,7 +16,6 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow'
 import SettingsApplicationsIcon from '@mui/icons-material/SettingsApplications'
 import { OrchestratorControls } from '@/components/orchestrator/orchestrator-controls'
 import { ContentSelector } from '@/components/orchestrator/content-selector'
-import { PipelineSettings } from '@/components/pipeline/pipeline-settings'
 import { usePipelineStats } from '@/hooks/useApi'
 import { useRouter } from 'next/navigation'
 import Button from '@mui/material/Button'
@@ -144,11 +143,6 @@ export default function PipelinePage() {
           <Paper elevation={0} sx={{ p: 3, borderRadius: 3 }}>
             <OrchestratorControls selectedContent={selectedContent} />
           </Paper>
-        </Grid>
-
-        {/* Pipeline Approval Settings */}
-        <Grid size={{ xs: 12 }}>
-          <PipelineSettings />
         </Grid>
 
         {/* Content Selection */}

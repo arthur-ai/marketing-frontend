@@ -41,6 +41,7 @@ const menuItems = [
   { title: 'Analytics', icon: <BarChartIcon />, path: '/analytics' },
   { title: 'Internal Docs', icon: <DescriptionIcon />, path: '/internal-docs' },
   { title: 'Design Kit', icon: <PaletteIcon />, path: '/design-kit' },
+  { title: 'Settings', icon: <SettingsIcon />, path: '/settings' },
 ]
 
 const bottomItems = [

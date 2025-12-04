@@ -34,7 +34,8 @@ import type {
   StepListResponse,
   StepRequirementsResponse,
   StepExecutionRequest,
-  StepExecutionResponse
+  StepExecutionResponse,
+  PipelineFlowResponse
 } from '@/types/api'
 
 // Use relative URL for same-domain deployment, or absolute URL for development/cross-domain
@@ -111,6 +112,9 @@ export const api = {
   getJobTimeline: (jobId: string): Promise<AxiosResponse<any>> => 
     apiClient.get(`/v1/results/jobs/${jobId}/timeline`),
   
+  getPipelineFlow: (jobId: string): Promise<AxiosResponse<PipelineFlowResponse>> => 
+    apiClient.get(`/v1/results/jobs/${jobId}/pipeline-flow`),
+  
   // Pipeline Step Execution
   getPipelineSteps: (): Promise<AxiosResponse<StepListResponse>> => 
     apiClient.get('/v1/pipeline/steps'),
@@ -123,6 +127,24 @@ export const api = {
   
   getStepResult: (jobId: string, stepName: string): Promise<AxiosResponse<any>> => 
     apiClient.get(`/v1/results/jobs/${jobId}/steps/by-name/${stepName}`),
+  
+  getStepInputs: (jobId: string, stepName: string): Promise<AxiosResponse<any>> => 
+    apiClient.get(`/v1/results/jobs/${jobId}/steps/by-name/${stepName}`).then((response) => {
+      // Extract input_snapshot from step result
+      return {
+        ...response,
+        data: response.data?.input_snapshot || {},
+      }
+    }),
+  
+  getStepOutputs: (jobId: string, stepName: string): Promise<AxiosResponse<any>> => 
+    apiClient.get(`/v1/results/jobs/${jobId}/steps/by-name/${stepName}`).then((response) => {
+      // Extract result from step result
+      return {
+        ...response,
+        data: response.data?.result || {},
+      }
+    }),
   
   cancelJob: (jobId: string): Promise<AxiosResponse<{ success: boolean; message: string }>> => 
     apiClient.delete(`/v1/jobs/${jobId}`),
@@ -304,4 +326,15 @@ export const api = {
   
   activateDesignKitVersion: (version: string): Promise<AxiosResponse<{ message: string }>> => 
     apiClient.post(`/v1/design-kit/activate/${version}`),
+  
+  // Social Media
+  updateSocialMediaPost: (request: { job_id: string; content: string; platform: string; email_type?: string; subject_line?: string }): Promise<AxiosResponse<{ success: boolean; message: string; updated_content?: string }>> => 
+    apiClient.post('/v1/social-media/update', request),
+  
+  // Pipeline Settings
+  getPipelineSettings: (): Promise<AxiosResponse<import('@/types/api').PipelineSettings>> => 
+    apiClient.get('/v1/settings/pipeline'),
+  
+  savePipelineSettings: (settings: import('@/types/api').PipelineSettings): Promise<AxiosResponse<import('@/types/api').PipelineSettings>> => 
+    apiClient.post('/v1/settings/pipeline', settings),
 }

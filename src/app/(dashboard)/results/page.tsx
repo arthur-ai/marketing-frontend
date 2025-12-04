@@ -24,6 +24,10 @@ import {
   Stack,
   Badge,
   Tooltip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import {
   ExpandMore,
@@ -36,6 +40,8 @@ import {
   Cancel,
   ContentCopy,
   PlayArrow,
+  CompareArrows,
+  Visibility,
 } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
 import { useQueries } from '@tanstack/react-query';
@@ -47,7 +53,14 @@ import { getJobRoute } from '@/lib/job-routing';
 import { SubjobVisualizer } from '@/components/results/subjob-visualizer';
 import { PerformanceMetrics } from '@/components/results/performance-metrics';
 import { QualityWarningsDisplay } from '@/components/results/quality-warnings-display';
+import { PlatformQualityScores } from '@/components/results/platform-quality-scores';
+import { MultiPlatformResults } from '@/components/pipeline/multi-platform-results';
+import { ContentVariations } from '@/components/pipeline/content-variations';
+import { PostPreviewEditor } from '@/components/pipeline/post-preview-editor';
 import JobHierarchyTree from '@/components/results/job-hierarchy-tree';
+import { PipelineFlowViewer } from '@/components/pipeline/pipeline-flow-viewer';
+import { InputOutputComparison } from '@/components/pipeline/input-output-comparison';
+import { StepInputOutputViewer } from '@/components/pipeline/step-input-output-viewer';
 import type { StepInfo, JobResultsSummary, JobListItem as JobListItemType, ApprovalListItem } from '@/types/api';
 import { Breadcrumbs, Link, TextField, MenuItem, Select, FormControl, InputLabel, Tabs, Tab } from '@mui/material';
 import { NavigateNext, Search, FilterList } from '@mui/icons-material';
@@ -345,6 +358,11 @@ export default function ResultsPage() {
   const [filterType, setFilterType] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   
+  // Comparison modal state
+  const [comparisonModalOpen, setComparisonModalOpen] = useState(false);
+  const [comparisonType, setComparisonType] = useState<'input-output' | 'step' | null>(null);
+  const [selectedStepForComparison, setSelectedStepForComparison] = useState<string | null>(null);
+  
   // Fetch approvals for selected job
   const { data: approvalsData } = useJobApprovals(
     selectedJob?.job_id || '',
@@ -411,7 +429,17 @@ export default function ResultsPage() {
   (selectedJob?.subjobs || []).forEach((subjobId, index) => {
     const queryResult = subjobResultsQueries[index];
     if (queryResult?.data) {
-      subjobResults[subjobId] = queryResult.data;
+      // The data might be nested in different ways depending on API response structure
+      // Handle both direct result and nested result.result structures
+      let resultData = queryResult.data;
+      if (resultData?.result) {
+        resultData = resultData.result;
+      }
+      // Also handle job.result structure (from main job API)
+      if (resultData?.job?.result) {
+        resultData = resultData.job.result;
+      }
+      subjobResults[subjobId] = resultData;
     }
   });
   
@@ -1517,6 +1545,69 @@ export default function ResultsPage() {
                         })()}
                       />
                     </Grid>
+                    {/* Enhanced Progress Display */}
+                    {selectedJob.progress !== undefined && (
+                      <Grid size={{ xs: 12 }} sx={{ mt: 2 }}>
+                        <Card variant="outlined">
+                          <CardContent>
+                            <Box sx={{ mb: 2 }}>
+                              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                                <Typography variant="body2" fontWeight="medium">
+                                  Progress
+                                </Typography>
+                                <Typography variant="body2" color="text.secondary">
+                                  {selectedJob.progress}%
+                                </Typography>
+                              </Box>
+                              <Box sx={{ width: '100%', bgcolor: 'grey.200', borderRadius: 1, height: 8 }}>
+                                <Box
+                                  sx={{
+                                    bgcolor: 'primary.main',
+                                    height: 8,
+                                    borderRadius: 1,
+                                    width: `${selectedJob.progress}%`,
+                                    transition: 'width 0.3s ease',
+                                  }}
+                                />
+                              </Box>
+                            </Box>
+                            {selectedJob.current_step && (
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                                <CircularProgress size={16} />
+                                <Typography variant="body2">
+                                  {selectedJob.current_step.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
+                                </Typography>
+                              </Box>
+                            )}
+                            {selectedJob.performance_metrics?.step_info && selectedJob.status === 'processing' && (
+                              <Box>
+                                {(() => {
+                                  const stepInfo = selectedJob.performance_metrics.step_info || []
+                                  const completedSteps = stepInfo.filter((s: any) => s.status === 'success')
+                                  if (completedSteps.length > 0) {
+                                    const avgStepTime =
+                                      completedSteps.reduce((sum: number, s: any) => sum + (s.execution_time || 0), 0) /
+                                      completedSteps.length
+                                    const remainingSteps = stepInfo.length - completedSteps.length
+                                    const estimatedTime = Math.round(avgStepTime * remainingSteps)
+                                    if (estimatedTime > 0) {
+                                      const minutes = Math.floor(estimatedTime / 60)
+                                      const seconds = estimatedTime % 60
+                                      return (
+                                        <Typography variant="caption" color="text.secondary">
+                                          Estimated time remaining: ~{minutes > 0 ? `${minutes}m ` : ''}{seconds > 0 ? `${seconds}s` : ''}
+                                        </Typography>
+                                      )
+                                    }
+                                  }
+                                  return null
+                                })()}
+                              </Box>
+                            )}
+                          </CardContent>
+                        </Card>
+                      </Grid>
+                    )}
                     {/* Resume Pipeline button - Hidden when subjobs have failed */}
                     {(() => {
                       const hasFailedSubjobs = (selectedJob.metadata as any).subjob_status?.failed && (selectedJob.metadata as any).subjob_status.failed > 0;
@@ -1545,6 +1636,50 @@ export default function ResultsPage() {
                   </Grid>
                 </Box>
 
+                {/* Failed Optional Steps */}
+                {selectedJob.metadata?.failed_steps && selectedJob.metadata.failed_steps.length > 0 && (
+                  <Box sx={{ mb: 3 }}>
+                    <Accordion defaultExpanded={true}>
+                      <AccordionSummary expandIcon={<ExpandMore />}>
+                        <Typography variant="h6" color="warning.main">
+                          Failed Optional Steps ({selectedJob.metadata.failed_steps.length})
+                        </Typography>
+                      </AccordionSummary>
+                      <AccordionDetails>
+                        <List>
+                          {selectedJob.metadata.failed_steps.map((failedStep: any, idx: number) => (
+                            <ListItem key={idx}>
+                              <ListItemText
+                                primary={
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <Typography variant="body2" fontWeight="medium">
+                                      {failedStep.step_name?.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
+                                    </Typography>
+                                    <Chip
+                                      label="Optional"
+                                      size="small"
+                                      color="warning"
+                                      sx={{ height: 18, fontSize: '0.65rem' }}
+                                    />
+                                  </Box>
+                                }
+                                secondary={
+                                  <Typography variant="caption" color="text.secondary">
+                                    Step {failedStep.step_number}: {failedStep.error}
+                                  </Typography>
+                                }
+                              />
+                            </ListItem>
+                          ))}
+                        </List>
+                        <Alert severity="info" sx={{ mt: 2 }}>
+                          These steps failed but did not stop the pipeline. The pipeline completed with partial results.
+                        </Alert>
+                      </AccordionDetails>
+                    </Accordion>
+                  </Box>
+                )}
+
                 {/* Quality Warnings */}
                 {selectedJob.quality_warnings && selectedJob.quality_warnings.length > 0 && (
                   <Box sx={{ mb: 3 }}>
@@ -1559,6 +1694,55 @@ export default function ResultsPage() {
                   </Box>
                 )}
 
+                {/* Model Configuration */}
+                {selectedJob.metadata?.pipeline_config && (
+                  <Box sx={{ mb: 3 }}>
+                    <Accordion>
+                      <AccordionSummary expandIcon={<ExpandMore />}>
+                        <Typography variant="h6">Model Configuration</Typography>
+                      </AccordionSummary>
+                      <AccordionDetails>
+                        <Box sx={{ space: 2 }}>
+                          <Typography variant="body2" gutterBottom>
+                            <strong>Default Model:</strong> {selectedJob.metadata.pipeline_config.default_model || 'gpt-5.1'}
+                          </Typography>
+                          {selectedJob.metadata.pipeline_config.step_configs &&
+                            Object.keys(selectedJob.metadata.pipeline_config.step_configs).length > 0 && (
+                              <Box sx={{ mt: 2 }}>
+                                <Typography variant="body2" fontWeight="medium" gutterBottom>
+                                  Step-Specific Models:
+                                </Typography>
+                                <List dense>
+                                  {Object.entries(selectedJob.metadata.pipeline_config.step_configs).map(
+                                    ([stepName, config]: [string, any]) => (
+                                      <ListItem key={stepName}>
+                                        <ListItemText
+                                          primary={stepName.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}
+                                          secondary={
+                                            <Box>
+                                              <Typography variant="caption" display="block">
+                                                Model: {config.model || selectedJob.metadata.pipeline_config.default_model}
+                                              </Typography>
+                                              {config.temperature !== undefined && (
+                                                <Typography variant="caption" display="block">
+                                                  Temperature: {config.temperature}
+                                                </Typography>
+                                              )}
+                                            </Box>
+                                          }
+                                        />
+                                      </ListItem>
+                                    )
+                                  )}
+                                </List>
+                              </Box>
+                            )}
+                        </Box>
+                      </AccordionDetails>
+                    </Accordion>
+                  </Box>
+                )}
+
                 {/* Performance Metrics */}
                 {selectedJob.performance_metrics && (
                   <Box sx={{ mb: 3 }}>
@@ -1568,6 +1752,24 @@ export default function ResultsPage() {
                       </AccordionSummary>
                       <AccordionDetails>
                         <PerformanceMetrics jobResults={selectedJob} />
+                      </AccordionDetails>
+                    </Accordion>
+                  </Box>
+                )}
+
+                {/* Platform Quality Scores - for social media posts */}
+                {selectedJob.metadata?.platform && (
+                  <Box sx={{ mb: 3 }}>
+                    <Accordion defaultExpanded={true}>
+                      <AccordionSummary expandIcon={<ExpandMore />}>
+                        <Typography variant="h6">Platform Quality Scores</Typography>
+                      </AccordionSummary>
+                      <AccordionDetails>
+                        <PlatformQualityScores
+                          platform={selectedJob.metadata.platform}
+                          qualityScores={selectedJob.metadata.platform_quality_scores}
+                          stepResults={finalResult?.step_results as Record<string, unknown>}
+                        />
                       </AccordionDetails>
                     </Accordion>
                   </Box>
@@ -1847,18 +2049,32 @@ export default function ResultsPage() {
                             <ListItem
                               key={`${step.step_number}_${step.step_name}_${step.job_id || selectedJob.job_id}`}
                               secondaryAction={
-                                step.has_result && (
-                                  <Button
-                                    size="small"
-                                    variant="outlined"
-                                    startIcon={<PlayArrow />}
-                                    onClick={() => {
-                                      router.push(`/pipeline?jobId=${selectedJob.job_id}&stepName=${step.step_name}`);
-                                    }}
-                                  >
-                                    Use in Step
-                                  </Button>
-                                )
+                                    <Box sx={{ display: 'flex', gap: 1 }}>
+                                      {step.has_result && (
+                                        <Button
+                                          size="small"
+                                          variant="outlined"
+                                          startIcon={<PlayArrow />}
+                                          onClick={() => {
+                                            router.push(`/pipeline?jobId=${selectedJob.job_id}&stepName=${step.step_name}`);
+                                          }}
+                                        >
+                                          Use in Step
+                                        </Button>
+                                      )}
+                                      <Button
+                                        size="small"
+                                        variant="outlined"
+                                        startIcon={<Visibility />}
+                                        onClick={() => {
+                                          setSelectedStepForComparison(step.step_name);
+                                          setComparisonType('step');
+                                          setComparisonModalOpen(true);
+                                        }}
+                                      >
+                                        View I/O
+                                      </Button>
+                                    </Box>
                               }
                               sx={{
                                 border: 1,
@@ -1912,8 +2128,110 @@ export default function ResultsPage() {
                   </Box>
                 )}
 
+                {/* Pipeline Flow Section */}
+                {selectedJob && !selectedJob.parent_job_id && (
+                  <Box sx={{ mb: 3 }}>
+                    <Accordion defaultExpanded={false}>
+                      <AccordionSummary expandIcon={<ExpandMore />}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%' }}>
+                          <Code sx={{ color: '#9c27b0' }} />
+                          <Typography variant="h6">
+                            Pipeline Flow
+                          </Typography>
+                        </Box>
+                      </AccordionSummary>
+                      <AccordionDetails>
+                        <PipelineFlowViewer jobId={selectedJob.job_id} />
+                      </AccordionDetails>
+                    </Accordion>
+                  </Box>
+                )}
+
+                {/* Multi-Platform Results Section */}
+                {finalResult?.results_by_platform && (
+                  <Box sx={{ mb: 3 }}>
+                    <Accordion defaultExpanded={true}>
+                      <AccordionSummary expandIcon={<ExpandMore />}>
+                        <Typography variant="h6">Multi-Platform Results</Typography>
+                      </AccordionSummary>
+                      <AccordionDetails>
+                        <MultiPlatformResults results={finalResult as any} />
+                      </AccordionDetails>
+                    </Accordion>
+                  </Box>
+                )}
+
+                {/* Content Variations Section */}
+                {finalResult?.variations && Array.isArray(finalResult.variations) && finalResult.variations.length > 0 && (
+                  <Box sx={{ mb: 3 }}>
+                    <Accordion defaultExpanded={true}>
+                      <AccordionSummary expandIcon={<ExpandMore />}>
+                        <Typography variant="h6">
+                          Content Variations ({finalResult.variations.length} versions)
+                        </Typography>
+                      </AccordionSummary>
+                      <AccordionDetails>
+                        <ContentVariations
+                          variations={finalResult.variations as any}
+                          platform={selectedJob.metadata?.platform || 'linkedin'}
+                        />
+                      </AccordionDetails>
+                    </Accordion>
+                  </Box>
+                )}
+
+                {/* Post Preview & Editor Section (for social media posts) */}
+                {finalResult?.final_content && 
+                 !finalResult?.results_by_platform && 
+                 selectedJob.metadata?.output_content_type === 'social_media_post' && (
+                  <Box sx={{ mb: 3 }}>
+                    <Accordion defaultExpanded={true}>
+                      <AccordionSummary expandIcon={<ExpandMore />}>
+                        <Typography variant="h6">Post Preview & Editor</Typography>
+                      </AccordionSummary>
+                      <AccordionDetails>
+                        <PostPreviewEditor
+                          content={finalResult.final_content}
+                          platform={selectedJob.metadata?.platform || 'linkedin'}
+                          emailType={selectedJob.metadata?.email_type}
+                          subjectLine={finalResult.subject_line}
+                          onSave={async (updatedContent, updatedSubjectLine) => {
+                            try {
+                              const response = await api.updateSocialMediaPost({
+                                job_id: selectedJob.job_id,
+                                content: updatedContent,
+                                platform: selectedJob.metadata?.platform || 'linkedin',
+                                email_type: selectedJob.metadata?.email_type,
+                                subject_line: updatedSubjectLine,
+                              })
+                              
+                              if (response.data.success) {
+                                // Update local state with new content
+                                setFinalResult((prev) => ({
+                                  ...prev,
+                                  final_content: updatedContent,
+                                  ...(updatedSubjectLine && { subject_line: updatedSubjectLine }),
+                                }))
+                                showSuccessToast('Post Updated', 'Post content has been saved successfully')
+                              } else {
+                                showErrorToast('Save Failed', response.data.message || 'Failed to save post')
+                              }
+                            } catch (error) {
+                              console.error('Failed to save post:', error)
+                              showErrorToast(
+                                'Save Failed',
+                                error instanceof Error ? error.message : 'Failed to save post'
+                              )
+                            }
+                          }}
+                        />
+                      </AccordionDetails>
+                    </Accordion>
+                  </Box>
+                )}
+
                 {/* Final Result Section */}
-                {finalResult?.final_content && (
+                {finalResult?.final_content && !finalResult?.results_by_platform && (
                   <Box sx={{ mb: 3 }}>
                     <Accordion defaultExpanded={false}>
                       <AccordionSummary expandIcon={<ExpandMore />}>
@@ -2042,7 +2360,8 @@ export default function ResultsPage() {
                                 }
                               }}
                             >
-                              {selectedJob.metadata.content_type === 'blog_post' ? (
+                              {(selectedJob.metadata.content_type === 'blog_post' || 
+                                selectedJob.metadata.output_content_type === 'blog_post') ? (
                                 <ReactMarkdown>
                                   {htmlToMarkdown(finalResult.final_content)}
                                 </ReactMarkdown>
@@ -2094,6 +2413,17 @@ export default function ResultsPage() {
                           <Button
                             size="small"
                             variant="outlined"
+                            startIcon={<CompareArrows />}
+                            onClick={() => {
+                              setComparisonType('input-output');
+                              setComparisonModalOpen(true);
+                            }}
+                          >
+                            Compare Input/Output
+                          </Button>
+                          <Button
+                            size="small"
+                            variant="outlined"
                             startIcon={<Download />}
                             onClick={() => {
                               const blob = new Blob(
@@ -2141,6 +2471,68 @@ export default function ResultsPage() {
           )}
         </Grid>
       </Grid>
+
+      {/* Comparison Modals */}
+      {/* Input vs Output Comparison Modal */}
+      <Dialog
+        open={comparisonModalOpen && comparisonType === 'input-output'}
+        onClose={() => setComparisonModalOpen(false)}
+        maxWidth="lg"
+        fullWidth
+      >
+        <DialogTitle>
+          Compare Input vs Final Output
+        </DialogTitle>
+        <DialogContent>
+          {selectedJob && (
+            <InputOutputComparison
+              input={
+                selectedJob.metadata.input_content ||
+                (finalResult as any)?.input_content ||
+                {}
+              }
+              output={finalResult?.final_content || finalResult || {}}
+              title="Input vs Final Output"
+            />
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setComparisonModalOpen(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Step I/O Viewer Modal */}
+      <Dialog
+        open={comparisonModalOpen && comparisonType === 'step' && !!selectedStepForComparison}
+        onClose={() => {
+          setComparisonModalOpen(false);
+          setSelectedStepForComparison(null);
+        }}
+        maxWidth="lg"
+        fullWidth
+      >
+        <DialogTitle>
+          Step Input/Output: {selectedStepForComparison?.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
+        </DialogTitle>
+        <DialogContent>
+          {selectedJob && selectedStepForComparison && (
+            <StepInputOutputViewer
+              jobId={selectedJob.job_id}
+              stepName={selectedStepForComparison}
+            />
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => {
+              setComparisonModalOpen(false);
+              setSelectedStepForComparison(null);
+            }}
+          >
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 }

@@ -2,7 +2,7 @@
 
 import { Box, Typography, Chip, Stack, LinearProgress, Card, CardContent, Divider, Accordion, AccordionSummary, AccordionDetails, IconButton, Tooltip } from '@mui/material'
 import { CheckCircle, Circle, Cancel, Security, AccessTime, ExpandMore, ContentCopy } from '@mui/icons-material'
-import type { StepInfo, JobResultsSummary, ApprovalListItem } from '@/types/api'
+import type { JobResultsSummary, ApprovalListItem } from '@/types/api'
 import { showSuccessToast, showErrorToast } from '@/lib/toast-utils'
 
 export interface SubjobStep {
@@ -19,17 +19,16 @@ export interface SubjobStep {
 
 interface SubjobData {
   title?: string
-  input?: any
-  output?: any
-  step_results?: Record<string, any>
+  input?: string | Record<string, unknown>
+  output?: string | Record<string, unknown>
+  step_results?: Record<string, unknown>
   final_content?: string
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
+  input_content?: string
 }
 
 interface SubjobVisualizerProps {
   jobResults: JobResultsSummary
-  parentJobSteps?: SubjobStep[]
-  subjobSteps?: SubjobStep[]
   approvalTimestamp?: string
   onSubjobClick?: (subjobId: string) => void
   subjobApprovals?: Record<string, ApprovalListItem[]>
@@ -38,8 +37,6 @@ interface SubjobVisualizerProps {
 
 export function SubjobVisualizer({ 
   jobResults, 
-  parentJobSteps = [], 
-  subjobSteps = [],
   approvalTimestamp,
   onSubjobClick,
   subjobApprovals = {},
@@ -270,18 +267,21 @@ export function SubjobVisualizer({
                           subjobResult?.step_results?.seo_optimization?.meta_title ||
                           `Resume Job (${contentType})`;
               
-              // Extract input - try to get from metadata or step results
+              // Extract input - try to get from root level first, then metadata
               // Input is typically the original content that was processed
-              const input = subjobResult?.metadata?.input_content ||
+              const input = subjobResult?.input_content ||
+                          subjobResult?.metadata?.input_content ||
                           subjobResult?.metadata?.original_content ||
-                          (subjobResult?.step_results?.seo_keywords ? {
+                          (subjobResult?.step_results && Object.keys(subjobResult.step_results).length > 0 ? {
                             content: 'Original content processed through pipeline',
-                            step_results: Object.keys(subjobResult.step_results || {})
+                            step_results: Object.keys(subjobResult.step_results)
                           } : null);
               
               // Extract output - prefer final_content, then step_results
+              // Check if step_results exists and has data
+              const hasStepResults = subjobResult?.step_results && Object.keys(subjobResult.step_results).length > 0;
               const output = subjobResult?.final_content || 
-                          subjobResult?.step_results ||
+                          (hasStepResults ? subjobResult.step_results : null) ||
                           (subjobResult?.metadata ? { metadata: subjobResult.metadata } : null);
               
               return (
@@ -379,6 +379,7 @@ export function SubjobVisualizer({
                         </Box>
                         {typeof output === 'string' ? (
                           <Box
+                            component="pre"
                             sx={{
                               bgcolor: 'grey.50',
                               p: 1.5,
@@ -387,9 +388,12 @@ export function SubjobVisualizer({
                               maxHeight: 300,
                               fontSize: '0.875rem',
                               position: 'relative',
+                              whiteSpace: 'pre-wrap',
+                              wordBreak: 'break-word',
                             }}
-                            dangerouslySetInnerHTML={{ __html: output }}
-                          />
+                          >
+                            {output}
+                          </Box>
                         ) : subjobResult?.step_results ? (
                           <Box>
                             <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
@@ -427,6 +431,7 @@ export function SubjobVisualizer({
                                   Final Content
                                 </Typography>
                                 <Box
+                                  component="pre"
                                   sx={{
                                     bgcolor: 'grey.50',
                                     p: 1.5,
@@ -435,9 +440,12 @@ export function SubjobVisualizer({
                                     maxHeight: 300,
                                     fontSize: '0.875rem',
                                     position: 'relative',
+                                    whiteSpace: 'pre-wrap',
+                                    wordBreak: 'break-word',
                                   }}
-                                  dangerouslySetInnerHTML={{ __html: subjobResult.final_content }}
-                                />
+                                >
+                                  {subjobResult.final_content}
+                                </Box>
                               </Box>
                             )}
                           </Box>
@@ -499,7 +507,31 @@ export function SubjobVisualizer({
                       </>
                     )}
                     
-                    {!input && !output && approvals.length === 0 && (
+                    {/* Fallback: Show raw data if extraction didn't work but data exists */}
+                    {!input && !output && approvals.length === 0 && subjobResult && (
+                      <>
+                        <Divider sx={{ my: 2 }} />
+                        <Typography variant="caption" fontWeight="medium" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+                          Raw Data
+                        </Typography>
+                        <Box
+                          component="pre"
+                          sx={{
+                            bgcolor: 'grey.50',
+                            p: 1.5,
+                            borderRadius: 1,
+                            overflow: 'auto',
+                            maxHeight: 300,
+                            fontSize: '0.75rem',
+                          }}
+                        >
+                          {JSON.stringify(subjobResult, null, 2)}
+                        </Box>
+                      </>
+                    )}
+                    
+                    {/* Only show "No data available" if there's truly no data at all */}
+                    {!input && !output && approvals.length === 0 && !subjobResult && (
                       <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic' }}>
                         No data available
                       </Typography>

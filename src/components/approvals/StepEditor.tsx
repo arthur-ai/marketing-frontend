@@ -5,6 +5,7 @@ import { MarketingBriefEditor } from './editors/MarketingBriefEditor'
 import { ArticleGenerationEditor } from './editors/ArticleGenerationEditor'
 import { SEOOptimizationEditor } from './editors/SEOOptimizationEditor'
 import { TranscriptPreprocessingEditor } from './editors/TranscriptPreprocessingEditor'
+import { BlogPostPreprocessingEditor } from './editors/BlogPostPreprocessingEditor'
 import { GenericEditor } from './editors/GenericEditor'
 
 interface StepEditorProps {
@@ -81,6 +82,16 @@ export function StepEditor({
     case 'transcript_preprocessing_approval':
       return (
         <TranscriptPreprocessingEditor
+          initialData={initialData}
+          onDataChange={handleDataChange}
+          isEditing={isEditing}
+          onToggleEdit={handleToggleEdit}
+        />
+      )
+
+    case 'blog_post_preprocessing_approval':
+      return (
+        <BlogPostPreprocessingEditor
           initialData={initialData}
           onDataChange={handleDataChange}
           isEditing={isEditing}

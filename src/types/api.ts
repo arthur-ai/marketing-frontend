@@ -157,13 +157,51 @@ export interface AnalyzeRequest {
   options?: Record<string, any>
 }
 
+export interface PipelineStepConfig {
+  step_name: string
+  model?: string
+  temperature?: number
+  max_retries?: number
+}
+
+export interface EngineConfig {
+  default_engine: 'llm' | 'local_semantic'
+  field_overrides?: Record<string, 'llm' | 'local_semantic'>
+  serp_analysis_model?: string
+}
+
+export interface PipelineConfig {
+  default_model?: string
+  default_temperature?: number
+  default_max_retries?: number
+  step_configs?: Record<string, PipelineStepConfig>
+  seo_keywords_engine_config?: EngineConfig
+}
+
+export interface RetryStrategyConfig {
+  max_retries?: number
+  circuit_breaker?: {
+    failure_threshold?: number
+    recovery_timeout?: number
+    half_open_max_calls?: number
+  }
+}
+
+export interface PipelineSettings {
+  pipeline_config: PipelineConfig
+  optional_steps: string[]
+  retry_strategy?: RetryStrategyConfig
+}
+
 export interface PipelineRequest {
   content: ContentContext
+  output_content_type?: string
   options?: {
     skip_seo?: boolean
     lang?: string
     [key: string]: any
   }
+  pipeline_config?: PipelineConfig
 }
 
 export interface ContentAnalysisResponse {
@@ -173,15 +211,46 @@ export interface ContentAnalysisResponse {
   content_id: string
 }
 
+export interface FailedStep {
+  step_name: string
+  step_number: number
+  error: string
+  optional: boolean
+}
+
 export interface PipelineResult {
   pipeline_status: string
   step_results: Record<string, any>
   final_content: any
-  quality_metrics: Record<string, number>
-  performance_analysis: Record<string, any>
-  error_log: string[]
-  recommendations: string[]
-  next_steps: string[]
+  quality_warnings?: string[]
+  input_content?: any
+  metadata?: {
+    job_id?: string
+    content_id?: string
+    content_type?: string
+    title?: string
+    steps_completed?: number
+    execution_time_seconds?: number
+    total_tokens_used?: number
+    model?: string
+    pipeline_config?: PipelineConfig
+    completed_at?: string
+    failed_steps?: FailedStep[]
+    partial_success?: boolean
+    step_info?: Array<{
+      step_name: string
+      step_number: number
+      status: string
+      execution_time?: number
+      tokens_used?: number
+      error_message?: string
+    }>
+  }
+  quality_metrics?: Record<string, number>
+  performance_analysis?: Record<string, any>
+  error_log?: string[]
+  recommendations?: string[]
+  next_steps?: string[]
   // Step-by-step results based on pipeline.yml
   content_analysis_result?: any
   seo_keywords_result?: any
@@ -274,7 +343,9 @@ export interface BlogProcessorRequest {
   content: BlogPostContent
   output_content_type?: OutputContentType
   social_media_platform?: SocialMediaPlatform
+  social_media_platforms?: SocialMediaPlatform[]
   email_type?: EmailType
+  variations_count?: number
   options?: Record<string, any>
 }
 
@@ -519,6 +590,34 @@ export interface JobListItem {
   chain_status?: 'all_completed' | 'in_progress' | 'blocked' | 'failed'
 }
 
+// Pipeline Flow Types
+export interface StepInputOutput {
+  step_name: string
+  step_number: number
+  input_snapshot: Record<string, any>
+  output: Record<string, any>
+  context_keys_used: string[]
+  execution_metadata: {
+    execution_time?: number
+    tokens_used?: number
+    status?: string
+    error_message?: string
+  }
+}
+
+export interface PipelineFlowResponse {
+  job_id: string
+  input_content: Record<string, any>
+  steps: StepInputOutput[]
+  final_output: Record<string, any>
+  execution_summary: {
+    total_execution_time_seconds?: number
+    total_tokens_used?: number
+    total_steps: number
+    quality_warnings?: string[]
+  }
+}
+
 // Internal Docs Configuration
 export interface ScannedDocument {
   title: string
@@ -618,6 +717,7 @@ export interface StepRequirementsResponse {
 export interface StepExecutionRequest {
   content: Record<string, any>
   context: Record<string, any>
+  pipeline_config?: PipelineConfig
 }
 
 export interface StepExecutionResponse {
