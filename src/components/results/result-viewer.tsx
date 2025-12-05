@@ -11,9 +11,7 @@ import Tab from '@mui/material/Tab'
 import Chip from '@mui/material/Chip'
 import Button from '@mui/material/Button'
 import ReactMarkdown from 'react-markdown'
-import { Light as SyntaxHighlighter } from 'react-syntax-highlighter'
-import json from 'react-syntax-highlighter/dist/cjs/languages/hljs/json'
-import { vs2015 } from 'react-syntax-highlighter/dist/cjs/styles/hljs'
+import { SyntaxHighlighter, vs2015 } from '@/lib/syntax-highlighter'
 import FileTextIcon from '@mui/icons-material/Description'
 import BarChartIcon from '@mui/icons-material/BarChart'
 import TargetIcon from '@mui/icons-material/TrackChanges'
@@ -23,8 +21,9 @@ import VisibilityIcon from '@mui/icons-material/Visibility'
 import WarningIcon from '@mui/icons-material/Warning'
 import CheckCircleOutlinedIcon from '@mui/icons-material/CheckCircleOutlined'
 import CancelIcon from '@mui/icons-material/Cancel'
+import type { SEOKeywordsResult, KeywordDensityAnalysis, KeywordCluster } from '@/types/api'
+import { KeywordMetadataDisplay } from './keyword-metadata-display'
 
-SyntaxHighlighter.registerLanguage('json', json)
 
 interface StepApproval {
   id: string
@@ -63,7 +62,7 @@ export function ResultViewer({ result, stepApprovals, onViewApproval }: ResultVi
   const contentMarkdown = articleGeneration?.article_content as string | undefined
   
   // Extract SEO data
-  const seoKeywordsData = (stepResults.seo_keywords as Record<string, unknown>) || {}
+  const seoKeywordsData = (stepResults.seo_keywords as SEOKeywordsResult) || {} as SEOKeywordsResult
   const seoOptimizationData = (stepResults.seo_optimization as Record<string, unknown>) || {}
   const allKeywords = [
     ...((seoKeywordsData.primary_keywords as string[]) || []),
@@ -314,65 +313,28 @@ export function ResultViewer({ result, stepApprovals, onViewApproval }: ResultVi
               </Box>
             )}
             
-            {/* Keyword Metadata */}
-            {((seoKeywordsData.primary_keywords_metadata as any[]) || []).length > 0 && (
-              <Box sx={{ mb: 3 }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2 }}>
-                  Primary Keywords Metadata
-                </Typography>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                  {((seoKeywordsData.primary_keywords_metadata as any[]) || []).map((meta: any, index: number) => (
-                    <Paper key={index} elevation={0} sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 2 }}>
-                      <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
-                        {meta.keyword}
-                      </Typography>
-                      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' }, gap: 1.5 }}>
-                        {meta.search_volume !== undefined && (
-                          <Box>
-                            <Typography variant="caption" color="text.secondary" display="block">
-                              Search Volume
-                            </Typography>
-                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                              {meta.search_volume.toLocaleString()}/mo
-                            </Typography>
-                          </Box>
-                        )}
-                        {meta.difficulty_score !== undefined && (
-                          <Box>
-                            <Typography variant="caption" color="text.secondary" display="block">
-                              Difficulty
-                            </Typography>
-                            <Typography variant="body2" sx={{ fontWeight: 500, color: meta.difficulty_score > 70 ? 'error.main' : meta.difficulty_score > 40 ? 'warning.main' : 'success.main' }}>
-                              {meta.difficulty_score.toFixed(0)}/100
-                            </Typography>
-                          </Box>
-                        )}
-                        {meta.relevance_score !== undefined && (
-                          <Box>
-                            <Typography variant="caption" color="text.secondary" display="block">
-                              Relevance
-                            </Typography>
-                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                              {meta.relevance_score.toFixed(0)}%
-                            </Typography>
-                          </Box>
-                        )}
-                        {meta.trend_direction && (
-                          <Box>
-                            <Typography variant="caption" color="text.secondary" display="block">
-                              Trend
-                            </Typography>
-                            <Typography variant="body2" sx={{ fontWeight: 500, color: meta.trend_direction === 'rising' ? 'success.main' : meta.trend_direction === 'declining' ? 'error.main' : 'text.secondary' }}>
-                              {meta.trend_direction}
-                              {meta.trend_percentage !== undefined && ` (${meta.trend_percentage > 0 ? '+' : ''}${meta.trend_percentage.toFixed(1)}%)`}
-                            </Typography>
-                          </Box>
-                        )}
-                      </Box>
-                    </Paper>
-                  ))}
-                </Box>
-              </Box>
+            {/* Primary Keywords Metadata */}
+            {seoKeywordsData.primary_keywords_metadata && seoKeywordsData.primary_keywords_metadata.length > 0 && (
+              <KeywordMetadataDisplay 
+                metadata={seoKeywordsData.primary_keywords_metadata} 
+                title="Primary Keywords Metadata"
+              />
+            )}
+            
+            {/* Secondary Keywords Metadata */}
+            {seoKeywordsData.secondary_keywords_metadata && seoKeywordsData.secondary_keywords_metadata.length > 0 && (
+              <KeywordMetadataDisplay 
+                metadata={seoKeywordsData.secondary_keywords_metadata} 
+                title="Secondary Keywords Metadata"
+              />
+            )}
+            
+            {/* Long-tail Keywords Metadata */}
+            {seoKeywordsData.long_tail_keywords_metadata && seoKeywordsData.long_tail_keywords_metadata.length > 0 && (
+              <KeywordMetadataDisplay 
+                metadata={seoKeywordsData.long_tail_keywords_metadata} 
+                title="Long-tail Keywords Metadata"
+              />
             )}
             
             {/* Keyword Difficulty (Dict format) */}
@@ -399,13 +361,13 @@ export function ResultViewer({ result, stepApprovals, onViewApproval }: ResultVi
             )}
             
             {/* Keyword Density Analysis */}
-            {((seoKeywordsData.keyword_density_analysis as any[]) || []).length > 0 && (
+            {seoKeywordsData.keyword_density_analysis && seoKeywordsData.keyword_density_analysis.length > 0 && (
               <Box sx={{ mb: 3 }}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2 }}>
                   Keyword Density Analysis
                 </Typography>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                  {((seoKeywordsData.keyword_density_analysis as any[]) || []).map((analysis: any, index: number) => (
+                  {seoKeywordsData.keyword_density_analysis.map((analysis: KeywordDensityAnalysis, index: number) => (
                     <Paper key={index} elevation={0} sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 2 }}>
                       <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
                         {analysis.keyword}
@@ -416,7 +378,7 @@ export function ResultViewer({ result, stepApprovals, onViewApproval }: ResultVi
                             Current Density
                           </Typography>
                           <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                            {analysis.current_density?.toFixed(2)}%
+                            {analysis.current_density.toFixed(2)}%
                           </Typography>
                         </Box>
                         <Box>
@@ -424,7 +386,7 @@ export function ResultViewer({ result, stepApprovals, onViewApproval }: ResultVi
                             Optimal Density
                           </Typography>
                           <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                            {analysis.optimal_density?.toFixed(2)}%
+                            {analysis.optimal_density.toFixed(2)}%
                           </Typography>
                         </Box>
                         <Box>
@@ -435,13 +397,13 @@ export function ResultViewer({ result, stepApprovals, onViewApproval }: ResultVi
                             {analysis.occurrences}
                           </Typography>
                         </Box>
-                        {analysis.placement_locations && (analysis.placement_locations as string[]).length > 0 && (
+                        {analysis.placement_locations && analysis.placement_locations.length > 0 && (
                           <Box>
                             <Typography variant="caption" color="text.secondary" display="block">
                               Locations
                             </Typography>
                             <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                              {(analysis.placement_locations as string[]).join(', ')}
+                              {analysis.placement_locations.join(', ')}
                             </Typography>
                           </Box>
                         )}
@@ -453,13 +415,13 @@ export function ResultViewer({ result, stepApprovals, onViewApproval }: ResultVi
             )}
             
             {/* Keyword Clusters */}
-            {((seoKeywordsData.keyword_clusters as any[]) || []).length > 0 && (
+            {seoKeywordsData.keyword_clusters && seoKeywordsData.keyword_clusters.length > 0 && (
               <Box sx={{ mb: 3 }}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2 }}>
-                  Keyword Clusters ({((seoKeywordsData.keyword_clusters as any[]) || []).length})
+                  Keyword Clusters ({seoKeywordsData.keyword_clusters.length})
                 </Typography>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  {((seoKeywordsData.keyword_clusters as any[]) || []).map((cluster: any, index: number) => (
+                  {seoKeywordsData.keyword_clusters.map((cluster: KeywordCluster, index: number) => (
                     <Paper key={index} elevation={0} sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 2 }}>
                       <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
                         {cluster.cluster_name}
@@ -474,9 +436,9 @@ export function ResultViewer({ result, stepApprovals, onViewApproval }: ResultVi
                           Primary: {cluster.primary_keyword}
                         </Typography>
                       )}
-                      {cluster.keywords && (cluster.keywords as string[]).length > 0 && (
+                      {cluster.keywords && cluster.keywords.length > 0 && (
                         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 1 }}>
-                          {(cluster.keywords as string[]).map((keyword: string) => (
+                          {cluster.keywords.map((keyword: string) => (
                             <Chip
                               key={keyword}
                               label={keyword}

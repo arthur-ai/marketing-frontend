@@ -3,26 +3,17 @@
 import { useState } from 'react'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
-import Paper from '@mui/material/Paper'
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
 import Grid from '@mui/material/Grid'
 import Tabs from '@mui/material/Tabs'
 import Tab from '@mui/material/Tab'
 import Button from '@mui/material/Button'
-import Accordion from '@mui/material/Accordion'
-import AccordionSummary from '@mui/material/AccordionSummary'
-import AccordionDetails from '@mui/material/AccordionDetails'
-import Chip from '@mui/material/Chip'
-import { Light as SyntaxHighlighter } from 'react-syntax-highlighter'
-import json from 'react-syntax-highlighter/dist/cjs/languages/hljs/json'
-import { vs2015 } from 'react-syntax-highlighter/dist/cjs/styles/hljs'
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
-import ContentCopyIcon from '@mui/icons-material/ContentCopy'
 import DownloadIcon from '@mui/icons-material/Download'
 import CompareArrowsIcon from '@mui/icons-material/CompareArrows'
-
-SyntaxHighlighter.registerLanguage('json', json)
+import { AccordionSection } from '@/components/shared/AccordionSection'
+import { JsonDisplay } from '@/components/shared/JsonDisplay'
+import { CopyButton } from '@/components/shared/CopyButton'
 
 interface InputOutputComparisonProps {
   input: Record<string, any>
@@ -41,11 +32,6 @@ export function InputOutputComparison({
 
   const inputJson = JSON.stringify(input, null, 2)
   const outputJson = JSON.stringify(output, null, 2)
-
-  const handleCopy = (text: string, label: string) => {
-    navigator.clipboard.writeText(text)
-    // Could add toast notification here
-  }
 
   const handleDownload = (text: string, filename: string) => {
     const blob = new Blob([text], { type: 'application/json' })
@@ -94,13 +80,7 @@ export function InputOutputComparison({
                       Input
                     </Typography>
                     <Box sx={{ display: 'flex', gap: 1 }}>
-                      <Button
-                        size="small"
-                        startIcon={<ContentCopyIcon />}
-                        onClick={() => handleCopy(inputJson, 'Input')}
-                      >
-                        Copy
-                      </Button>
+                      <CopyButton text={inputJson} label="Input" />
                       <Button
                         size="small"
                         startIcon={<DownloadIcon />}
@@ -110,29 +90,7 @@ export function InputOutputComparison({
                       </Button>
                     </Box>
                   </Box>
-                  <Paper
-                    elevation={0}
-                    sx={{
-                      bgcolor: 'grey.900',
-                      p: 2,
-                      borderRadius: 0,
-                      overflow: 'auto',
-                      maxHeight: 500,
-                    }}
-                  >
-                    <SyntaxHighlighter
-                      language="json"
-                      style={vs2015}
-                      customStyle={{
-                        margin: 0,
-                        borderRadius: 0,
-                        fontSize: '0.875rem',
-                        background: 'transparent',
-                      }}
-                    >
-                      {inputJson}
-                    </SyntaxHighlighter>
-                  </Paper>
+                  <JsonDisplay data={input} maxHeight={500} />
                 </CardContent>
               </Card>
             </Grid>
@@ -154,13 +112,7 @@ export function InputOutputComparison({
                       Output
                     </Typography>
                     <Box sx={{ display: 'flex', gap: 1 }}>
-                      <Button
-                        size="small"
-                        startIcon={<ContentCopyIcon />}
-                        onClick={() => handleCopy(outputJson, 'Output')}
-                      >
-                        Copy
-                      </Button>
+                      <CopyButton text={outputJson} label="Output" />
                       <Button
                         size="small"
                         startIcon={<DownloadIcon />}
@@ -170,100 +122,19 @@ export function InputOutputComparison({
                       </Button>
                     </Box>
                   </Box>
-                  <Paper
-                    elevation={0}
-                    sx={{
-                      bgcolor: 'grey.900',
-                      p: 2,
-                      borderRadius: 0,
-                      overflow: 'auto',
-                      maxHeight: 500,
-                    }}
-                  >
-                    <SyntaxHighlighter
-                      language="json"
-                      style={vs2015}
-                      customStyle={{
-                        margin: 0,
-                        borderRadius: 0,
-                        fontSize: '0.875rem',
-                        background: 'transparent',
-                      }}
-                    >
-                      {outputJson}
-                    </SyntaxHighlighter>
-                  </Paper>
+                  <JsonDisplay data={output} maxHeight={500} />
                 </CardContent>
               </Card>
             </Grid>
           </Grid>
         ) : (
-          // Diff View (simplified - showing both with visual separation)
           <Box>
-            <Accordion defaultExpanded={true}>
-              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                  Input (Before)
-                </Typography>
-              </AccordionSummary>
-              <AccordionDetails>
-                <Paper
-                  elevation={0}
-                  sx={{
-                    bgcolor: 'grey.900',
-                    p: 2,
-                    borderRadius: 1,
-                    overflow: 'auto',
-                    maxHeight: 300,
-                  }}
-                >
-                  <SyntaxHighlighter
-                    language="json"
-                    style={vs2015}
-                    customStyle={{
-                      margin: 0,
-                      borderRadius: '0.5rem',
-                      fontSize: '0.875rem',
-                      background: 'transparent',
-                    }}
-                  >
-                    {inputJson}
-                  </SyntaxHighlighter>
-                </Paper>
-              </AccordionDetails>
-            </Accordion>
-            <Accordion defaultExpanded={true}>
-              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                  Output (After)
-                </Typography>
-              </AccordionSummary>
-              <AccordionDetails>
-                <Paper
-                  elevation={0}
-                  sx={{
-                    bgcolor: 'grey.900',
-                    p: 2,
-                    borderRadius: 1,
-                    overflow: 'auto',
-                    maxHeight: 300,
-                  }}
-                >
-                  <SyntaxHighlighter
-                    language="json"
-                    style={vs2015}
-                    customStyle={{
-                      margin: 0,
-                      borderRadius: '0.5rem',
-                      fontSize: '0.875rem',
-                      background: 'transparent',
-                    }}
-                  >
-                    {outputJson}
-                  </SyntaxHighlighter>
-                </Paper>
-              </AccordionDetails>
-            </Accordion>
+            <AccordionSection title="Input (Before)" defaultExpanded={true}>
+              <JsonDisplay data={input} maxHeight={300} />
+            </AccordionSection>
+            <AccordionSection title="Output (After)" defaultExpanded={true}>
+              <JsonDisplay data={output} maxHeight={300} />
+            </AccordionSection>
           </Box>
         )}
       </CardContent>

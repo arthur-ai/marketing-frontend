@@ -19,9 +19,7 @@ import {
   RotateCcw
 } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
-import { Light as SyntaxHighlighter } from 'react-syntax-highlighter'
-import json from 'react-syntax-highlighter/dist/cjs/languages/hljs/json'
-import { vs2015 } from 'react-syntax-highlighter/dist/cjs/styles/hljs'
+import { SyntaxHighlighter, vs2015 } from '@/lib/syntax-highlighter'
 import {
   Checkbox,
   FormGroup,
@@ -45,7 +43,6 @@ import { showSuccessToast, showErrorToast } from '@/lib/toast-utils'
 import { formatApprovalOutput } from '@/lib/approval-formatter'
 import { StepEditor } from './StepEditor'
 
-SyntaxHighlighter.registerLanguage('json', json)
 
 interface ApprovalModalProps {
   approval: ApprovalRequest | null

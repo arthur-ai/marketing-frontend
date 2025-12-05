@@ -1,9 +1,10 @@
 'use client'
 
-import { Box, Typography, Chip, Stack, LinearProgress, Card, CardContent, Divider, Accordion, AccordionSummary, AccordionDetails, IconButton, Tooltip } from '@mui/material'
+import { Box, Typography, Chip, Stack, LinearProgress, Card, CardContent, Divider, Accordion, AccordionSummary, AccordionDetails, Tooltip, IconButton } from '@mui/material'
 import { CheckCircle, Circle, Cancel, Security, AccessTime, ExpandMore, ContentCopy } from '@mui/icons-material'
 import type { JobResultsSummary, ApprovalListItem } from '@/types/api'
-import { showSuccessToast, showErrorToast } from '@/lib/toast-utils'
+import { AccordionSection } from '@/components/shared/AccordionSection'
+import { CopyButton } from '@/components/shared/CopyButton'
 
 export interface SubjobStep {
   id: string
@@ -42,15 +43,6 @@ export function SubjobVisualizer({
   subjobApprovals = {},
   subjobResults = {}
 }: SubjobVisualizerProps) {
-  // Copy to clipboard helper
-  const copyToClipboard = async (text: string, label: string = 'Content') => {
-    try {
-      await navigator.clipboard.writeText(text);
-      showSuccessToast('Copied!', `${label} copied to clipboard`);
-    } catch (err) {
-      showErrorToast('Copy Failed', 'Failed to copy to clipboard');
-    }
-  };
 
   // Group steps by job_id
   const allSteps = jobResults.steps || []
@@ -358,24 +350,16 @@ export function SubjobVisualizer({
                           <Typography variant="caption" fontWeight="medium" color="text.secondary">
                             Export
                           </Typography>
-                          <Tooltip title="Copy export to clipboard">
-                            <IconButton
-                              size="small"
-                              onClick={() => {
-                                let outputString = '';
-                                if (typeof output === 'string') {
-                                  outputString = output;
-                                } else if (subjobResult?.final_content) {
-                                  outputString = subjobResult.final_content;
-                                } else {
-                                  outputString = JSON.stringify(output, null, 2);
-                                }
-                                copyToClipboard(outputString, 'Subjob Export');
-                              }}
-                            >
-                              <ContentCopy fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
+                          <CopyButton
+                            text={
+                              typeof output === 'string'
+                                ? output
+                                : subjobResult?.final_content
+                                ? subjobResult.final_content
+                                : JSON.stringify(output, null, 2)
+                            }
+                            label="Subjob Export"
+                          />
                         </Box>
                         {typeof output === 'string' ? (
                           <Box

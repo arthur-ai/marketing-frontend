@@ -9,9 +9,7 @@ import {
   CardContent,
   Button,
   Chip,
-  CircularProgress,
   Alert,
-  Paper,
   Stack,
   TextField,
   Checkbox,
@@ -21,32 +19,28 @@ import {
   RadioGroup,
   FormControl,
   FormLabel,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
   Divider,
 } from '@mui/material'
 import {
-  ArrowBack,
   CheckCircle,
   Cancel,
   Edit,
   Save,
-  ExpandMore,
 } from '@mui/icons-material'
 import { useState, useEffect } from 'react'
 import { useApproval, useDecideApproval, useCancelJob } from '@/hooks/useApi'
 import { showSuccessToast, showErrorToast } from '@/lib/toast-utils'
 import { formatApprovalOutput } from '@/lib/approval-formatter'
 import type { ApprovalRequest, ApprovalDecisionRequest } from '@/types/api'
-import { Light as SyntaxHighlighter } from 'react-syntax-highlighter'
-import json from 'react-syntax-highlighter/dist/cjs/languages/hljs/json'
-import { vs2015 } from 'react-syntax-highlighter/dist/cjs/styles/hljs'
 import { StepEditor } from '@/components/approvals/StepEditor'
 import { MarkdownSection } from '@/components/approvals/sections/shared/MarkdownSection'
 import { SEOAnalysisMetrics } from '@/components/approvals/sections/seo/SEOAnalysisMetrics'
-
-SyntaxHighlighter.registerLanguage('json', json)
+import { PageHeader } from '@/components/shared/PageHeader'
+import { LoadingErrorState } from '@/components/shared/LoadingErrorState'
+import { AccordionSection } from '@/components/shared/AccordionSection'
+import { JsonDisplay } from '@/components/shared/JsonDisplay'
+import { ConfidenceScore } from '@/components/shared/ConfidenceScore'
+import { ApprovalStatusAlert } from '@/components/shared/ApprovalStatusAlert'
 
 interface SelectedKeywords {
   main_keyword: string  // Required: Single main keyword
@@ -100,34 +94,9 @@ export default function ApprovalDetailPage() {
     }
   }, [approval])
 
-  if (isLoading) {
-    return (
-      <Container maxWidth="lg" sx={{ py: 4, textAlign: 'center' }}>
-        <CircularProgress />
-        <Typography sx={{ mt: 2 }}>Loading approval...</Typography>
-      </Container>
-    )
-  }
 
-  if (error || !approval) {
-    return (
-      <Container maxWidth="lg" sx={{ py: 4 }}>
-        <Alert severity="error">
-          {error ? `Failed to load approval: ${error.message}` : 'Approval not found'}
-        </Alert>
-        <Button
-          startIcon={<ArrowBack />}
-          onClick={() => router.push('/approvals')}
-          sx={{ mt: 2 }}
-        >
-          Back to Approvals
-        </Button>
-      </Container>
-    )
-  }
-
-  const isKeywordSelectionStep = approval.pipeline_step === 'seo_keywords'
-  const isAlreadyDecided = approval.status !== 'pending'
+  const isKeywordSelectionStep = approval?.pipeline_step === 'seo_keywords'
+  const isAlreadyDecided = approval?.status !== 'pending'
 
   const handleMainKeywordChange = (keyword: string) => {
     setSelectedKeywords(prev => ({
@@ -185,6 +154,7 @@ export default function ApprovalDetailPage() {
   }
 
   const handleSelectAll = (type: 'primary' | 'secondary' | 'lsi' | 'long_tail') => {
+    if (!approval?.output_data) return
     const output = approval.output_data as any
     const allKeywords = output[`${type}_keywords`] || []
     setSelectedKeywords(prev => {
@@ -221,6 +191,7 @@ export default function ApprovalDetailPage() {
   }
 
   const handleKeywordSelection = async () => {
+    if (!approval) return
     if (isAlreadyDecided) {
       showErrorToast(
         'Already Decided',
@@ -278,6 +249,7 @@ export default function ApprovalDetailPage() {
   }
 
   const handleDecision = async (selectedDecision: 'approve' | 'reject' | 'modify' | 'rerun', editedDataOverride?: any) => {
+    if (!approval) return
     if (isAlreadyDecided) {
       showErrorToast(
         'Already Decided',
@@ -359,8 +331,8 @@ export default function ApprovalDetailPage() {
     }
   }
 
-  const getStepBadgeColor = (stepName: string) => {
-    const colors: Record<string, "success" | "error" | "warning" | "info" | "default"> = {
+  const getStepBadgeColor = (stepName: string): 'success' | 'error' | 'warning' | 'info' | 'default' => {
+    const colors: Record<string, 'success' | 'error' | 'warning' | 'info' | 'default'> = {
       seo_keywords: 'success',
       marketing_brief: 'error',
       article_generation: 'warning',
@@ -372,80 +344,40 @@ export default function ApprovalDetailPage() {
     return colors[stepName] || 'default'
   }
 
+  const chips = approval
+    ? [
+        {
+          label: (approval.pipeline_step || 'Unknown Step').replace(/_/g, ' ').toUpperCase(),
+          color: getStepBadgeColor(approval.pipeline_step || ''),
+        },
+        {
+          label: approval.status,
+          color: (approval.status === 'pending' ? 'warning' : approval.status === 'approved' ? 'success' : 'error') as const,
+        },
+      ]
+    : []
+
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      {/* Header */}
-      <Box sx={{ mb: 4 }}>
-        <Button
-          startIcon={<ArrowBack />}
-          onClick={() => router.push('/approvals')}
-          sx={{ mb: 2 }}
-        >
-          Back to Approvals
-        </Button>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Box>
-            <Typography variant="h4" component="h1" sx={{ fontWeight: 700, mb: 1 }}>
-              Review Approval
-            </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 1 }}>
-              <Chip
-                label={(approval.pipeline_step || 'Unknown Step').replace(/_/g, ' ').toUpperCase()}
-                color={getStepBadgeColor(approval.pipeline_step || '')}
-                sx={{ textTransform: 'uppercase' }}
-              />
-              <Chip
-                label={approval.status}
-                color={approval.status === 'pending' ? 'warning' : approval.status === 'approved' ? 'success' : 'error'}
-              />
-            </Box>
-          </Box>
-        </Box>
-      </Box>
+    <LoadingErrorState
+      loading={isLoading}
+      error={error || !approval ? (error || new Error('Approval not found')) : undefined}
+      loadingText="Loading approval..."
+      errorText={error ? `Failed to load approval: ${error instanceof Error ? error.message : String(error)}` : 'Approval not found'}
+      backPath="/approvals"
+      backLabel="Back to Approvals"
+    >
+      {approval && (
+        <Container maxWidth="lg" sx={{ py: 4 }}>
+          <PageHeader
+            title="Review Approval"
+            backPath="/approvals"
+            backLabel="Back to Approvals"
+            chips={chips}
+          />
 
-      {/* Confidence Score */}
-      {approval.confidence_score !== undefined && (
-        <Alert severity="info" sx={{ mb: 3 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-            <Typography variant="body2">
-              <strong>Confidence Score:</strong> {(approval.confidence_score * 100).toFixed(0)}%
-            </Typography>
-            <Box sx={{ width: 200, height: 8, bgcolor: 'grey.200', borderRadius: 1, overflow: 'hidden' }}>
-              <Box
-                sx={{
-                  width: `${approval.confidence_score * 100}%`,
-                  height: '100%',
-                  bgcolor: 'primary.main',
-                }}
-              />
-            </Box>
-          </Box>
-        </Alert>
-      )}
+          {approval.confidence_score !== undefined && <ConfidenceScore score={approval.confidence_score} />}
 
-      {/* Already Decided Alert */}
-      {isAlreadyDecided && (
-        <Alert severity={approval.status === 'approved' ? 'success' : approval.status === 'rejected' ? 'error' : 'info'} sx={{ mb: 3 }}>
-          <Typography variant="subtitle2" gutterBottom>
-            This approval has already been {approval.status}.
-          </Typography>
-          {approval.reviewed_at && (
-            <Typography variant="body2" sx={{ mt: 1 }}>
-              Reviewed: {new Date(approval.reviewed_at).toLocaleString()}
-            </Typography>
-          )}
-          {approval.reviewed_by && (
-            <Typography variant="body2">
-              Reviewed by: {approval.reviewed_by}
-            </Typography>
-          )}
-          {approval.user_comment && (
-            <Typography variant="body2" sx={{ mt: 1 }}>
-              Comment: {approval.user_comment}
-            </Typography>
-          )}
-        </Alert>
-      )}
+          <ApprovalStatusAlert approval={approval} />
 
       {/* Suggestions */}
       {approval.suggestions && approval.suggestions.length > 0 && (
@@ -463,124 +395,58 @@ export default function ApprovalDetailPage() {
         </Alert>
       )}
 
-      {/* Content - Collapsible Sections */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent sx={{ p: 0, '&:last-child': { pb: 0 } }}>
-          {/* Generated Output */}
-          <Accordion expanded={expandedOutput} onChange={(_, isExpanded) => setExpandedOutput(isExpanded)}>
-            <AccordionSummary expandIcon={<ExpandMore />}>
-              <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                Generated Output
-              </Typography>
-            </AccordionSummary>
-            <AccordionDetails>
-              {/* Use StepEditor for steps that have specialized editors, fallback to markdown for others */}
-              {approval.pipeline_step && approval.pipeline_step !== 'seo_keywords' ? (
-                <Box>
-                  <StepEditor
-                    stepName={approval.pipeline_step}
-                    initialData={approval.output_data}
-                    onDataChange={(data, hasChanges) => {
-                      setEditedData(data)
-                      setHasEditorChanges(hasChanges)
-                      // Update modifiedOutput for modify decision
-                      if (hasChanges) {
-                        setModifiedOutput(JSON.stringify(data, null, 2))
-                      }
-                    }}
+          <Card sx={{ mb: 3 }}>
+            <CardContent sx={{ p: 0, '&:last-child': { pb: 0 } }}>
+              <AccordionSection
+                title="Generated Output"
+                defaultExpanded={true}
+                onChange={(expanded) => setExpandedOutput(expanded)}
+              >
+                {approval.pipeline_step && approval.pipeline_step !== 'seo_keywords' ? (
+                  <Box>
+                    <StepEditor
+                      stepName={approval.pipeline_step}
+                      initialData={approval.output_data}
+                      onDataChange={(data, hasChanges) => {
+                        setEditedData(data)
+                        setHasEditorChanges(hasChanges)
+                        if (hasChanges) {
+                          setModifiedOutput(JSON.stringify(data, null, 2))
+                        }
+                      }}
+                    />
+                    {!editedData && (
+                      <Box sx={{ mt: 2 }}>
+                        <MarkdownSection
+                          content={formatApprovalOutput(approval.output_data, approval.pipeline_step || 'unknown')}
+                        />
+                      </Box>
+                    )}
+                  </Box>
+                ) : (
+                  <MarkdownSection
+                    content={formatApprovalOutput(approval.output_data, approval.pipeline_step || 'unknown')}
                   />
-                  {/* Fallback to markdown if StepEditor returns null */}
-                  {!editedData && (
-                    <Box sx={{ mt: 2 }}>
-                      <MarkdownSection
-                        content={formatApprovalOutput(approval.output_data, approval.pipeline_step || 'unknown')}
-                      />
-                    </Box>
-                  )}
-                </Box>
-              ) : (
-                <MarkdownSection
-                  content={formatApprovalOutput(approval.output_data, approval.pipeline_step || 'unknown')}
-                />
-              )}
-            </AccordionDetails>
-          </Accordion>
+                )}
+              </AccordionSection>
 
-          {/* Input Data */}
-          <Accordion expanded={expandedInput} onChange={(_, isExpanded) => setExpandedInput(isExpanded)}>
-            <AccordionSummary expandIcon={<ExpandMore />}>
-              <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                Input Data
-              </Typography>
-            </AccordionSummary>
-            <AccordionDetails>
-              <Paper 
-                elevation={0}
-                sx={{ 
-                  p: 0, 
-                  bgcolor: 'grey.900', 
-                  borderRadius: 2,
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  overflow: 'auto',
-                  maxHeight: '600px'
-                }}
+              <AccordionSection
+                title="Input Data"
+                defaultExpanded={false}
+                onChange={(expanded) => setExpandedInput(expanded)}
               >
-                <SyntaxHighlighter 
-                  language="json" 
-                  style={vs2015}
-                  customStyle={{ 
-                    margin: 0, 
-                    borderRadius: '0.5rem', 
-                    fontSize: '0.875rem',
-                    padding: '1.5rem',
-                    background: 'transparent'
-                  }}
-                >
-                  {JSON.stringify(approval.input_data, null, 2)}
-                </SyntaxHighlighter>
-              </Paper>
-            </AccordionDetails>
-          </Accordion>
+                <JsonDisplay data={approval.input_data} />
+              </AccordionSection>
 
-          {/* Raw JSON */}
-          <Accordion expanded={expandedRawJson} onChange={(_, isExpanded) => setExpandedRawJson(isExpanded)}>
-            <AccordionSummary expandIcon={<ExpandMore />}>
-              <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                Raw JSON Output
-              </Typography>
-            </AccordionSummary>
-            <AccordionDetails>
-              <Paper 
-                elevation={0}
-                sx={{ 
-                  p: 0, 
-                  bgcolor: 'grey.900', 
-                  borderRadius: 2,
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  overflow: 'auto',
-                  maxHeight: '600px'
-                }}
+              <AccordionSection
+                title="Raw JSON Output"
+                defaultExpanded={false}
+                onChange={(expanded) => setExpandedRawJson(expanded)}
               >
-                <SyntaxHighlighter 
-                  language="json" 
-                  style={vs2015}
-                  customStyle={{ 
-                    margin: 0, 
-                    borderRadius: '0.5rem', 
-                    fontSize: '0.875rem',
-                    padding: '1.5rem',
-                    background: 'transparent'
-                  }}
-                >
-                  {JSON.stringify(approval.output_data, null, 2)}
-                </SyntaxHighlighter>
-              </Paper>
-            </AccordionDetails>
-          </Accordion>
-        </CardContent>
-      </Card>
+                <JsonDisplay data={approval.output_data} />
+              </AccordionSection>
+            </CardContent>
+          </Card>
 
       {/* Analysis Metrics for seo_keywords step */}
       {isKeywordSelectionStep && approval.output_data && (
@@ -1092,7 +958,9 @@ export default function ApprovalDetailPage() {
           </Stack>
         </CardContent>
       </Card>
-    </Container>
+        </Container>
+      )}
+    </LoadingErrorState>
   )
 }
 

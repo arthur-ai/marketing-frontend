@@ -5,27 +5,19 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
-import Paper from '@mui/material/Paper'
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
 import Grid from '@mui/material/Grid'
 import Button from '@mui/material/Button'
-import Accordion from '@mui/material/Accordion'
-import AccordionSummary from '@mui/material/AccordionSummary'
-import AccordionDetails from '@mui/material/AccordionDetails'
 import Chip from '@mui/material/Chip'
 import CircularProgress from '@mui/material/CircularProgress'
 import Alert from '@mui/material/Alert'
-import { Light as SyntaxHighlighter } from 'react-syntax-highlighter'
-import json from 'react-syntax-highlighter/dist/cjs/languages/hljs/json'
-import { vs2015 } from 'react-syntax-highlighter/dist/cjs/styles/hljs'
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
-import ContentCopyIcon from '@mui/icons-material/ContentCopy'
 import DownloadIcon from '@mui/icons-material/Download'
 import CodeIcon from '@mui/icons-material/Code'
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward'
-
-SyntaxHighlighter.registerLanguage('json', json)
+import { AccordionSection } from '@/components/shared/AccordionSection'
+import { JsonDisplay } from '@/components/shared/JsonDisplay'
+import { CopyButton } from '@/components/shared/CopyButton'
 
 interface StepInputOutputViewerProps {
   jobId: string
@@ -72,10 +64,6 @@ export function StepInputOutputViewer({ jobId, stepName }: StepInputOutputViewer
 
   const inputJson = JSON.stringify(inputSnapshot, null, 2)
   const outputJson = JSON.stringify(output, null, 2)
-
-  const handleCopy = (text: string) => {
-    navigator.clipboard.writeText(text)
-  }
 
   const handleDownload = (text: string, filename: string) => {
     const blob = new Blob([text], { type: 'application/json' })
@@ -146,13 +134,7 @@ export function StepInputOutputViewer({ jobId, stepName }: StepInputOutputViewer
                   Input Snapshot
                 </Typography>
                 <Box sx={{ display: 'flex', gap: 1 }}>
-                  <Button
-                    size="small"
-                    startIcon={<ContentCopyIcon />}
-                    onClick={() => handleCopy(inputJson)}
-                  >
-                    Copy
-                  </Button>
+                  <CopyButton text={inputJson} label="Input" />
                   <Button
                     size="small"
                     startIcon={<DownloadIcon />}
@@ -162,39 +144,17 @@ export function StepInputOutputViewer({ jobId, stepName }: StepInputOutputViewer
                   </Button>
                 </Box>
               </Box>
-              <Accordion expanded={expandedInput} onChange={(_, isExpanded) => setExpandedInput(isExpanded)}>
-                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+              <AccordionSection
+                title={
                   <Typography variant="caption" color="text.secondary">
                     {expandedInput ? 'Collapse' : 'Expand'} input data
                   </Typography>
-                </AccordionSummary>
-                <AccordionDetails sx={{ p: 0 }}>
-                  <Paper
-                    elevation={0}
-                    sx={{
-                      bgcolor: 'grey.900',
-                      p: 2,
-                      borderRadius: 0,
-                      overflow: 'auto',
-                      maxHeight: 600,
-                      flex: 1,
-                    }}
-                  >
-                    <SyntaxHighlighter
-                      language="json"
-                      style={vs2015}
-                      customStyle={{
-                        margin: 0,
-                        borderRadius: 0,
-                        fontSize: '0.875rem',
-                        background: 'transparent',
-                      }}
-                    >
-                      {inputJson}
-                    </SyntaxHighlighter>
-                  </Paper>
-                </AccordionDetails>
-              </Accordion>
+                }
+                defaultExpanded={true}
+                onChange={(expanded) => setExpandedInput(expanded)}
+              >
+                <JsonDisplay data={inputSnapshot} maxHeight={600} />
+              </AccordionSection>
               {contextKeysUsed.length > 0 && (
                 <Box sx={{ p: 2, borderTop: 1, borderColor: 'divider' }}>
                   <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
@@ -235,13 +195,7 @@ export function StepInputOutputViewer({ jobId, stepName }: StepInputOutputViewer
                   Output
                 </Typography>
                 <Box sx={{ display: 'flex', gap: 1 }}>
-                  <Button
-                    size="small"
-                    startIcon={<ContentCopyIcon />}
-                    onClick={() => handleCopy(outputJson)}
-                  >
-                    Copy
-                  </Button>
+                  <CopyButton text={outputJson} label="Output" />
                   <Button
                     size="small"
                     startIcon={<DownloadIcon />}
@@ -251,39 +205,17 @@ export function StepInputOutputViewer({ jobId, stepName }: StepInputOutputViewer
                   </Button>
                 </Box>
               </Box>
-              <Accordion expanded={expandedOutput} onChange={(_, isExpanded) => setExpandedOutput(isExpanded)}>
-                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+              <AccordionSection
+                title={
                   <Typography variant="caption" color="text.secondary">
                     {expandedOutput ? 'Collapse' : 'Expand'} output data
                   </Typography>
-                </AccordionSummary>
-                <AccordionDetails sx={{ p: 0 }}>
-                  <Paper
-                    elevation={0}
-                    sx={{
-                      bgcolor: 'grey.900',
-                      p: 2,
-                      borderRadius: 0,
-                      overflow: 'auto',
-                      maxHeight: 600,
-                      flex: 1,
-                    }}
-                  >
-                    <SyntaxHighlighter
-                      language="json"
-                      style={vs2015}
-                      customStyle={{
-                        margin: 0,
-                        borderRadius: 0,
-                        fontSize: '0.875rem',
-                        background: 'transparent',
-                      }}
-                    >
-                      {outputJson}
-                    </SyntaxHighlighter>
-                  </Paper>
-                </AccordionDetails>
-              </Accordion>
+                }
+                defaultExpanded={true}
+                onChange={(expanded) => setExpandedOutput(expanded)}
+              >
+                <JsonDisplay data={output} maxHeight={600} />
+              </AccordionSection>
             </CardContent>
           </Card>
         </Grid>

@@ -35,7 +35,15 @@ export function ContentEnhancementSection({ data }: ContentEnhancementSectionPro
     conversation_flow,
   } = data
 
-  if (!detected_language && key_topics.length === 0 && !conversation_flow) {
+  // Check if conversation_flow has any meaningful data
+  const hasConversationFlowData = conversation_flow && (
+    conversation_flow.type ||
+    (conversation_flow.question_count != null && typeof conversation_flow.question_count === 'number') ||
+    (conversation_flow.answer_count != null && typeof conversation_flow.answer_count === 'number') ||
+    (conversation_flow.patterns && conversation_flow.patterns.length > 0)
+  )
+
+  if (!detected_language && key_topics.length === 0 && !hasConversationFlowData) {
     return null
   }
 
@@ -92,7 +100,7 @@ export function ContentEnhancementSection({ data }: ContentEnhancementSectionPro
           )}
 
           {/* Conversation Flow */}
-          {conversation_flow && (
+          {hasConversationFlowData && (
             <>
               {(detected_language || key_topics.length > 0) && <Divider />}
               <Box>
@@ -117,19 +125,19 @@ export function ContentEnhancementSection({ data }: ContentEnhancementSectionPro
                       />
                     </Box>
                   )}
-                  {(conversation_flow.question_count !== undefined || 
-                    conversation_flow.answer_count !== undefined) && (
+                  {((conversation_flow.question_count != null && typeof conversation_flow.question_count === 'number') || 
+                    (conversation_flow.answer_count != null && typeof conversation_flow.answer_count === 'number')) && (
                     <Box>
                       <Typography variant="body2" color="text.secondary">
                         Analysis:
                       </Typography>
                       <Stack direction="row" spacing={2} sx={{ mt: 0.5 }}>
-                        {conversation_flow.question_count !== undefined && (
+                        {conversation_flow.question_count != null && typeof conversation_flow.question_count === 'number' && (
                           <Typography variant="body2">
                             <strong>Questions:</strong> {conversation_flow.question_count}
                           </Typography>
                         )}
-                        {conversation_flow.answer_count !== undefined && (
+                        {conversation_flow.answer_count != null && typeof conversation_flow.answer_count === 'number' && (
                           <Typography variant="body2">
                             <strong>Answers:</strong> {conversation_flow.answer_count}
                           </Typography>

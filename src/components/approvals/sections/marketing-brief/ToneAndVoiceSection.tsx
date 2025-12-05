@@ -1,9 +1,9 @@
 'use client'
 
-import { Typography } from '@mui/material'
 import { Mic } from '@mui/icons-material'
 import { CategoryCard } from '../shared/CategoryCard'
 import { EditableTextField } from '../../editors/shared/EditableTextField'
+import { FormattedTextDisplay } from '../shared/FormattedTextDisplay'
 
 interface ToneAndVoiceSectionProps {
   value: string
@@ -39,9 +39,7 @@ export function ToneAndVoiceSection({
           placeholder="Enter recommended tone and voice"
         />
       ) : (
-        <Typography variant="body2">
-          {value}
-        </Typography>
+        <FormattedTextDisplay content={value} />
       )}
     </CategoryCard>
   )

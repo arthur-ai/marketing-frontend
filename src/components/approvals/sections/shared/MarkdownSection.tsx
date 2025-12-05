@@ -24,7 +24,20 @@ export function MarkdownSection({ content }: MarkdownSectionProps) {
         sx={{
           '& .prose': { maxWidth: 'none' },
           '& p': { mb: 1.5 },
-          '& ul, & ol': { pl: 2, mb: 1.5 },
+          '& ul, & ol': { 
+            pl: 3, 
+            mb: 1.5,
+            '& li': {
+              mb: 0.5,
+              lineHeight: 1.6,
+            },
+          },
+          '& ul': {
+            listStyleType: 'disc',
+          },
+          '& ol': {
+            listStyleType: 'decimal',
+          },
           '& code': {
             bgcolor: 'grey.200',
             px: 0.5,

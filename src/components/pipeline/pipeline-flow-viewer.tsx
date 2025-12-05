@@ -22,11 +22,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import ErrorIcon from '@mui/icons-material/Error'
 import ScheduleIcon from '@mui/icons-material/Schedule'
 import CodeIcon from '@mui/icons-material/Code'
-import { Light as SyntaxHighlighter } from 'react-syntax-highlighter'
-import json from 'react-syntax-highlighter/dist/cjs/languages/hljs/json'
-import { vs2015 } from 'react-syntax-highlighter/dist/cjs/styles/hljs'
-
-SyntaxHighlighter.registerLanguage('json', json)
+import { SyntaxHighlighter, vs2015 } from '@/lib/syntax-highlighter'
 
 interface PipelineFlowViewerProps {
   jobId: string

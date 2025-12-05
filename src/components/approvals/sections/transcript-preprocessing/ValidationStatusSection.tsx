@@ -176,7 +176,18 @@ export function ValidationStatusSection({ data }: ValidationStatusSectionProps) 
             <Typography variant="subtitle2" gutterBottom fontWeight="bold">
               Field Validation
             </Typography>
-            <Stack direction="row" spacing={1} sx={{ mt: 1, flexWrap: 'wrap', gap: 1 }}>
+            <Stack 
+              direction="row" 
+              spacing={1.5} 
+              sx={{ 
+                mt: 1.5, 
+                flexWrap: 'wrap', 
+                gap: 1.5,
+                '& > *': {
+                  mb: 0.5
+                }
+              }}
+            >
               {getStatusChip(speakers_validated, 'Speakers')}
               {getStatusChip(duration_validated, 'Duration')}
               {getStatusChip(content_validated, 'Content')}

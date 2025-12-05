@@ -405,6 +405,52 @@ export interface SelectedKeywords {
   long_tail?: string[]
 }
 
+// SEO Keywords Types
+export interface KeywordMetadata {
+  keyword: string
+  search_volume?: number
+  difficulty_score?: number
+  cpc_estimate?: number
+  trend_direction?: 'rising' | 'stable' | 'declining'
+  trend_percentage?: number
+  relevance_score?: number
+}
+
+export interface KeywordDensityAnalysis {
+  keyword: string
+  current_density: number
+  optimal_density: number
+  occurrences: number
+  placement_locations: string[]
+}
+
+export interface KeywordCluster {
+  cluster_name: string
+  keywords: string[]
+  primary_keyword?: string
+  topic_theme?: string
+}
+
+export interface SEOKeywordsResult {
+  main_keyword: string
+  primary_keywords: string[]
+  secondary_keywords?: string[]
+  lsi_keywords?: string[]
+  long_tail_keywords?: string[]
+  keyword_density?: Record<string, number>
+  keyword_density_analysis?: KeywordDensityAnalysis[]
+  search_intent: string
+  keyword_difficulty?: Record<string, number>
+  primary_keywords_metadata?: KeywordMetadata[]
+  secondary_keywords_metadata?: KeywordMetadata[]
+  long_tail_keywords_metadata?: KeywordMetadata[]
+  keyword_clusters?: KeywordCluster[]
+  search_volume_summary?: Record<string, number>
+  optimization_recommendations?: string[]
+  confidence_score?: number
+  relevance_score?: number
+}
+
 export interface ApprovalRequest {
   id: string
   job_id: string

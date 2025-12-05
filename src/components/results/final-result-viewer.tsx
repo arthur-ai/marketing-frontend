@@ -1,31 +1,13 @@
-'use client';
+'use client'
 
-import { useState } from 'react';
-import {
-  Box,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  Typography,
-  Chip,
-  Tabs,
-  Tab,
-  Button,
-  IconButton,
-  Tooltip,
-} from '@mui/material';
-import {
-  ExpandMore,
-  CheckCircle,
-  ContentCopy,
-  CompareArrows,
-  Download,
-} from '@mui/icons-material';
-import ReactMarkdown from 'react-markdown';
-import type { FinalResult } from '@/types/results';
-import type { JobMetadata } from '@/types/results';
-import { htmlToMarkdown } from '@/utils/contentFormatters';
-import { showSuccessToast } from '@/lib/toast-utils';
+import { useState } from 'react'
+import { Box, Typography, Chip, Tabs, Tab, Button } from '@mui/material'
+import { CheckCircle, CompareArrows, Download } from '@mui/icons-material'
+import ReactMarkdown from 'react-markdown'
+import type { FinalResult } from '@/types/results'
+import { htmlToMarkdown } from '@/utils/contentFormatters'
+import { AccordionSection } from '@/components/shared/AccordionSection'
+import { CopyButton } from '@/components/shared/CopyButton'
 
 interface FinalResultViewerProps {
   finalResult: FinalResult;
@@ -40,16 +22,7 @@ export function FinalResultViewer({
   jobId,
   onCompare,
 }: FinalResultViewerProps) {
-  const [outputViewTab, setOutputViewTab] = useState(0);
-
-  const copyToClipboard = async (text: string, label: string = 'Content') => {
-    try {
-      await navigator.clipboard.writeText(text);
-      showSuccessToast('Copied!', `${label} copied to clipboard`);
-    } catch (err) {
-      console.error('Failed to copy to clipboard:', err);
-    }
-  };
+  const [outputViewTab, setOutputViewTab] = useState(0)
 
   const handleDownload = () => {
     const content =
@@ -81,15 +54,16 @@ export function FinalResultViewer({
 
   return (
     <Box sx={{ mb: 3 }}>
-      <Accordion defaultExpanded={false}>
-        <AccordionSummary expandIcon={<ExpandMore />}>
+      <AccordionSection
+        title={
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%' }}>
             <CheckCircle sx={{ color: '#4caf50' }} />
             <Typography variant="h6">Output</Typography>
             <Chip label="Completed" size="small" color="success" sx={{ ml: 'auto' }} />
           </Box>
-        </AccordionSummary>
-        <AccordionDetails>
+        }
+        defaultExpanded={false}
+      >
           <Box sx={{ mb: 2 }}>
             <Tabs value={outputViewTab} onChange={(_, newValue) => setOutputViewTab(newValue)}>
               <Tab label="Preview" />
@@ -221,46 +195,29 @@ export function FinalResultViewer({
               </Box>
             )}
             <Box sx={{ position: 'absolute', top: 8, right: 8 }}>
-              <Tooltip title="Copy to clipboard">
-                <IconButton
-                  size="small"
-                  onClick={() => {
-                    const contentToCopy =
-                      outputViewTab === 0
-                        ? contentString
-                        : isBlogPost
-                          ? htmlToMarkdown(contentString)
-                          : contentString;
-                    copyToClipboard(contentToCopy, 'Output');
-                  }}
-                >
-                  <ContentCopy fontSize="small" />
-                </IconButton>
-              </Tooltip>
+              <CopyButton
+                text={
+                  outputViewTab === 0
+                    ? contentString
+                    : isBlogPost
+                    ? htmlToMarkdown(contentString)
+                    : contentString
+                }
+                label="Output"
+              />
             </Box>
           </Box>
           <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
             {onCompare && (
-              <Button
-                size="small"
-                variant="outlined"
-                startIcon={<CompareArrows />}
-                onClick={onCompare}
-              >
+              <Button size="small" variant="outlined" startIcon={<CompareArrows />} onClick={onCompare}>
                 Compare Input/Output
               </Button>
             )}
-            <Button
-              size="small"
-              variant="outlined"
-              startIcon={<Download />}
-              onClick={handleDownload}
-            >
+            <Button size="small" variant="outlined" startIcon={<Download />} onClick={handleDownload}>
               Download Final Result
             </Button>
           </Box>
-        </AccordionDetails>
-      </Accordion>
+      </AccordionSection>
     </Box>
-  );
+  )
 }

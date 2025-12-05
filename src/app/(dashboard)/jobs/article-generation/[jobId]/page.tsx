@@ -1,36 +1,18 @@
 'use client'
 
 import { useParams, useRouter } from 'next/navigation'
-import {
-  Box,
-  Container,
-  Typography,
-  Card,
-  CardContent,
-  Button,
-  Chip,
-  CircularProgress,
-  Alert,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  Paper,
-} from '@mui/material'
-import {
-  ArrowBack,
-  ExpandMore,
-  Edit,
-} from '@mui/icons-material'
+import { Box, Container, Card, CardContent, Alert, Button } from '@mui/material'
+import { Edit } from '@mui/icons-material'
 import { useState, useMemo } from 'react'
 import { useJob, useStepResult, useJobApprovals } from '@/hooks/useApi'
-import { Light as SyntaxHighlighter } from 'react-syntax-highlighter'
-import json from 'react-syntax-highlighter/dist/cjs/languages/hljs/json'
-import { vs2015 } from 'react-syntax-highlighter/dist/cjs/styles/hljs'
 import { MarkdownSection } from '@/components/approvals/sections/shared/MarkdownSection'
 import { formatApprovalOutput } from '@/lib/approval-formatter'
 import { getApprovalRoute } from '@/lib/approval-routing'
-
-SyntaxHighlighter.registerLanguage('json', json)
+import { PageHeader } from '@/components/shared/PageHeader'
+import { LoadingErrorState } from '@/components/shared/LoadingErrorState'
+import { AccordionSection } from '@/components/shared/AccordionSection'
+import { JsonDisplay } from '@/components/shared/JsonDisplay'
+import { ApprovalStatusAlert } from '@/components/shared/ApprovalStatusAlert'
 
 export default function ArticleGenerationJobPage() {
   const params = useParams()
@@ -68,231 +50,104 @@ export default function ArticleGenerationJobPage() {
   const isLoading = jobLoading || stepLoading
   const error = jobError || stepError
 
-  if (isLoading) {
-    return (
-      <Container maxWidth="lg" sx={{ py: 4, textAlign: 'center' }}>
-        <CircularProgress />
-        <Typography sx={{ mt: 2 }}>Loading Article Generation content...</Typography>
-      </Container>
-    )
-  }
+  const chips = [
+    { label: 'ARTICLE GENERATION', color: 'primary' as const },
+    {
+      label: job?.status || 'unknown',
+      color: (job?.status === 'completed' ? 'success' : job?.status === 'failed' ? 'error' : 'warning') as const,
+    },
+    ...(articleApproval
+      ? [
+          {
+            label: `Approval: ${articleApproval.status}`,
+            color: (articleApproval.status === 'approved'
+              ? 'success'
+              : articleApproval.status === 'pending'
+              ? 'warning'
+              : 'error') as const,
+          },
+        ]
+      : []),
+  ]
 
-  if (error || !job) {
-    return (
-      <Container maxWidth="lg" sx={{ py: 4 }}>
-        <Alert severity="error">
-          {error ? `Failed to load job: ${error.message}` : 'Job not found'}
-        </Alert>
-        <Button
-          startIcon={<ArrowBack />}
-          onClick={() => router.push('/results')}
-          sx={{ mt: 2 }}
-        >
-          Back to Results
-        </Button>
-      </Container>
-    )
-  }
-
-  if (!displayData) {
-    return (
-      <Container maxWidth="lg" sx={{ py: 4 }}>
-        <Alert severity="warning">
-          No Article Generation content found for this job.
-        </Alert>
-        <Button
-          startIcon={<ArrowBack />}
-          onClick={() => router.push('/results')}
-          sx={{ mt: 2 }}
-        >
-          Back to Results
-        </Button>
-      </Container>
-    )
-  }
+  const actions = articleApproval ? (
+    <Button
+      variant="outlined"
+      startIcon={<Edit />}
+      onClick={() => router.push(getApprovalRoute('article_generation', articleApproval.id))}
+    >
+      Manage Approval
+    </Button>
+  ) : undefined
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      {/* Header */}
-      <Box sx={{ mb: 4 }}>
-        <Button
-          startIcon={<ArrowBack />}
-          onClick={() => router.push('/results')}
-          sx={{ mb: 2 }}
-        >
-          Back to Results
-        </Button>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Box>
-            <Typography variant="h4" component="h1" sx={{ fontWeight: 700, mb: 1 }}>
-              Article Generation
-            </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 1 }}>
-              <Chip
-                label="ARTICLE GENERATION"
-                color="primary"
-                sx={{ textTransform: 'uppercase' }}
-              />
-              <Chip
-                label={job.status}
-                color={job.status === 'completed' ? 'success' : job.status === 'failed' ? 'error' : 'warning'}
-              />
-              {articleApproval && (
-                <Chip
-                  label={`Approval: ${articleApproval.status}`}
-                  color={articleApproval.status === 'approved' ? 'success' : articleApproval.status === 'pending' ? 'warning' : 'error'}
-                />
-              )}
-            </Box>
-          </Box>
-          {articleApproval && (
-            <Button
-              variant="outlined"
-              startIcon={<Edit />}
-              onClick={() => router.push(getApprovalRoute('article_generation', articleApproval.id))}
-            >
-              Manage Approval
-            </Button>
-          )}
-        </Box>
-      </Box>
+    <LoadingErrorState
+      loading={isLoading}
+      error={error || !job ? (error || new Error('Job not found')) : undefined}
+      loadingText="Loading Article Generation content..."
+      errorText={error ? `Failed to load job: ${error instanceof Error ? error.message : String(error)}` : 'Job not found'}
+      backPath="/results"
+      backLabel="Back to Results"
+    >
+      {!displayData ? (
+        <Container maxWidth="lg" sx={{ py: 4 }}>
+          <Alert severity="warning">No Article Generation content found for this job.</Alert>
+          <Button onClick={() => router.push('/results')} sx={{ mt: 2 }}>
+            Back to Results
+          </Button>
+        </Container>
+      ) : (
+        <Container maxWidth="lg" sx={{ py: 4 }}>
+          <PageHeader
+            title="Article Generation"
+            backPath="/results"
+            backLabel="Back to Results"
+            chips={chips}
+            actions={actions}
+          />
 
-      {/* Approval Status Alert */}
-      {articleApproval && (
-        <Alert 
-          severity={articleApproval.status === 'approved' ? 'success' : articleApproval.status === 'pending' ? 'warning' : 'info'} 
-          sx={{ mb: 3 }}
-        >
-          <Typography variant="subtitle2" gutterBottom>
-            {articleApproval.status === 'approved' 
-              ? 'This content has been approved.' 
-              : articleApproval.status === 'pending'
-              ? 'This content is pending approval.'
-              : 'This content was rejected or modified.'}
-          </Typography>
-          {articleApproval.reviewed_at && (
-            <Typography variant="body2" sx={{ mt: 1 }}>
-              Reviewed: {new Date(articleApproval.reviewed_at).toLocaleString()}
-            </Typography>
-          )}
-          {articleApproval.reviewed_by && (
-            <Typography variant="body2">
-              Reviewed by: {articleApproval.reviewed_by}
-            </Typography>
-          )}
-          {articleApproval.user_comment && (
-            <Typography variant="body2" sx={{ mt: 1 }}>
-              Comment: {articleApproval.user_comment}
-            </Typography>
-          )}
-        </Alert>
-      )}
+          {articleApproval && <ApprovalStatusAlert approval={articleApproval} showAlreadyDecided={false} />}
 
-      {/* Content Source Info */}
-      {articleApproval?.modified_output && (
-        <Alert severity="info" sx={{ mb: 3 }}>
-          <Typography variant="body2">
-            Showing approved/modified content. Original generated content is available in the JSON view below.
-          </Typography>
-        </Alert>
-      )}
-
-      {/* Content - Article Display */}
-      <Card sx={{ mb: 3 }}>
-        <CardContent sx={{ p: 0, '&:last-child': { pb: 0 } }}>
-          <Accordion expanded={expandedOutput} onChange={(_, isExpanded) => setExpandedOutput(isExpanded)}>
-            <AccordionSummary expandIcon={<ExpandMore />}>
-              <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                Generated Article
-              </Typography>
-            </AccordionSummary>
-            <AccordionDetails>
-              <Box>
-                <MarkdownSection
-                  content={formatApprovalOutput(displayData, 'article_generation')}
-                />
-              </Box>
-            </AccordionDetails>
-          </Accordion>
-
-          {/* Input Data */}
-          {stepResult && (
-            <Accordion expanded={expandedInput} onChange={(_, isExpanded) => setExpandedInput(isExpanded)}>
-              <AccordionSummary expandIcon={<ExpandMore />}>
-                <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                  Input Data
-                </Typography>
-              </AccordionSummary>
-              <AccordionDetails>
-                <Paper 
-                  elevation={0}
-                  sx={{ 
-                    p: 0, 
-                    bgcolor: 'grey.900', 
-                    borderRadius: 2,
-                    border: '1px solid',
-                    borderColor: 'divider',
-                    overflow: 'auto',
-                    maxHeight: '600px'
-                  }}
-                >
-                  <SyntaxHighlighter 
-                    language="json" 
-                    style={vs2015}
-                    customStyle={{ 
-                      margin: 0, 
-                      borderRadius: '0.5rem', 
-                      fontSize: '0.875rem',
-                      padding: '1.5rem',
-                      background: 'transparent'
-                    }}
-                  >
-                    {JSON.stringify(stepResult.input_data || stepResult.input || {}, null, 2)}
-                  </SyntaxHighlighter>
-                </Paper>
-              </AccordionDetails>
-            </Accordion>
+          {articleApproval?.modified_output && (
+            <Alert severity="info" sx={{ mb: 3 }}>
+              Showing approved/modified content. Original generated content is available in the JSON view below.
+            </Alert>
           )}
 
-          {/* Raw JSON */}
-          <Accordion expanded={expandedRawJson} onChange={(_, isExpanded) => setExpandedRawJson(isExpanded)}>
-            <AccordionSummary expandIcon={<ExpandMore />}>
-              <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                Raw JSON Output
-              </Typography>
-            </AccordionSummary>
-            <AccordionDetails>
-              <Paper 
-                elevation={0}
-                sx={{ 
-                  p: 0, 
-                  bgcolor: 'grey.900', 
-                  borderRadius: 2,
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  overflow: 'auto',
-                  maxHeight: '600px'
-                }}
+          <Card sx={{ mb: 3 }}>
+            <CardContent sx={{ p: 0, '&:last-child': { pb: 0 } }}>
+              <AccordionSection
+                title="Generated Article"
+                defaultExpanded={true}
+                onChange={(expanded) => setExpandedOutput(expanded)}
               >
-                <SyntaxHighlighter 
-                  language="json" 
-                  style={vs2015}
-                  customStyle={{ 
-                    margin: 0, 
-                    borderRadius: '0.5rem', 
-                    fontSize: '0.875rem',
-                    padding: '1.5rem',
-                    background: 'transparent'
-                  }}
+                <Box>
+                  <MarkdownSection content={formatApprovalOutput(displayData, 'article_generation')} />
+                </Box>
+              </AccordionSection>
+
+              {stepResult && (
+                <AccordionSection
+                  title="Input Data"
+                  defaultExpanded={false}
+                  onChange={(expanded) => setExpandedInput(expanded)}
                 >
-                  {JSON.stringify(displayData, null, 2)}
-                </SyntaxHighlighter>
-              </Paper>
-            </AccordionDetails>
-          </Accordion>
-        </CardContent>
-      </Card>
-    </Container>
+                  <JsonDisplay data={stepResult.input_data || stepResult.input || {}} />
+                </AccordionSection>
+              )}
+
+              <AccordionSection
+                title="Raw JSON Output"
+                defaultExpanded={false}
+                onChange={(expanded) => setExpandedRawJson(expanded)}
+              >
+                <JsonDisplay data={displayData} />
+              </AccordionSection>
+            </CardContent>
+          </Card>
+        </Container>
+      )}
+    </LoadingErrorState>
   )
 }
 

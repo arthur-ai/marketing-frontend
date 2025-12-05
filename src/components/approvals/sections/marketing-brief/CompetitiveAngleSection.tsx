@@ -1,9 +1,9 @@
 'use client'
 
-import { Typography } from '@mui/material'
 import { TrendingUp } from '@mui/icons-material'
 import { CategoryCard } from '../shared/CategoryCard'
 import { EditableTextarea } from '../../editors/shared/EditableTextarea'
+import { FormattedTextDisplay } from '../shared/FormattedTextDisplay'
 
 interface CompetitiveAngleSectionProps {
   content: string
@@ -39,9 +39,7 @@ export function CompetitiveAngleSection({
           placeholder="Enter unique competitive positioning..."
         />
       ) : (
-        <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
-          {content}
-        </Typography>
+        <FormattedTextDisplay content={content} />
       )}
     </CategoryCard>
   )

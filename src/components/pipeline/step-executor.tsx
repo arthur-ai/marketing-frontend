@@ -20,18 +20,13 @@ import CircularProgress from '@mui/material/CircularProgress'
 import Chip from '@mui/material/Chip'
 import LinearProgress from '@mui/material/LinearProgress'
 import Divider from '@mui/material/Divider'
-import Accordion from '@mui/material/Accordion'
-import AccordionSummary from '@mui/material/AccordionSummary'
-import AccordionDetails from '@mui/material/AccordionDetails'
 import InfoIcon from '@mui/icons-material/Info'
 import PlayArrowIcon from '@mui/icons-material/PlayArrow'
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
-import { Light as SyntaxHighlighter } from 'react-syntax-highlighter'
-import json from 'react-syntax-highlighter/dist/cjs/languages/hljs/json'
-import { vs2015 } from 'react-syntax-highlighter/dist/cjs/styles/hljs'
-
-SyntaxHighlighter.registerLanguage('json', json)
+import DownloadIcon from '@mui/icons-material/Download'
+import { AccordionSection } from '@/components/shared/AccordionSection'
+import { JsonDisplay } from '@/components/shared/JsonDisplay'
+import { CopyButton } from '@/components/shared/CopyButton'
 
 interface ContentInput {
   id?: string
@@ -301,40 +296,36 @@ export function StepExecutor() {
             } : {},
           }}
         />
-        <Accordion sx={{ mt: 1 }}>
-          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Typography variant="caption" color="text.secondary">
-              Show Example
-            </Typography>
-          </AccordionSummary>
-          <AccordionDetails>
-            <Box
-              component="pre"
-              sx={{
-                bgcolor: 'grey.100',
-                p: 2,
-                borderRadius: 1,
-                overflow: 'auto',
-                fontSize: '0.75rem',
-                fontFamily: 'monospace',
-                whiteSpace: 'pre-wrap',
-                wordBreak: 'break-word',
-              }}
-            >
-              {exampleValue}
-            </Box>
-            <Button
-              size="small"
-              variant="outlined"
-              sx={{ mt: 1 }}
-              onClick={() => {
-                setContextInputs({ ...contextInputs, [key]: exampleValue })
-              }}
-            >
-              Use Example
-            </Button>
-          </AccordionDetails>
-        </Accordion>
+        <AccordionSection
+          title={<Typography variant="caption" color="text.secondary">Show Example</Typography>}
+          defaultExpanded={false}
+        >
+          <Box
+            component="pre"
+            sx={{
+              bgcolor: 'grey.100',
+              p: 2,
+              borderRadius: 1,
+              overflow: 'auto',
+              fontSize: '0.75rem',
+              fontFamily: 'monospace',
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word',
+            }}
+          >
+            {exampleValue}
+          </Box>
+          <Button
+            size="small"
+            variant="outlined"
+            sx={{ mt: 1 }}
+            onClick={() => {
+              setContextInputs({ ...contextInputs, [key]: exampleValue })
+            }}
+          >
+            Use Example
+          </Button>
+        </AccordionSection>
       </Box>
     )
   }
@@ -436,28 +427,24 @@ export function StepExecutor() {
                   fullWidth
                   helperText="Unique identifier for the content"
                 />
-                <Accordion sx={{ mt: 1 }}>
-                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                    <Typography variant="caption" color="text.secondary">
-                      Show Example
-                    </Typography>
-                  </AccordionSummary>
-                  <AccordionDetails>
-                    <Box
-                      component="pre"
-                      sx={{
-                        bgcolor: 'grey.100',
-                        p: 2,
-                        borderRadius: 1,
-                        overflow: 'auto',
-                        fontSize: '0.75rem',
-                        fontFamily: 'monospace',
-                      }}
-                    >
-                      "content-123"
-                    </Box>
-                  </AccordionDetails>
-                </Accordion>
+                <AccordionSection
+                  title={<Typography variant="caption" color="text.secondary">Show Example</Typography>}
+                  defaultExpanded={false}
+                >
+                  <Box
+                    component="pre"
+                    sx={{
+                      bgcolor: 'grey.100',
+                      p: 2,
+                      borderRadius: 1,
+                      overflow: 'auto',
+                      fontSize: '0.75rem',
+                      fontFamily: 'monospace',
+                    }}
+                  >
+                    "content-123"
+                  </Box>
+                </AccordionSection>
               </Box>
               <Box>
                 <TextField
@@ -470,29 +457,25 @@ export function StepExecutor() {
                   fullWidth
                   helperText="Title of the content"
                 />
-                <Accordion sx={{ mt: 1 }}>
-                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                    <Typography variant="caption" color="text.secondary">
-                      Show Example
-                    </Typography>
-                  </AccordionSummary>
-                  <AccordionDetails>
-                    <Box
-                      component="pre"
-                      sx={{
-                        bgcolor: 'grey.100',
-                        p: 2,
-                        borderRadius: 1,
-                        overflow: 'auto',
-                        fontSize: '0.75rem',
-                        fontFamily: 'monospace',
-                        whiteSpace: 'pre-wrap',
-                      }}
-                    >
-                      "Example Blog Post Title"
-                    </Box>
-                  </AccordionDetails>
-                </Accordion>
+                <AccordionSection
+                  title={<Typography variant="caption" color="text.secondary">Show Example</Typography>}
+                  defaultExpanded={false}
+                >
+                  <Box
+                    component="pre"
+                    sx={{
+                      bgcolor: 'grey.100',
+                      p: 2,
+                      borderRadius: 1,
+                      overflow: 'auto',
+                      fontSize: '0.75rem',
+                      fontFamily: 'monospace',
+                      whiteSpace: 'pre-wrap',
+                    }}
+                  >
+                    "Example Blog Post Title"
+                  </Box>
+                </AccordionSection>
               </Box>
               <Box>
                 <TextField
@@ -507,29 +490,25 @@ export function StepExecutor() {
                   fullWidth
                   helperText="Main content text"
                 />
-                <Accordion sx={{ mt: 1 }}>
-                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                    <Typography variant="caption" color="text.secondary">
-                      Show Example
-                    </Typography>
-                  </AccordionSummary>
-                  <AccordionDetails>
-                    <Box
-                      component="pre"
-                      sx={{
-                        bgcolor: 'grey.100',
-                        p: 2,
-                        borderRadius: 1,
-                        overflow: 'auto',
-                        fontSize: '0.75rem',
-                        fontFamily: 'monospace',
-                        whiteSpace: 'pre-wrap',
-                      }}
-                    >
-                      "This is example content for the blog post. It can contain multiple paragraphs and should provide context for the pipeline step to process."
-                    </Box>
-                  </AccordionDetails>
-                </Accordion>
+                <AccordionSection
+                  title={<Typography variant="caption" color="text.secondary">Show Example</Typography>}
+                  defaultExpanded={false}
+                >
+                  <Box
+                    component="pre"
+                    sx={{
+                      bgcolor: 'grey.100',
+                      p: 2,
+                      borderRadius: 1,
+                      overflow: 'auto',
+                      fontSize: '0.75rem',
+                      fontFamily: 'monospace',
+                      whiteSpace: 'pre-wrap',
+                    }}
+                  >
+                    "This is example content for the blog post. It can contain multiple paragraphs and should provide context for the pipeline step to process."
+                  </Box>
+                </AccordionSection>
               </Box>
               <Box>
                 <TextField
@@ -543,29 +522,25 @@ export function StepExecutor() {
                   fullWidth
                   helperText="Short excerpt or summary"
                 />
-                <Accordion sx={{ mt: 1 }}>
-                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                    <Typography variant="caption" color="text.secondary">
-                      Show Example
-                    </Typography>
-                  </AccordionSummary>
-                  <AccordionDetails>
-                    <Box
-                      component="pre"
-                      sx={{
-                        bgcolor: 'grey.100',
-                        p: 2,
-                        borderRadius: 1,
-                        overflow: 'auto',
-                        fontSize: '0.75rem',
-                        fontFamily: 'monospace',
-                        whiteSpace: 'pre-wrap',
-                      }}
-                    >
-                      "A brief summary of the content..."
-                    </Box>
-                  </AccordionDetails>
-                </Accordion>
+                <AccordionSection
+                  title={<Typography variant="caption" color="text.secondary">Show Example</Typography>}
+                  defaultExpanded={false}
+                >
+                  <Box
+                    component="pre"
+                    sx={{
+                      bgcolor: 'grey.100',
+                      p: 2,
+                      borderRadius: 1,
+                      overflow: 'auto',
+                      fontSize: '0.75rem',
+                      fontFamily: 'monospace',
+                      whiteSpace: 'pre-wrap',
+                    }}
+                  >
+                    "A brief summary of the content..."
+                  </Box>
+                </AccordionSection>
               </Box>
               <FormControl fullWidth>
                 <InputLabel>Content Type (optional)</InputLabel>
@@ -692,132 +667,69 @@ export function StepExecutor() {
                   {/* Inputs Used Section */}
                   {stepResultData?.input_snapshot && (
                     <Box sx={{ mt: 3 }}>
-                      <Accordion defaultExpanded={false}>
-                        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                            Inputs Used
-                          </Typography>
-                          {stepResultData.context_keys_used && stepResultData.context_keys_used.length > 0 && (
-                            <Chip
-                              label={`${stepResultData.context_keys_used.length} context keys`}
-                              size="small"
-                              sx={{ ml: 2 }}
-                            />
-                          )}
-                        </AccordionSummary>
-                        <AccordionDetails>
-                          <Paper
-                            elevation={0}
-                            sx={{
-                              bgcolor: 'grey.900',
-                              p: 2,
-                              borderRadius: 1,
-                              overflow: 'auto',
-                              maxHeight: 400,
-                              position: 'relative',
-                            }}
-                          >
-                            <SyntaxHighlighter
-                              language="json"
-                              style={vs2015}
-                              customStyle={{
-                                margin: 0,
-                                borderRadius: '0.5rem',
-                                fontSize: '0.875rem',
-                                background: 'transparent',
-                              }}
-                            >
-                              {JSON.stringify(stepResultData.input_snapshot, null, 2)}
-                            </SyntaxHighlighter>
-                            <Box sx={{ position: 'absolute', top: 8, right: 8, display: 'flex', gap: 1 }}>
-                              <Button
-                                size="small"
-                                startIcon={<ContentCopyIcon />}
-                                onClick={() => {
-                                  navigator.clipboard.writeText(JSON.stringify(stepResultData.input_snapshot, null, 2))
-                                }}
-                                sx={{ bgcolor: 'rgba(0,0,0,0.5)', color: 'white', '&:hover': { bgcolor: 'rgba(0,0,0,0.7)' } }}
-                              >
-                                Copy
-                              </Button>
-                            </Box>
-                          </Paper>
-                          {stepResultData.context_keys_used && stepResultData.context_keys_used.length > 0 && (
-                            <Box sx={{ mt: 1 }}>
-                              <Typography variant="caption" color="text.secondary">
-                                Context keys used: {stepResultData.context_keys_used.join(', ')}
-                              </Typography>
-                            </Box>
-                          )}
-                        </AccordionDetails>
-                      </Accordion>
+                      <AccordionSection
+                        title={
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                              Inputs Used
+                            </Typography>
+                            {stepResultData.context_keys_used && stepResultData.context_keys_used.length > 0 && (
+                              <Chip label={`${stepResultData.context_keys_used.length} context keys`} size="small" sx={{ ml: 2 }} />
+                            )}
+                          </Box>
+                        }
+                        defaultExpanded={false}
+                      >
+                        <Box sx={{ position: 'relative' }}>
+                          <JsonDisplay data={stepResultData.input_snapshot} maxHeight={400} />
+                          <Box sx={{ position: 'absolute', top: 8, right: 8 }}>
+                            <CopyButton text={JSON.stringify(stepResultData.input_snapshot, null, 2)} label="Input" />
+                          </Box>
+                        </Box>
+                        {stepResultData.context_keys_used && stepResultData.context_keys_used.length > 0 && (
+                          <Box sx={{ mt: 1 }}>
+                            <Typography variant="caption" color="text.secondary">
+                              Context keys used: {stepResultData.context_keys_used.join(', ')}
+                            </Typography>
+                          </Box>
+                        )}
+                      </AccordionSection>
                     </Box>
                   )}
 
                   {/* Output Generated Section */}
                   {(stepResultData?.result || jobStatus.result) && (
                     <Box sx={{ mt: 3 }}>
-                      <Accordion defaultExpanded={true}>
-                        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-                            Output Generated
-                          </Typography>
-                        </AccordionSummary>
-                        <AccordionDetails>
-                          <Paper
-                            elevation={0}
-                            sx={{
-                              bgcolor: 'grey.900',
-                              p: 2,
-                              borderRadius: 1,
-                              overflow: 'auto',
-                              maxHeight: 400,
-                              position: 'relative',
-                            }}
-                          >
-                            <SyntaxHighlighter
-                              language="json"
-                              style={vs2015}
-                              customStyle={{
-                                margin: 0,
-                                borderRadius: '0.5rem',
-                                fontSize: '0.875rem',
-                                background: 'transparent',
+                      <AccordionSection title="Output Generated" defaultExpanded={true}>
+                        <Box sx={{ position: 'relative' }}>
+                          <JsonDisplay data={stepResultData?.result || jobStatus.result} maxHeight={400} />
+                          <Box sx={{ position: 'absolute', top: 8, right: 8, display: 'flex', gap: 1 }}>
+                            <CopyButton
+                              text={JSON.stringify(stepResultData?.result || jobStatus.result, null, 2)}
+                              label="Output"
+                            />
+                            <Button
+                              size="small"
+                              startIcon={<DownloadIcon />}
+                              onClick={() => {
+                                const blob = new Blob(
+                                  [JSON.stringify(stepResultData?.result || jobStatus.result, null, 2)],
+                                  { type: 'application/json' }
+                                )
+                                const url = URL.createObjectURL(blob)
+                                const a = document.createElement('a')
+                                a.href = url
+                                a.download = `${selectedStep}_output_${jobId}.json`
+                                a.click()
+                                URL.revokeObjectURL(url)
                               }}
+                              sx={{ bgcolor: 'rgba(0,0,0,0.5)', color: 'white', '&:hover': { bgcolor: 'rgba(0,0,0,0.7)' } }}
                             >
-                              {JSON.stringify(stepResultData?.result || jobStatus.result, null, 2)}
-                            </SyntaxHighlighter>
-                            <Box sx={{ position: 'absolute', top: 8, right: 8, display: 'flex', gap: 1 }}>
-                              <Button
-                                size="small"
-                                startIcon={<ContentCopyIcon />}
-                                onClick={() => {
-                                  navigator.clipboard.writeText(JSON.stringify(stepResultData?.result || jobStatus.result, null, 2))
-                                }}
-                                sx={{ bgcolor: 'rgba(0,0,0,0.5)', color: 'white', '&:hover': { bgcolor: 'rgba(0,0,0,0.7)' } }}
-                              >
-                                Copy
-                              </Button>
-                              <Button
-                                size="small"
-                                startIcon={<DownloadIcon />}
-                                onClick={() => {
-                                  const blob = new Blob([JSON.stringify(stepResultData?.result || jobStatus.result, null, 2)], { type: 'application/json' })
-                                  const url = URL.createObjectURL(blob)
-                                  const a = document.createElement('a')
-                                  a.href = url
-                                  a.download = `${selectedStep}_output_${jobId}.json`
-                                  a.click()
-                                  URL.revokeObjectURL(url)
-                                }}
-                                sx={{ bgcolor: 'rgba(0,0,0,0.5)', color: 'white', '&:hover': { bgcolor: 'rgba(0,0,0,0.7)' } }}
-                              >
-                                Download
-                              </Button>
-                            </Box>
-                          </Paper>
-                        </AccordionDetails>
-                      </Accordion>
+                              Download
+                            </Button>
+                          </Box>
+                        </Box>
+                      </AccordionSection>
                     </Box>
                   )}
                 </>

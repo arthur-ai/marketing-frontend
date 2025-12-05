@@ -21,6 +21,7 @@ import {
   Visibility,
 } from '@mui/icons-material'
 import { QualityMetricsDisplay } from './shared/QualityMetricsDisplay'
+import { ListDisplay } from '../sections/shared/ListDisplay'
 
 interface GenericEditorProps {
   initialData: any
@@ -89,6 +90,10 @@ export function GenericEditor({
     }
   }
 
+  const isSimpleArray = (arr: any[]): boolean => {
+    return arr.every(item => typeof item === 'string' || typeof item === 'number')
+  }
+
   const renderField = (key: string, value: any, path: string[] = []): React.ReactNode => {
     const currentPath = [...path, key]
     const pathStr = currentPath.join('.')
@@ -146,6 +151,19 @@ export function GenericEditor({
     }
 
     if (Array.isArray(value)) {
+      // In view mode, use ListDisplay for simple arrays
+      if (!isEditing && isSimpleArray(value)) {
+        return (
+          <Box key={pathStr} sx={{ mb: 2 }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+              {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())} ({value.length})
+            </Typography>
+            <ListDisplay items={value as (string | number)[]} />
+          </Box>
+        )
+      }
+      
+      // For complex arrays or edit mode, use accordion
       return (
         <Accordion key={pathStr} sx={{ mb: 1 }}>
           <AccordionSummary expandIcon={<ExpandMore />}>

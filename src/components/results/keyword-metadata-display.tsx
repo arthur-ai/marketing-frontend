@@ -3,23 +3,24 @@
 import { Box, Typography, Paper } from '@mui/material'
 import type { KeywordMetadata } from '@/types/api'
 
-interface PrimaryKeywordsMetadataProps {
+interface KeywordMetadataDisplayProps {
   metadata: KeywordMetadata[]
+  title: string
 }
 
-export function PrimaryKeywordsMetadata({ metadata }: PrimaryKeywordsMetadataProps) {
+export function KeywordMetadataDisplay({ metadata, title }: KeywordMetadataDisplayProps) {
   if (!metadata || metadata.length === 0) {
     return null
   }
   
   return (
-    <Box>
-      <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 1 }}>
-        Primary Keywords Metadata
+    <Box sx={{ mb: 3 }}>
+      <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2 }}>
+        {title}
       </Typography>
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
         {metadata.map((meta, index) => (
-          <Paper key={index} elevation={0} sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 2 }}>
+          <Paper key={`${meta.keyword}-${index}`} elevation={0} sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 2 }}>
             <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
               {meta.keyword}
             </Typography>
@@ -82,4 +83,3 @@ export function PrimaryKeywordsMetadata({ metadata }: PrimaryKeywordsMetadataPro
     </Box>
   )
 }
-

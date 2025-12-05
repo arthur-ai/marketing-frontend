@@ -7,9 +7,6 @@ import {
   Typography,
   Grid,
   Chip,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
   List,
   ListItem,
   ListItemText,
@@ -17,14 +14,10 @@ import {
   Divider,
   Alert,
   CircularProgress,
-  IconButton,
-  Tooltip,
 } from '@mui/material';
 import {
-  ExpandMore,
   Description,
   Download,
-  ContentCopy,
 } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
 import type { JobResults } from '@/types/results';
@@ -46,6 +39,9 @@ import { api, apiClient } from '@/lib/api';
 import { showSuccessToast, showErrorToast } from '@/lib/toast-utils';
 import { getApprovalRoute } from '@/lib/approval-routing';
 import { getJobRoute } from '@/lib/job-routing';
+import { AccordionSection } from '@/components/shared/AccordionSection';
+import { JsonDisplay } from '@/components/shared/JsonDisplay';
+import { CopyButton } from '@/components/shared/CopyButton';
 
 interface JobDetailsPanelProps {
   selectedJob: JobResults;
@@ -85,15 +81,6 @@ export function JobDetailsPanel({
   onFinalResultUpdate,
 }: JobDetailsPanelProps) {
   const router = useRouter();
-
-  const copyToClipboard = async (text: string, label: string = 'Content') => {
-    try {
-      await navigator.clipboard.writeText(text);
-      showSuccessToast('Copied!', `${label} copied to clipboard`);
-    } catch {
-      showErrorToast('Copy Failed', 'Failed to copy to clipboard');
-    }
-  };
 
   const inputContent =
     selectedJob.metadata.input_content ||
@@ -169,135 +156,110 @@ export function JobDetailsPanel({
         {/* Failed Optional Steps */}
         {selectedJob.metadata.failed_steps && selectedJob.metadata.failed_steps.length > 0 && (
           <Box sx={{ mb: 3, mt: 3 }}>
-            <Accordion defaultExpanded={true}>
-              <AccordionSummary expandIcon={<ExpandMore />}>
+            <AccordionSection
+              title={
                 <Typography variant="h6" color="warning.main">
                   Failed Optional Steps ({selectedJob.metadata.failed_steps.length})
                 </Typography>
-              </AccordionSummary>
-              <AccordionDetails>
-                <List>
-                  {selectedJob.metadata.failed_steps.map((failedStep, idx) => {
-                    const stepKey = typeof failedStep === 'string' 
-                      ? failedStep 
-                      : (failedStep as Record<string, unknown>).step_name as string || `step-${idx}`;
-                    const uniqueKey = `failed-${stepKey}-${selectedJob.job_id}-${idx}`;
-                    return (
-                      <ListItem key={uniqueKey}>
-                        <ListItemText
-                          primary={
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <Typography variant="body2" fontWeight="medium">
-                                {typeof failedStep === 'string'
-                                  ? failedStep.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())
-                                  : (failedStep as Record<string, unknown>).step_name
-                                    ? String((failedStep as Record<string, unknown>).step_name)
-                                        .replace(/_/g, ' ')
-                                        .replace(/\b\w/g, (l) => l.toUpperCase())
-                                    : 'Unknown Step'}
-                              </Typography>
-                              <Chip label="Optional" size="small" color="warning" sx={{ height: 18, fontSize: '0.65rem' }} />
-                            </Box>
-                          }
-                          secondary={
-                            <Typography variant="caption" color="text.secondary">
-                              {typeof failedStep === 'object' && (failedStep as Record<string, unknown>).error
-                                ? `Error: ${String((failedStep as Record<string, unknown>).error)}`
-                                : 'Step failed but did not stop the pipeline'}
+              }
+              defaultExpanded={true}
+            >
+              <List>
+                {selectedJob.metadata.failed_steps.map((failedStep, idx) => {
+                  const stepKey = typeof failedStep === 'string'
+                    ? failedStep
+                    : (failedStep as Record<string, unknown>).step_name as string || `step-${idx}`
+                  const uniqueKey = `failed-${stepKey}-${selectedJob.job_id}-${idx}`
+                  return (
+                    <ListItem key={uniqueKey}>
+                      <ListItemText
+                        primary={
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Typography variant="body2" fontWeight="medium">
+                              {typeof failedStep === 'string'
+                                ? failedStep.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())
+                                : (failedStep as Record<string, unknown>).step_name
+                                ? String((failedStep as Record<string, unknown>).step_name)
+                                    .replace(/_/g, ' ')
+                                    .replace(/\b\w/g, (l) => l.toUpperCase())
+                                : 'Unknown Step'}
                             </Typography>
-                          }
-                        />
-                      </ListItem>
-                    );
-                  })}
-                </List>
-                <Alert severity="info" sx={{ mt: 2 }}>
-                  These steps failed but did not stop the pipeline. The pipeline completed with partial results.
-                </Alert>
-              </AccordionDetails>
-            </Accordion>
+                            <Chip label="Optional" size="small" color="warning" sx={{ height: 18, fontSize: '0.65rem' }} />
+                          </Box>
+                        }
+                        secondary={
+                          <Typography variant="caption" color="text.secondary">
+                            {typeof failedStep === 'object' && (failedStep as Record<string, unknown>).error
+                              ? `Error: ${String((failedStep as Record<string, unknown>).error)}`
+                              : 'Step failed but did not stop the pipeline'}
+                          </Typography>
+                        }
+                      />
+                    </ListItem>
+                  )
+                })}
+              </List>
+              <Alert severity="info" sx={{ mt: 2 }}>
+                These steps failed but did not stop the pipeline. The pipeline completed with partial results.
+              </Alert>
+            </AccordionSection>
           </Box>
         )}
 
         {/* Quality Warnings */}
         {selectedJob.quality_warnings && selectedJob.quality_warnings.length > 0 && (
           <Box sx={{ mb: 3 }}>
-            <Accordion defaultExpanded={true}>
-              <AccordionSummary expandIcon={<ExpandMore />}>
-                <Typography variant="h6">Quality Warnings</Typography>
-              </AccordionSummary>
-              <AccordionDetails>
-                <QualityWarningsDisplay jobResults={selectedJob} />
-              </AccordionDetails>
-            </Accordion>
+            <AccordionSection title="Quality Warnings" defaultExpanded={true}>
+              <QualityWarningsDisplay jobResults={selectedJob} />
+            </AccordionSection>
           </Box>
         )}
 
         {/* Performance Metrics */}
         {selectedJob.performance_metrics && (
           <Box sx={{ mb: 3 }}>
-            <Accordion defaultExpanded={true}>
-              <AccordionSummary expandIcon={<ExpandMore />}>
-                <Typography variant="h6">Performance Metrics</Typography>
-              </AccordionSummary>
-              <AccordionDetails>
-                <PerformanceMetrics jobResults={selectedJob} />
-              </AccordionDetails>
-            </Accordion>
+            <AccordionSection title="Performance Metrics" defaultExpanded={true}>
+              <PerformanceMetrics jobResults={selectedJob} />
+            </AccordionSection>
           </Box>
         )}
 
         {/* Platform Quality Scores */}
         {selectedJob.metadata.platform && (
           <Box sx={{ mb: 3 }}>
-            <Accordion defaultExpanded={true}>
-              <AccordionSummary expandIcon={<ExpandMore />}>
-                <Typography variant="h6">Platform Quality Scores</Typography>
-              </AccordionSummary>
-              <AccordionDetails>
-                <PlatformQualityScores
-                  platform={selectedJob.metadata.platform}
-                  qualityScores={selectedJob.metadata.platform_quality_scores}
-                  stepResults={finalResult?.step_results as Record<string, unknown>}
-                />
-              </AccordionDetails>
-            </Accordion>
+            <AccordionSection title="Platform Quality Scores" defaultExpanded={true}>
+              <PlatformQualityScores
+                platform={selectedJob.metadata.platform}
+                qualityScores={selectedJob.metadata.platform_quality_scores}
+                stepResults={finalResult?.step_results as Record<string, unknown>}
+              />
+            </AccordionSection>
           </Box>
         )}
 
         {/* Job Hierarchy Tree */}
         <Box sx={{ mb: 3 }}>
-          <Accordion defaultExpanded={false}>
-            <AccordionSummary expandIcon={<ExpandMore />}>
-              <Typography variant="h6">Job Hierarchy</Typography>
-            </AccordionSummary>
-            <AccordionDetails>
-              <JobHierarchyTree
-                jobId={selectedJob.job_id}
-                selectedJobId={selectedJob.job_id}
-                onJobClick={onNavigateToSubjob || (() => {})}
-              />
-            </AccordionDetails>
-          </Accordion>
+          <AccordionSection title="Job Hierarchy" defaultExpanded={false}>
+            <JobHierarchyTree
+              jobId={selectedJob.job_id}
+              selectedJobId={selectedJob.job_id}
+              onJobClick={onNavigateToSubjob || (() => {})}
+            />
+          </AccordionSection>
         </Box>
 
         {/* Subjob Visualizer */}
         {selectedJob.subjobs && selectedJob.subjobs.length > 0 && !selectedJob.parent_job_id && (
           <Box sx={{ mb: 3 }}>
-            <Accordion defaultExpanded={true}>
-              <AccordionSummary expandIcon={<ExpandMore />}>
-                <Typography variant="h6">Subjobs</Typography>
-              </AccordionSummary>
-              <AccordionDetails>
-                <SubjobVisualizer
-                  jobResults={selectedJob}
-                  approvalTimestamp={selectedJob.metadata.approved_at}
-                  onSubjobClick={onNavigateToSubjob || (() => {})}
-                  subjobApprovals={subjobApprovals}
-                  subjobResults={subjobResults}
-                />
-              </AccordionDetails>
-            </Accordion>
+            <AccordionSection title="Subjobs" defaultExpanded={true}>
+              <SubjobVisualizer
+                jobResults={selectedJob}
+                approvalTimestamp={selectedJob.metadata.approved_at}
+                onSubjobClick={onNavigateToSubjob || (() => {})}
+                subjobApprovals={subjobApprovals}
+                subjobResults={subjobResults}
+              />
+            </AccordionSection>
           </Box>
         )}
 
@@ -399,108 +361,75 @@ export function JobDetailsPanel({
         {/* Input Content Section */}
         {selectedJob.metadata && (
           <Box sx={{ mb: 3 }}>
-            <Accordion defaultExpanded={false}>
-              <AccordionSummary expandIcon={<ExpandMore />}>
+            <AccordionSection
+              title={
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%' }}>
                   <Description sx={{ color: '#2196f3' }} />
                   <Typography variant="h6">Input Content</Typography>
                 </Box>
-              </AccordionSummary>
-              <AccordionDetails>
-                <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    startIcon={<Download />}
-                    onClick={async () => {
-                      try {
-                        const response = await apiClient.get(
-                          `/v1/results/jobs/${selectedJob.job_id}/steps/00_input.json/download`,
-                          { responseType: 'blob' }
-                        );
-                        if (response.status === 200) {
-                          const blob = response.data;
-                          const url = window.URL.createObjectURL(blob);
-                          const a = document.createElement('a');
-                          a.href = url;
-                          const fileName =
-                            selectedJob.metadata.title || selectedJob.metadata.content_id || 'input.json';
-                          a.download = fileName.endsWith('.json') ? fileName : `${fileName}.json`;
-                          document.body.appendChild(a);
-                          a.click();
-                          window.URL.revokeObjectURL(url);
-                          document.body.removeChild(a);
-                          showSuccessToast('Download Started', 'Original file download started');
-                        } else {
-                          showErrorToast('Download Failed', 'Could not download original file. It may not exist.');
-                        }
-                      } catch (err) {
-                        showErrorToast('Download Failed', err instanceof Error ? err.message : 'Failed to download file');
+              }
+              defaultExpanded={false}
+            >
+              <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  startIcon={<Download />}
+                  onClick={async () => {
+                    try {
+                      const response = await apiClient.get(
+                        `/v1/results/jobs/${selectedJob.job_id}/steps/00_input.json/download`,
+                        { responseType: 'blob' }
+                      )
+                      if (response.status === 200) {
+                        const blob = response.data
+                        const url = window.URL.createObjectURL(blob)
+                        const a = document.createElement('a')
+                        a.href = url
+                        const fileName =
+                          selectedJob.metadata.title || selectedJob.metadata.content_id || 'input.json'
+                        a.download = fileName.endsWith('.json') ? fileName : `${fileName}.json`
+                        document.body.appendChild(a)
+                        a.click()
+                        window.URL.revokeObjectURL(url)
+                        document.body.removeChild(a)
+                        showSuccessToast('Download Started', 'Original file download started')
+                      } else {
+                        showErrorToast('Download Failed', 'Could not download original file. It may not exist.')
                       }
-                    }}
-                  >
-                    Download Original File
-                  </Button>
-                  <Typography variant="caption" color="text.secondary">
-                    {selectedJob.metadata.title || selectedJob.metadata.content_id || 'Original file'}
-                  </Typography>
-                </Box>
-                <Box
-                  sx={{
-                    border: 1,
-                    borderColor: 'divider',
-                    borderRadius: 1,
-                    p: 2,
-                    bgcolor: 'background.paper',
-                    maxHeight: '400px',
-                    overflow: 'auto',
-                    position: 'relative',
+                    } catch (err) {
+                      showErrorToast('Download Failed', err instanceof Error ? err.message : 'Failed to download file')
+                    }
                   }}
                 >
-                  {!inputContent ? (
-                    <Typography variant="body2" color="text.secondary">
-                      No input content available
-                    </Typography>
-                  ) : (
-                    <>
-                      <Box
-                        component="pre"
-                        sx={{
-                          whiteSpace: 'pre-wrap',
-                          wordBreak: 'break-word',
-                          fontSize: '0.875rem',
-                          m: 0,
-                          bgcolor: typeof inputContent === 'string' ? 'transparent' : 'grey.100',
-                          p: typeof inputContent === 'string' ? 0 : 2,
-                          borderRadius: typeof inputContent === 'string' ? 0 : 1,
-                        }}
-                      >
-                        {typeof inputContent === 'string'
-                          ? inputContent
-                          : JSON.stringify(inputContent, null, 2)}
-                      </Box>
-                      <Box sx={{ position: 'absolute', top: 8, right: 8 }}>
-                        <Tooltip title="Copy to clipboard">
-                          <IconButton
-                            size="small"
-                            onClick={() =>
-                              copyToClipboard(
-                                typeof inputContent === 'string'
-                                  ? inputContent
-                                  : JSON.stringify(inputContent, null, 2),
-                                'Input Content'
-                              )
-                            }
-                          >
-                            <ContentCopy fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      </Box>
-                    </>
-                  )}
+                  Download Original File
+                </Button>
+                <Typography variant="caption" color="text.secondary">
+                  {selectedJob.metadata.title || selectedJob.metadata.content_id || 'Original file'}
+                </Typography>
+              </Box>
+              {!inputContent ? (
+                <Typography variant="body2" color="text.secondary">
+                  No input content available
+                </Typography>
+              ) : typeof inputContent === 'string' ? (
+                <Box sx={{ position: 'relative', border: 1, borderColor: 'divider', borderRadius: 1, p: 2, bgcolor: 'background.paper', maxHeight: '400px', overflow: 'auto' }}>
+                  <Box component="pre" sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: '0.875rem', m: 0 }}>
+                    {inputContent}
+                  </Box>
+                  <Box sx={{ position: 'absolute', top: 8, right: 8 }}>
+                    <CopyButton text={inputContent} label="Input Content" />
+                  </Box>
                 </Box>
-              </AccordionDetails>
-            </Accordion>
+              ) : (
+                <Box sx={{ position: 'relative' }}>
+                  <JsonDisplay data={inputContent} maxHeight="400px" />
+                  <Box sx={{ position: 'absolute', top: 8, right: 8 }}>
+                    <CopyButton text={JSON.stringify(inputContent, null, 2)} label="Input Content" />
+                  </Box>
+                </Box>
+              )}
+            </AccordionSection>
           </Box>
         )}
 
@@ -512,78 +441,67 @@ export function JobDetailsPanel({
         {/* Pipeline Flow Section */}
         {selectedJob && !selectedJob.parent_job_id && (
           <Box sx={{ mb: 3 }}>
-            <Accordion defaultExpanded={false}>
-              <AccordionSummary expandIcon={<ExpandMore />}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%' }}>
-                  <Typography variant="h6">Pipeline Flow</Typography>
-                </Box>
-              </AccordionSummary>
-              <AccordionDetails>
-                <PipelineFlowViewer jobId={selectedJob.job_id} />
-              </AccordionDetails>
-            </Accordion>
+            <AccordionSection title="Pipeline Flow" defaultExpanded={false}>
+              <PipelineFlowViewer jobId={selectedJob.job_id} />
+            </AccordionSection>
           </Box>
         )}
 
         {/* Multi-Platform Results Section */}
         {finalResult?.results_by_platform && (
           <Box sx={{ mb: 3 }}>
-            <Accordion defaultExpanded={true}>
-              <AccordionSummary expandIcon={<ExpandMore />}>
-                <Typography variant="h6">Multi-Platform Results</Typography>
-              </AccordionSummary>
-              <AccordionDetails>
-                <MultiPlatformResults
-                  results={
-                    finalResult as {
-                      platforms: string[];
-                      results_by_platform: Record<string, {
-                        platform: string;
-                        step_results: Record<string, unknown>;
-                        final_content: string;
-                        quality_warnings: string[];
-                        platform_quality_scores?: Record<string, number>;
-                      }>;
-                      shared_steps?: {
-                        seo_keywords?: unknown;
-                        social_media_marketing_brief?: unknown;
-                      };
+            <AccordionSection title={`Multi-Platform Results`} defaultExpanded={true}>
+              <MultiPlatformResults
+                results={
+                  finalResult as {
+                    platforms: string[]
+                    results_by_platform: Record<
+                      string,
+                      {
+                        platform: string
+                        step_results: Record<string, unknown>
+                        final_content: string
+                        quality_warnings: string[]
+                        platform_quality_scores?: Record<string, number>
+                      }
+                    >
+                    shared_steps?: {
+                      seo_keywords?: unknown
+                      social_media_marketing_brief?: unknown
                     }
                   }
-                />
-              </AccordionDetails>
-            </Accordion>
+                }
+              />
+            </AccordionSection>
           </Box>
         )}
 
         {/* Content Variations Section */}
         {finalResult?.variations && Array.isArray(finalResult.variations) && finalResult.variations.length > 0 && (
           <Box sx={{ mb: 3 }}>
-            <Accordion defaultExpanded={true}>
-              <AccordionSummary expandIcon={<ExpandMore />}>
-                <Typography variant="h6">Content Variations ({finalResult.variations.length} versions)</Typography>
-              </AccordionSummary>
-              <AccordionDetails>
-                <ContentVariations
-                  variations={
-                    finalResult.variations as unknown as Array<{
-                      variation_id: string;
-                      content: string;
-                      subject_line?: string;
-                      hashtags?: string[];
-                      call_to_action?: string;
-                      confidence_score?: number;
-                      engagement_score?: number;
-                      linkedin_score?: number;
-                      hackernews_score?: number;
-                      email_score?: number;
-                      temperature_used?: number;
-                    }>
-                  }
-                  platform={selectedJob.metadata.platform || 'linkedin'}
-                />
-              </AccordionDetails>
-            </Accordion>
+            <AccordionSection
+              title={`Content Variations (${finalResult.variations.length} versions)`}
+              defaultExpanded={true}
+            >
+              <ContentVariations
+                variations={
+                  finalResult.variations as unknown as Array<{
+                    variation_id: string
+                    content: string
+                    subject_line?: string
+                    hashtags?: string[]
+                    call_to_action?: string
+                    confidence_score?: number
+                    engagement_score?: number
+                    linkedin_score?: number
+                    hackernews_score?: number
+                    email_score?: number
+                    temperature_used?: number
+                  }>
+                }
+                platform={selectedJob.metadata.platform || 'linkedin'}
+              />
+            </AccordionSection>
           </Box>
         )}
 
@@ -592,48 +510,40 @@ export function JobDetailsPanel({
           !finalResult?.results_by_platform &&
           selectedJob.metadata.output_content_type === 'social_media_post' && (
             <Box sx={{ mb: 3 }}>
-              <Accordion defaultExpanded={true}>
-                <AccordionSummary expandIcon={<ExpandMore />}>
-                  <Typography variant="h6">Post Preview & Editor</Typography>
-                </AccordionSummary>
-                <AccordionDetails>
-                  <PostPreviewEditor
-                    content={finalResult.final_content}
-                    platform={selectedJob.metadata.platform || 'linkedin'}
-                    emailType={selectedJob.metadata.email_type}
-                    subjectLine={finalResult.subject_line}
-                    onSave={async (updatedContent, updatedSubjectLine) => {
-                      try {
-                        const response = await api.updateSocialMediaPost({
-                          job_id: selectedJob.job_id,
-                          content: updatedContent,
-                          platform: selectedJob.metadata.platform || 'linkedin',
-                          email_type: selectedJob.metadata.email_type,
-                          subject_line: updatedSubjectLine,
-                        });
+              <AccordionSection title="Post Preview & Editor" defaultExpanded={true}>
+                <PostPreviewEditor
+                  content={finalResult.final_content}
+                  platform={selectedJob.metadata.platform || 'linkedin'}
+                  emailType={selectedJob.metadata.email_type}
+                  subjectLine={finalResult.subject_line}
+                  onSave={async (updatedContent, updatedSubjectLine) => {
+                    try {
+                      const response = await api.updateSocialMediaPost({
+                        job_id: selectedJob.job_id,
+                        content: updatedContent,
+                        platform: selectedJob.metadata.platform || 'linkedin',
+                        email_type: selectedJob.metadata.email_type,
+                        subject_line: updatedSubjectLine,
+                      })
 
-                        if (response.data.success) {
-                          const updatedResult: FinalResult = {
-                            ...finalResult,
-                            final_content: updatedContent,
-                            ...(updatedSubjectLine && { subject_line: updatedSubjectLine }),
-                          };
-                          onFinalResultUpdate?.(updatedResult);
-                          showSuccessToast('Post Updated', 'Post content has been saved successfully');
-                        } else {
-                          showErrorToast('Save Failed', response.data.message || 'Failed to save post');
+                      if (response.data.success) {
+                        const updatedResult: FinalResult = {
+                          ...finalResult,
+                          final_content: updatedContent,
+                          ...(updatedSubjectLine && { subject_line: updatedSubjectLine }),
                         }
-                      } catch (error) {
-                        console.error('Failed to save post:', error);
-                        showErrorToast(
-                          'Save Failed',
-                          error instanceof Error ? error.message : 'Failed to save post'
-                        );
+                        onFinalResultUpdate?.(updatedResult)
+                        showSuccessToast('Post Updated', 'Post content has been saved successfully')
+                      } else {
+                        showErrorToast('Save Failed', response.data.message || 'Failed to save post')
                       }
-                    }}
-                  />
-                </AccordionDetails>
-              </Accordion>
+                    } catch (error) {
+                      console.error('Failed to save post:', error)
+                      showErrorToast('Save Failed', error instanceof Error ? error.message : 'Failed to save post')
+                    }
+                  }}
+                />
+              </AccordionSection>
             </Box>
           )}
 
