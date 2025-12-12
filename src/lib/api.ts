@@ -1,4 +1,5 @@
-import axios, { AxiosResponse } from 'axios'
+import axios, { AxiosResponse, InternalAxiosRequestConfig } from 'axios'
+import { getSession } from 'next-auth/react'
 import type { 
   HealthResponse, 
   ReadyResponse, 
@@ -52,11 +53,42 @@ export const apiClient = axios.create({
   },
 })
 
+// Request interceptor to add access token
+apiClient.interceptors.request.use(
+  async (config: InternalAxiosRequestConfig) => {
+    try {
+      const session = await getSession()
+      if (session && (session as any).accessToken) {
+        config.headers.Authorization = `Bearer ${(session as any).accessToken}`
+      }
+    } catch (error) {
+      console.error('Error getting session for API request:', error)
+    }
+    return config
+  },
+  (error) => {
+    return Promise.reject(error)
+  }
+)
+
 // Response interceptor for error handling
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
     console.error('API Error:', error.response?.data || error.message)
+    
+    // Handle 401 Unauthorized - token might be expired
+    if (error.response?.status === 401) {
+      // Try to refresh the session
+      const session = await getSession()
+      if (session && (session as any).accessToken) {
+        // Retry the request with new token
+        const config = error.config
+        config.headers.Authorization = `Bearer ${(session as any).accessToken}`
+        return apiClient.request(config)
+      }
+    }
+    
     return Promise.reject(error)
   }
 )
