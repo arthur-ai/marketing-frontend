@@ -1,4 +1,5 @@
 import { QueryProvider } from '@/components/providers/QueryProvider'
+import { SessionProvider } from '@/components/providers/SessionProvider'
 import { ToastProvider } from '@/components/providers/ToastProvider'
 import { ThemeProvider } from '@/components/providers/ThemeProvider'
 import './globals.css'
@@ -16,12 +17,14 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body>
-        <ThemeProvider>
-          <QueryProvider>
-            <ToastProvider />
-            {children}
-          </QueryProvider>
-        </ThemeProvider>
+        <SessionProvider>
+          <ThemeProvider>
+            <QueryProvider>
+              <ToastProvider />
+              {children}
+            </QueryProvider>
+          </ThemeProvider>
+        </SessionProvider>
       </body>
     </html>
   )
