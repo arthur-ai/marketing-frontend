@@ -54,15 +54,15 @@ export function SubjobVisualizer({
   
   // Combine steps with metadata
   const combinedSteps: SubjobStep[] = allSteps.map((step, idx) => ({
-    id: step.filename || `step-${idx}`,
-    name: step.step_name.replace(/_/g, ' '),
-    status: step.status === 'failed' ? 'failed' : step.status === 'success' ? 'completed' : 'completed',
-    timestamp: step.timestamp,
-    execution_time: step.execution_time,
-    tokens_used: step.tokens_used,
-    job_id: step.job_id,
-    error_message: step.error_message,
-    execution_context_id: step.execution_context_id
+    id: step?.filename || `step-${idx}`,
+    name: step?.step_name?.replace(/_/g, ' ') || 'Unknown Step',
+    status: step?.status === 'failed' ? 'failed' : step?.status === 'success' ? 'completed' : 'completed',
+    timestamp: step?.timestamp,
+    execution_time: step?.execution_time,
+    tokens_used: step?.tokens_used,
+    job_id: step?.job_id,
+    error_message: step?.error_message,
+    execution_context_id: step?.execution_context_id
   }))
   
   const approvalIndex = parentSteps.length > 0 && resumeSteps.length > 0 ? parentSteps.length : -1
@@ -249,32 +249,32 @@ export function SubjobVisualizer({
           <Stack spacing={2}>
             {jobResults.subjobs.map((subjobId) => {
               // Get content type from parent job (subjobs have the same content type as parent)
-              const contentType = jobResults.metadata?.content_type || 'resume_pipeline';
-              const approvals = subjobApprovals[subjobId] || [];
-              const subjobResult = subjobResults[subjobId];
+              const contentType = jobResults?.metadata?.content_type || 'resume_pipeline';
+              const approvals = subjobApprovals?.[subjobId] || [];
+              const subjobResult = subjobResults?.[subjobId];
               
               // Extract title from result
               const title = subjobResult?.metadata?.title ||
                           subjobResult?.step_results?.article_generation?.article_title ||
                           subjobResult?.step_results?.seo_optimization?.meta_title ||
-                          `Resume Job (${contentType})`;
+                          `Resume Job (${contentType})` || 'Unknown Job';
               
               // Extract input - try to get from root level first, then metadata
               // Input is typically the original content that was processed
               const input = subjobResult?.input_content ||
                           subjobResult?.metadata?.input_content ||
                           subjobResult?.metadata?.original_content ||
-                          (subjobResult?.step_results && Object.keys(subjobResult.step_results).length > 0 ? {
+                          (subjobResult?.step_results && Object.keys(subjobResult?.step_results || {}).length > 0 ? {
                             content: 'Original content processed through pipeline',
-                            step_results: Object.keys(subjobResult.step_results)
+                            step_results: Object.keys(subjobResult?.step_results || {})
                           } : null);
               
               // Extract output - prefer final_content, then step_results
               // Check if step_results exists and has data
-              const hasStepResults = subjobResult?.step_results && Object.keys(subjobResult.step_results).length > 0;
+              const hasStepResults = subjobResult?.step_results && Object.keys(subjobResult?.step_results || {}).length > 0;
               const output = subjobResult?.final_content || 
-                          (hasStepResults ? subjobResult.step_results : null) ||
-                          (subjobResult?.metadata ? { metadata: subjobResult.metadata } : null);
+                          (hasStepResults ? subjobResult?.step_results : null) ||
+                          (subjobResult?.metadata ? { metadata: subjobResult?.metadata } : null);
               
               return (
                 <Card 
@@ -381,10 +381,10 @@ export function SubjobVisualizer({
                         ) : subjobResult?.step_results ? (
                           <Box>
                             <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
-                              Step Results ({Object.keys(subjobResult.step_results).length} steps)
+                              Step Results ({Object.keys(subjobResult?.step_results || {}).length} steps)
                             </Typography>
                             <Stack spacing={1}>
-                              {Object.entries(subjobResult.step_results).map(([stepName, stepData]) => (
+                              {Object.entries(subjobResult?.step_results || {}).map(([stepName, stepData]) => (
                                 <Accordion key={stepName} sx={{ bgcolor: 'grey.50' }}>
                                   <AccordionSummary expandIcon={<ExpandMore />}>
                                     <Typography variant="caption" fontWeight="medium">
