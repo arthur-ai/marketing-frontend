@@ -188,7 +188,6 @@ export function ApprovalSettings({ onSave, onReset, onSaveRequest, onChange }: A
       const newSteps = prev.includes(stepId)
         ? prev.filter(id => id !== stepId)
         : [...prev, stepId]
-      setHasChanges(true)
       return newSteps
     })
   }
@@ -205,7 +204,14 @@ export function ApprovalSettings({ onSave, onReset, onSaveRequest, onChange }: A
 
       await updateSettings.mutateAsync(newSettings)
       
-      setHasChanges(false)
+      // Update original values to reflect saved state
+      setOriginalValues({
+        enabled,
+        selectedSteps,
+        autoApproveThreshold,
+        timeoutMinutes
+      })
+      
       showSuccessToast(
         'Approval settings saved',
         `Approvals ${enabled ? 'enabled' : 'disabled'} for ${selectedSteps.length} step(s)`
@@ -243,7 +249,6 @@ export function ApprovalSettings({ onSave, onReset, onSaveRequest, onChange }: A
           ? settingsData.data.timeout_seconds / 60 
           : undefined
       )
-      setHasChanges(false)
       onReset?.()
     }
   }
@@ -253,32 +258,26 @@ export function ApprovalSettings({ onSave, onReset, onSaveRequest, onChange }: A
       .filter(s => s.impact === 'high')
       .map(s => s.id)
     setSelectedSteps(highImpactSteps)
-    setHasChanges(true)
   }
 
   const selectAllSteps = () => {
     setSelectedSteps(AVAILABLE_STEPS.map(s => s.id))
-    setHasChanges(true)
   }
 
   const deselectAll = () => {
     setSelectedSteps([])
-    setHasChanges(true)
   }
 
   const handleEnabledChange = (checked: boolean) => {
     setEnabled(checked)
-    setHasChanges(true)
   }
 
   const handleThresholdChange = (value: number) => {
     setAutoApproveThreshold(value)
-    setHasChanges(true)
   }
 
   const handleTimeoutChange = (value: number) => {
     setTimeoutMinutes(value)
-    setHasChanges(true)
   }
 
   if (isLoading) {

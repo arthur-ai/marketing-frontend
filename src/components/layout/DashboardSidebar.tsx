@@ -60,7 +60,8 @@ export function DashboardSidebar({
   const { data: pendingData } = usePendingApprovals(undefined, shouldPoll)
   const pendingCount = pendingData?.data?.pending || 0
   const { data: health } = useHealth()
-  const version = health?.data?.version || '1.0.0'
+  // Get version from health endpoint - it will be undefined until health check completes
+  const version = health?.data?.version
 
   const drawer = (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -90,18 +91,20 @@ export function DashboardSidebar({
           <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
             Marketing Tool
           </Typography>
-          <Chip
-            label={`v${version}`}
-            size="small"
-            sx={{
-              height: 18,
-              fontSize: '0.65rem',
-              mt: 0.5,
-              bgcolor: 'primary.50',
-              color: 'primary.main',
-              fontWeight: 600,
-            }}
-          />
+          {version && (
+            <Chip
+              label={`v${version}`}
+              size="small"
+              sx={{
+                height: 18,
+                fontSize: '0.65rem',
+                mt: 0.5,
+                bgcolor: 'primary.50',
+                color: 'primary.main',
+                fontWeight: 600,
+              }}
+            />
+          )}
         </Box>
       </Box>
 

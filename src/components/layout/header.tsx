@@ -48,9 +48,11 @@ export function Header() {
             </Badge>
           </div>
           
-          <div className="text-sm text-gray-500">
-            v{health?.data?.version || '1.0.0'}
-          </div>
+          {health?.data?.version && (
+            <div className="text-sm text-gray-500">
+              v{health.data.version}
+            </div>
+          )}
         </div>
       </div>
     </header>
