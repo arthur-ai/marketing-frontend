@@ -150,13 +150,13 @@ export function ContentSelector({ onContentSelect, selectedContent }: ContentSel
         </Box>
       ) : (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, maxHeight: 480, overflowY: 'auto' }}>
-          {contentItems.map((item: ContentItem) => {
+          {contentItems.map((item: ContentItem, index: number) => {
             const icon = getContentTypeIcon(item.metadata?.type || 'blog_post')
             const isSelected = selectedContent?.id === item.id
             
             return (
               <Paper
-                key={item.id}
+                key={`${item.id}-${index}`}
                 elevation={0}
                 onClick={() => onContentSelect(item)}
                 sx={{
