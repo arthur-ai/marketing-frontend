@@ -6,7 +6,6 @@ import Button from '@mui/material/Button'
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
 import Typography from '@mui/material/Typography'
-import TextField from '@mui/material/TextField'
 import Select from '@mui/material/Select'
 import MenuItem from '@mui/material/MenuItem'
 import FormControl from '@mui/material/FormControl'
@@ -18,12 +17,10 @@ import Checkbox from '@mui/material/Checkbox'
 import FormGroup from '@mui/material/FormGroup'
 import FormControlLabel from '@mui/material/FormControlLabel'
 import PlayArrowIcon from '@mui/icons-material/PlayArrow'
-import ArticleIcon from '@mui/icons-material/Article'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import ErrorIcon from '@mui/icons-material/Error'
 import SearchIcon from '@mui/icons-material/Search'
 import BoltIcon from '@mui/icons-material/Bolt'
-import EditIcon from '@mui/icons-material/Edit'
 import { 
   useAnalyzeContent,
   useProcessBlog,
@@ -39,7 +36,6 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { getPlatformConfig } from '@/lib/platform-config'
 import { loadPipelineSettings } from '@/lib/pipeline-settings'
 import InfoIcon from '@mui/icons-material/Info'
-import Tooltip from '@mui/material/Tooltip'
 import Paper from '@mui/material/Paper'
 import { UnifiedContentInput } from '@/components/orchestrator/unified-content-input'
 import type { ContentItem } from '@/types/api'
@@ -354,11 +350,11 @@ export function OrchestratorControls({ selectedContent, onContentSelect }: Orche
       
       let jobResponse: { data: { job_id: string } }
       switch (effectiveContentType) {
-        case 'blog_post':
+        case 'blog_post': {
           // Load pipeline config from settings
           const settings = loadPipelineSettings()
           
-          const blogRequest: any = { 
+          const blogRequest: Record<string, unknown> = { 
             content: contentData,
             output_content_type: outputContentType
           }
@@ -390,6 +386,7 @@ export function OrchestratorControls({ selectedContent, onContentSelect }: Orche
           }
           jobResponse = await processBlogMutation.mutateAsync(blogRequest)
           break
+        }
         case 'release_notes':
           jobResponse = await processReleaseNotesMutation.mutateAsync({ 
             content: contentData,
@@ -416,7 +413,6 @@ export function OrchestratorControls({ selectedContent, onContentSelect }: Orche
       setProcessingStep('Job submitted, processing in background...')
       
       // Update toast to show it's queued
-      const effectiveContentType = manualInputData ? manualInputData.contentType : contentType
       processingToast.success(
         'Job submitted successfully!',
         `Your ${effectiveContentType.replace('_', ' ')} is being processed. Job ID: ${jobId.substring(0, 8)}...`
@@ -464,19 +460,6 @@ export function OrchestratorControls({ selectedContent, onContentSelect }: Orche
       setProcessingStep('Analysis failed')
     } finally {
       setIsProcessing(false)
-    }
-  }
-
-  const getContentTypeColor = (type: string): 'primary' | 'success' | 'secondary' | 'default' => {
-    switch (type) {
-      case 'transcript':
-        return 'primary'
-      case 'blog_post':
-        return 'success'
-      case 'release_notes':
-        return 'secondary'
-      default:
-        return 'default'
     }
   }
 
