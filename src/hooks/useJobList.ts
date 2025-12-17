@@ -1,8 +1,6 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { api } from '@/lib/api';
 import type { JobListItem } from '@/types/api';
-import { transformJobResponseToListItem } from '@/utils/jobTransformers';
-import type { JobResponse } from '@/types/results';
 
 interface UseJobListReturn {
   jobs: JobListItem[];
@@ -15,6 +13,10 @@ interface UseJobListReturn {
   setFilterType: (type: string) => void;
   filterStatus: string;
   setFilterStatus: (status: string) => void;
+  dateFrom: string;
+  setDateFrom: (date: string) => void;
+  dateTo: string;
+  setDateTo: (date: string) => void;
   contentTypes: string[];
   refetch: () => Promise<void>;
 }
@@ -26,24 +28,19 @@ export function useJobList(): UseJobListReturn {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [dateFrom, setDateFrom] = useState<string>('');
+  const [dateTo, setDateTo] = useState<string>('');
 
   const fetchJobs = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      // Use the jobs API endpoint with subjob status included
-      const response = await api.listJobs(undefined, undefined, 50, true);
+      // Use the results jobs API endpoint with date filtering
+      const response = await api.listResultsJobs(50, dateFrom || undefined, dateTo || undefined);
       const data = response.data;
       
-      // Transform Job objects to JobListItem format
-      const jobsList: JobListItem[] = (data.jobs || [])
-        // Filter out cancelled jobs, resume_pipeline jobs, and jobs with original_job_id (subjobs)
-        .filter((job: JobResponse) => 
-          job.status !== 'cancelled' && 
-          job.type !== 'resume_pipeline' && 
-          !job.metadata?.original_job_id
-        )
-        .map((job: JobResponse) => transformJobResponseToListItem(job));
+      // The results endpoint returns JobListItem format directly
+      const jobsList: JobListItem[] = (data.jobs || []);
       
       setJobs(jobsList);
     } catch (err) {
@@ -51,7 +48,7 @@ export function useJobList(): UseJobListReturn {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [dateFrom, dateTo]);
 
   // Filter jobs based on search and filters
   const filteredJobs = useMemo(() => {
@@ -85,6 +82,11 @@ export function useJobList(): UseJobListReturn {
     return Array.from(new Set(jobs.map(j => j.content_type).filter(Boolean))) as string[];
   }, [jobs]);
 
+  // Refetch when date filters change
+  useEffect(() => {
+    fetchJobs();
+  }, [dateFrom, dateTo, fetchJobs]);
+
   return {
     jobs,
     filteredJobs,
@@ -96,6 +98,10 @@ export function useJobList(): UseJobListReturn {
     setFilterType,
     filterStatus,
     setFilterStatus,
+    dateFrom,
+    setDateFrom,
+    dateTo,
+    setDateTo,
     contentTypes,
     refetch: fetchJobs,
   };

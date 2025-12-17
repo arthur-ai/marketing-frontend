@@ -38,6 +38,10 @@ export default function ResultsPage() {
     setFilterType,
     filterStatus,
     setFilterStatus,
+    dateFrom,
+    setDateFrom,
+    dateTo,
+    setDateTo,
     contentTypes,
     refetch: refetchJobs,
   } = useJobList();
@@ -214,6 +218,10 @@ export default function ResultsPage() {
             setFilterType={setFilterType}
             filterStatus={filterStatus}
             setFilterStatus={setFilterStatus}
+            dateFrom={dateFrom}
+            setDateFrom={setDateFrom}
+            dateTo={dateTo}
+            setDateTo={setDateTo}
             contentTypes={contentTypes}
             onSelectJob={handleSelectJob}
           />

@@ -32,6 +32,10 @@ interface JobListPanelProps {
   setFilterType: (type: string) => void;
   filterStatus: string;
   setFilterStatus: (status: string) => void;
+  dateFrom: string;
+  setDateFrom: (date: string) => void;
+  dateTo: string;
+  setDateTo: (date: string) => void;
   contentTypes: string[];
   onSelectJob: (jobId: string) => void;
 }
@@ -46,6 +50,10 @@ export function JobListPanel({
   setFilterType,
   filterStatus,
   setFilterStatus,
+  dateFrom,
+  setDateFrom,
+  dateTo,
+  setDateTo,
   contentTypes,
   onSelectJob,
 }: JobListPanelProps) {
@@ -68,8 +76,8 @@ export function JobListPanel({
             }}
           />
 
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <FormControl size="small" sx={{ flex: 1 }}>
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+            <FormControl size="small" sx={{ flex: 1, minWidth: 120 }}>
               <InputLabel>Type</InputLabel>
               <Select value={filterType} label="Type" onChange={(e) => setFilterType(e.target.value)}>
                 <MenuItem value="all">All Types</MenuItem>
@@ -81,7 +89,7 @@ export function JobListPanel({
               </Select>
             </FormControl>
 
-            <FormControl size="small" sx={{ flex: 1 }}>
+            <FormControl size="small" sx={{ flex: 1, minWidth: 120 }}>
               <InputLabel>Status</InputLabel>
               <Select value={filterStatus} label="Status" onChange={(e) => setFilterStatus(e.target.value)}>
                 <MenuItem value="all">All Status</MenuItem>
@@ -91,6 +99,27 @@ export function JobListPanel({
                 <MenuItem value="failed">Failed</MenuItem>
               </Select>
             </FormControl>
+          </Box>
+
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+            <TextField
+              size="small"
+              type="date"
+              label="From Date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+              sx={{ flex: 1, minWidth: 150 }}
+            />
+            <TextField
+              size="small"
+              type="date"
+              label="To Date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+              sx={{ flex: 1, minWidth: 150 }}
+            />
           </Box>
         </Box>
 
