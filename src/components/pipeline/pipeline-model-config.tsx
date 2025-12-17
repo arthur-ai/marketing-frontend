@@ -20,6 +20,7 @@ const AVAILABLE_MODELS = [
   { value: 'gpt-5-nano', label: 'GPT-5 nano', cost: 'Low', speed: 'Fast' },
   { value: 'gpt-5-pro', label: 'GPT-5 pro', cost: 'High', speed: 'Slow' },
   { value: 'gpt-5.1', label: 'GPT-5.1', cost: 'High', speed: 'Slow' },
+  { value: 'gpt-5.2', label: 'GPT-5.2', cost: 'High', speed: 'Slow' },
 ]
 
 const PIPELINE_STEPS = [

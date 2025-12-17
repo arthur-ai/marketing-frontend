@@ -27,6 +27,7 @@ const AVAILABLE_MODELS = [
   { value: 'gpt-5-nano', label: 'GPT-5 nano', cost: 'Low', speed: 'Fast' },
   { value: 'gpt-5-pro', label: 'GPT-5 pro', cost: 'High', speed: 'Slow' },
   { value: 'gpt-5.1', label: 'GPT-5.1', cost: 'High', speed: 'Slow' },
+  { value: 'gpt-5.2', label: 'GPT-5.2', cost: 'High', speed: 'Slow' },
 ]
 
 export function DefaultSettings({ config, onChange }: DefaultSettingsProps) {
@@ -119,6 +120,9 @@ export function DefaultSettings({ config, onChange }: DefaultSettingsProps) {
           </li>
           <li>
             <strong>gpt-5.1:</strong> The best model for coding and agentic tasks with configurable reasoning effort.
+          </li>
+          <li>
+            <strong>gpt-5.2:</strong> Latest version with enhanced reasoning capabilities for coding and agentic tasks.
           </li>
         </Box>
       </Box>

@@ -34,6 +34,7 @@ const AVAILABLE_MODELS = [
   { value: 'gpt-5-nano', label: 'GPT-5 nano', cost: 'Low', speed: 'Fast', description: 'Fastest, most cost-efficient version of GPT-5' },
   { value: 'gpt-5-pro', label: 'GPT-5 pro', cost: 'High', speed: 'Slow', description: 'Version of GPT-5 that produces smarter and more precise responses' },
   { value: 'gpt-5.1', label: 'GPT-5.1', cost: 'High', speed: 'Slow', description: 'The best model for coding and agentic tasks with configurable reasoning effort' },
+  { value: 'gpt-5.2', label: 'GPT-5.2', cost: 'High', speed: 'Slow', description: 'Latest version with enhanced reasoning capabilities for coding and agentic tasks' },
 ]
 
 const PIPELINE_STEPS = [
