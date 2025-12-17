@@ -87,3 +87,23 @@ export function formatJobDisplayName(job: {
           : job.status || 'processing';
   return `${originalFile} - ${dateTimeStr} - ${endState}`;
 }
+
+/**
+ * Get display name for a content source
+ * Falls back to name if display_name is not available
+ */
+export function getSourceDisplayName(source: { name: string; display_name?: string } | string): string {
+  if (typeof source === 'string') {
+    // If only a string (source name) is provided, use a mapping
+    const displayNameMapping: Record<string, string> = {
+      's3_content': 'S3 Database',
+      'content_api': 'API',
+      'content_database': 'Database',
+      'web_content': 'Web Scraping',
+      'local_content': 'Local Files',
+      'rss_content': 'RSS',
+    };
+    return displayNameMapping[source] || source;
+  }
+  return source.display_name || source.name;
+}

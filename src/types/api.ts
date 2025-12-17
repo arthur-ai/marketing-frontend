@@ -91,6 +91,7 @@ export interface ReadyResponse {
 
 export interface ContentSource {
   name: string
+  display_name?: string
   type: string
   status: string
   healthy: boolean

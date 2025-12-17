@@ -1,6 +1,7 @@
 'use client'
 
 import { useContentSources } from '@/hooks/useApi'
+import { getSourceDisplayName } from '@/utils/contentFormatters'
 import Box from '@mui/material/Box'
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
@@ -93,7 +94,7 @@ export function ContentSources() {
 
   return (
     <Grid container spacing={3}>
-      {data.data.sources.map((source: { name: string; type: string; healthy: boolean; status: string; metadata: { enabled: boolean; path: string; priority: number }; last_check?: string }) => (
+      {data.data.sources.map((source: { name: string; display_name?: string; type: string; healthy: boolean; status: string; metadata: { enabled: boolean; path: string; priority: number }; last_check?: string }) => (
         <Grid size={{ xs: 12, sm: 6, md: 4 }} key={source.name}>
           <Card 
             elevation={2}
@@ -111,7 +112,7 @@ export function ContentSources() {
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                   {getSourceIcon(source.type)}
                   <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                    {source.name}
+                    {getSourceDisplayName(source)}
                   </Typography>
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>

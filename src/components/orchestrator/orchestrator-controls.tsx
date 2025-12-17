@@ -34,7 +34,6 @@ import {
 import { PipelineVisualizer, usePipelineSteps } from '@/components/pipeline/pipeline-visualizer'
 import type { PipelineStep } from '@/components/pipeline/pipeline-visualizer'
 import { ResultViewer } from '@/components/results/result-viewer'
-import { Dropzone, FilePreview } from '@/components/upload/dropzone'
 import { showProcessingToast, showSuccessToast } from '@/lib/toast-utils'
 import { motion, AnimatePresence } from 'framer-motion'
 import { getPlatformConfig } from '@/lib/platform-config'
@@ -42,14 +41,12 @@ import { loadPipelineSettings } from '@/lib/pipeline-settings'
 import InfoIcon from '@mui/icons-material/Info'
 import Tooltip from '@mui/material/Tooltip'
 import Paper from '@mui/material/Paper'
+import { UnifiedContentInput } from '@/components/orchestrator/unified-content-input'
+import type { ContentItem } from '@/types/api'
 
 interface OrchestratorControlsProps {
-  selectedContent?: {
-    id: string
-    title: string
-    content: string
-    type: string
-  }
+  selectedContent?: ContentItem | null
+  onContentSelect?: (content: ContentItem | null) => void
 }
 
 // Social media pipeline steps (constant, defined outside component)
@@ -60,21 +57,20 @@ const socialMediaSteps: PipelineStep[] = [
   { id: 'social_media_post_generation', name: 'Post Generation', status: 'pending', requiresApproval: true },
 ]
 
-export function OrchestratorControls({ selectedContent }: OrchestratorControlsProps) {
+export function OrchestratorControls({ selectedContent, onContentSelect }: OrchestratorControlsProps) {
   const [isProcessing, setIsProcessing] = useState(false)
   const [processingStep, setProcessingStep] = useState('')
   const [results, setResults] = useState<Record<string, unknown> | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [manualTitle, setManualTitle] = useState('')
   const [manualContent, setManualContent] = useState('')
+  const [manualInputData, setManualInputData] = useState<{ title: string; content: string; contentType: 'blog_post' | 'transcript' | 'release_notes' } | null>(null)
   const [contentType, setContentType] = useState<'blog_post' | 'transcript' | 'release_notes'>('blog_post')
   const [outputContentType, setOutputContentType] = useState<'blog_post' | 'press_release' | 'case_study' | 'social_media_post'>('blog_post')
   const [socialMediaPlatform, setSocialMediaPlatform] = useState<'linkedin' | 'hackernews' | 'email' | ''>('')
   const [socialMediaPlatforms, setSocialMediaPlatforms] = useState<string[]>([])
   const [emailType, setEmailType] = useState<'newsletter' | 'promotional' | ''>('')
   const [variationsCount, setVariationsCount] = useState<number>(1)
-  const [useManualInput, setUseManualInput] = useState(false)
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null)
   const { steps: pipelineVisualizerSteps } = usePipelineSteps()
   
   const [currentPipelineSteps, setCurrentPipelineSteps] = useState<PipelineStep[]>(
@@ -160,9 +156,10 @@ export function OrchestratorControls({ selectedContent }: OrchestratorControlsPr
       
       setCurrentJobId(null) // Stop polling
       
+      const effectiveContentType = manualInputData ? manualInputData.contentType : contentType
       showSuccessToast(
         'Content processed successfully!',
-        `Your ${contentType.replace('_', ' ')} is ready for review`
+        `Your ${effectiveContentType.replace('_', ' ')} is ready for review`
       )
     }
 
@@ -237,15 +234,18 @@ export function OrchestratorControls({ selectedContent }: OrchestratorControlsPr
         )
       }
     }
-  }, [jobStatus, contentType, currentPipelineSteps.length])
+  }, [jobStatus, contentType, currentPipelineSteps.length, manualInputData])
 
   const getContentForProcessing = () => {
-    const baseContent = useManualInput 
+    // Determine if we're using manual input or selected content
+    const useManualInput = !!manualInputData
+    
+    const baseContent = useManualInput && manualInputData
       ? {
           id: `manual-${Date.now()}`,
-          title: manualTitle,
-          content: manualContent,
-          snippet: manualContent.substring(0, 200) + (manualContent.length > 200 ? '...' : ''),
+          title: manualInputData.title,
+          content: manualInputData.content,
+          snippet: manualInputData.content.substring(0, 200) + (manualInputData.content.length > 200 ? '...' : ''),
         }
       : {
           id: selectedContent?.id || '',
@@ -259,9 +259,12 @@ export function OrchestratorControls({ selectedContent }: OrchestratorControlsPr
     }
 
     const currentDate = new Date().toISOString()
+    
+    // Use contentType from manual input if available, otherwise from state
+    const effectiveContentType = useManualInput && manualInputData ? manualInputData.contentType : contentType
 
     // Build content object based on type with all required fields
-    switch (contentType) {
+    switch (effectiveContentType) {
       case 'blog_post':
         return {
           id: baseContent.id,
@@ -326,11 +329,12 @@ export function OrchestratorControls({ selectedContent }: OrchestratorControlsPr
       setCurrentPipelineSteps(pipelineVisualizerSteps)
     }
 
-    // Show processing toast
-    const processingToast = showProcessingToast(`Processing ${contentType.replace('_', ' ')}...`)
-
     try {
       const contentData = getContentForProcessing()
+      const effectiveContentType = manualInputData ? manualInputData.contentType : contentType
+
+      // Show processing toast
+      const processingToast = showProcessingToast(`Processing ${effectiveContentType.replace('_', ' ')}...`)
 
       // Update steps as we process
       const updateStep = (stepId: string, status: 'in-progress' | 'completed') => {
@@ -346,10 +350,10 @@ export function OrchestratorControls({ selectedContent }: OrchestratorControlsPr
       
       // Route to appropriate deterministic processor
       updateStep('analyze', 'in-progress')
-      setProcessingStep(`Submitting ${contentType.replace('_', ' ')} for processing...`)
+      setProcessingStep(`Submitting ${effectiveContentType.replace('_', ' ')} for processing...`)
       
       let jobResponse: { data: { job_id: string } }
-      switch (contentType) {
+      switch (effectiveContentType) {
         case 'blog_post':
           // Load pipeline config from settings
           const settings = loadPipelineSettings()
@@ -412,9 +416,10 @@ export function OrchestratorControls({ selectedContent }: OrchestratorControlsPr
       setProcessingStep('Job submitted, processing in background...')
       
       // Update toast to show it's queued
+      const effectiveContentType = manualInputData ? manualInputData.contentType : contentType
       processingToast.success(
         'Job submitted successfully!',
-        `Your ${contentType.replace('_', ' ')} is being processed. Job ID: ${jobId.substring(0, 8)}...`
+        `Your ${effectiveContentType.replace('_', ' ')} is being processed. Job ID: ${jobId.substring(0, 8)}...`
       )
       
       // Don't set isProcessing to false here - let the job status handler do it
@@ -475,224 +480,38 @@ export function OrchestratorControls({ selectedContent }: OrchestratorControlsPr
     }
   }
 
+  // Update contentType when manual input changes
+  useEffect(() => {
+    if (manualInputData) {
+      setContentType(manualInputData.contentType)
+    }
+  }, [manualInputData])
+
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-      {/* Manual Content Input */}
-      <Card elevation={2}>
-        <CardContent sx={{ p: 3 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-              <EditIcon sx={{ color: 'primary.main' }} />
-              <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                Content Input
-              </Typography>
-            </Box>
-            <Button
-              variant="outlined"
-              size="small"
-              onClick={() => setUseManualInput(!useManualInput)}
-              startIcon={useManualInput ? <ArticleIcon /> : <EditIcon />}
-            >
-              {useManualInput ? 'Use Selected Content' : 'Paste Content'}
-            </Button>
-          </Box>
-          
-          {useManualInput ? (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="space-y-4"
-            >
-              {/* Dropzone */}
-              {!uploadedFile && !manualContent && (
-                <Dropzone 
-                  onUpload={(file) => {
-                    setUploadedFile(file)
-                    // Read file content
-                    const reader = new FileReader()
-                    reader.onload = (e) => {
-                      const content = e.target?.result as string
-                      setManualContent(content)
-                      setManualTitle(file.name.replace(/\.[^/.]+$/, ''))
-                      showSuccessToast('File uploaded', `${file.name} loaded successfully`)
-                    }
-                    reader.readAsText(file)
-                  }}
-                />
-              )}
-              
-              {/* File Preview */}
-              <AnimatePresence>
-                {uploadedFile && (
-                  <FilePreview 
-                    file={uploadedFile}
-                    onRemove={() => {
-                      setUploadedFile(null)
-                      setManualContent('')
-                      setManualTitle('')
-                    }}
-                  />
-                )}
-              </AnimatePresence>
-              
-              <TextField
-                label="Title"
-                value={manualTitle}
-                onChange={(e) => setManualTitle(e.target.value)}
-                placeholder="Enter content title..."
-                fullWidth
-                variant="outlined"
-                size="medium"
-              />
-              
-              <FormControl fullWidth>
-                <InputLabel>Input Content Type</InputLabel>
-                <Select
-                  value={contentType}
-                  onChange={(e) => setContentType(e.target.value as 'blog_post' | 'transcript' | 'release_notes')}
-                  label="Input Content Type"
-                >
-                  <MenuItem value="blog_post">Blog Post</MenuItem>
-                  <MenuItem value="transcript">Transcript</MenuItem>
-                  <MenuItem value="release_notes">Release Notes</MenuItem>
-                </Select>
-              </FormControl>
-              
-              <FormControl fullWidth>
-                <InputLabel>Output Content Type</InputLabel>
-                <Select
-                  value={outputContentType}
-                  onChange={(e) => {
-                    const newType = e.target.value as 'blog_post' | 'press_release' | 'case_study' | 'social_media_post'
-                    setOutputContentType(newType)
-                    // Reset social media fields if not social media post
-                    if (newType !== 'social_media_post') {
-                      setSocialMediaPlatform('')
-                      setEmailType('')
-                    } else if (!socialMediaPlatform) {
-                      // Set default platform if switching to social media post
-                      setSocialMediaPlatform('linkedin')
-                    }
-                  }}
-                  label="Output Content Type"
-                >
-                  <MenuItem value="blog_post">Blog Post</MenuItem>
-                  <MenuItem value="press_release">Press Release</MenuItem>
-                  <MenuItem value="case_study">Case Study</MenuItem>
-                  <MenuItem value="social_media_post">Social Media Post</MenuItem>
-                </Select>
-              </FormControl>
-              
-              {outputContentType === 'social_media_post' && (
-                <>
-                  <FormControl fullWidth>
-                    <InputLabel>Social Media Platform</InputLabel>
-                    <Select
-                      value={socialMediaPlatform}
-                      onChange={(e) => {
-                        const platform = e.target.value as 'linkedin' | 'hackernews' | 'email'
-                        setSocialMediaPlatform(platform)
-                        // Reset email type if not email platform
-                        if (platform !== 'email') {
-                          setEmailType('')
-                        } else if (!emailType) {
-                          // Set default email type if switching to email
-                          setEmailType('newsletter')
-                        }
-                      }}
-                      label="Social Media Platform"
-                    >
-                      <MenuItem value="linkedin">LinkedIn</MenuItem>
-                      <MenuItem value="hackernews">Hackernews</MenuItem>
-                      <MenuItem value="email">Email</MenuItem>
-                    </Select>
-                  </FormControl>
-                  
-                  {socialMediaPlatform === 'email' && (
-                    <FormControl fullWidth>
-                      <InputLabel>Email Type</InputLabel>
-                      <Select
-                        value={emailType}
-                        onChange={(e) => setEmailType(e.target.value as 'newsletter' | 'promotional')}
-                        label="Email Type"
-                      >
-                        <MenuItem value="newsletter">Newsletter</MenuItem>
-                        <MenuItem value="promotional">Promotional</MenuItem>
-                      </Select>
-                    </FormControl>
-                  )}
-                </>
-              )}
-              
-              {(uploadedFile || manualContent) && (
-                <Box>
-                  <TextField
-                    label="Content"
-                    value={manualContent}
-                    onChange={(e) => setManualContent(e.target.value)}
-                    placeholder="Paste your content here or upload a file..."
-                    multiline
-                    rows={10}
-                    fullWidth
-                    variant="outlined"
-                    sx={{ fontFamily: 'monospace' }}
-                  />
-                  
-                  <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                    {manualContent.length} characters
-                  </Typography>
-                </Box>
-              )}
-            </motion.div>
-          ) : (
-            <Box sx={{ textAlign: 'center', py: 6 }}>
-              <ArticleIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 2 }} />
-              <Typography variant="body2" color="text.secondary">
-                Select content from below or click &quot;Paste Content&quot; to enter manually
-              </Typography>
-            </Box>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Selected Content Display */}
-      {!useManualInput && selectedContent && (
-        <Card elevation={2}>
-          <CardContent sx={{ p: 3 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
-              <ArticleIcon sx={{ color: 'primary.main' }} />
-              <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                Selected Content
-              </Typography>
-            </Box>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                  {selectedContent.title}
-                </Typography>
-                <Chip
-                  label={String(selectedContent.type).replace('_', ' ')}
-                  color={getContentTypeColor(selectedContent.type)}
-                  size="small"
-                  sx={{ textTransform: 'capitalize', fontWeight: 600 }}
-                />
-              </Box>
-              <Typography variant="body2" color="text.secondary" sx={{
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                display: '-webkit-box',
-                WebkitLineClamp: 3,
-                WebkitBoxOrient: 'vertical',
-              }}>
-                {selectedContent.content.substring(0, 300)}...
-              </Typography>
-              <Typography variant="caption" color="text.disabled">
-                {selectedContent.content.length} characters
-              </Typography>
-            </Box>
-          </CardContent>
-        </Card>
-      )}
+      {/* Unified Content Input */}
+      <UnifiedContentInput
+        onContentSelect={(content) => {
+          if (onContentSelect) {
+            onContentSelect(content)
+          }
+        }}
+        onManualInputChange={(data) => {
+          setManualInputData(data)
+          if (data) {
+            setManualTitle(data.title)
+            setManualContent(data.content)
+            setContentType(data.contentType)
+          } else {
+            setManualTitle('')
+            setManualContent('')
+          }
+        }}
+        selectedContent={selectedContent}
+        manualTitle={manualTitle}
+        manualContent={manualContent}
+        contentType={contentType}
+      />
 
       {/* Pipeline Controls */}
       <Card elevation={2}>
@@ -923,7 +742,7 @@ export function OrchestratorControls({ selectedContent }: OrchestratorControlsPr
                 color="primary"
                 fullWidth
                 onClick={handleRunFullPipeline}
-                disabled={isProcessing || (!useManualInput && !selectedContent)}
+                disabled={isProcessing || (!manualInputData && !selectedContent)}
                 startIcon={isProcessing ? <CircularProgress size={16} color="inherit" /> : <PlayArrowIcon />}
                 sx={{ py: 1.5, fontWeight: 600 }}
               >
@@ -934,7 +753,7 @@ export function OrchestratorControls({ selectedContent }: OrchestratorControlsPr
                 variant="outlined"
                 color="primary"
                 onClick={handleAnalyzeContent}
-                disabled={isProcessing || (!useManualInput && !selectedContent)}
+                disabled={isProcessing || (!manualInputData && !selectedContent)}
                 sx={{ minWidth: 56, px: 2 }}
               >
                 {isProcessing ? (

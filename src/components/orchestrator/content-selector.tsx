@@ -17,6 +17,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import PersonIcon from '@mui/icons-material/Person'
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday'
 import { useSourceContent, useContentSources } from '@/hooks/useApi'
+import { getSourceDisplayName } from '@/utils/contentFormatters'
 import type { ContentItem } from '@/types/api'
 
 interface ContentSelectorProps {
@@ -130,7 +131,7 @@ export function ContentSelector({ onContentSelect, selectedContent }: ContentSel
               <MenuItem value="all">All Sources</MenuItem>
               {sources.map((source) => (
                 <MenuItem key={source.name} value={source.name}>
-                  {source.name} {source.healthy ? '✓' : '✗'} {source.metadata?.enabled === false ? '(disabled)' : ''}
+                  {getSourceDisplayName(source)} {source.healthy ? '✓' : '✗'} {source.metadata?.enabled === false ? '(disabled)' : ''}
                 </MenuItem>
               ))}
             </Select>

@@ -1,6 +1,7 @@
 'use client'
 
 import { useSourceContent } from '@/hooks/useApi'
+import { getSourceDisplayName } from '@/utils/contentFormatters'
 import Box from '@mui/material/Box'
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
@@ -59,7 +60,7 @@ export function ContentList({ sourceName, limit = 10 }: ContentListProps) {
       <Card elevation={2}>
         <CardContent sx={{ p: 4, textAlign: 'center' }}>
           <Typography variant="body1" color="error" sx={{ fontWeight: 600 }}>
-            Failed to load content from {sourceName}
+            Failed to load content from {getSourceDisplayName(sourceName)}
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
             {error instanceof Error ? error.message : 'Unknown error'}
@@ -75,7 +76,7 @@ export function ContentList({ sourceName, limit = 10 }: ContentListProps) {
         <CardContent sx={{ p: 6, textAlign: 'center' }}>
           <ArticleIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 2 }} />
           <Typography variant="body1" color="text.secondary" sx={{ fontWeight: 600 }}>
-            No content found in {sourceName}
+            No content found in {getSourceDisplayName(sourceName)}
           </Typography>
           <Typography variant="body2" color="text.disabled" sx={{ mt: 0.5 }}>
             Try uploading some content or check your source configuration.

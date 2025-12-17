@@ -39,6 +39,7 @@ import {
   ResponsiveContainer 
 } from 'recharts'
 import { format } from 'date-fns'
+import { getSourceDisplayName } from '@/utils/contentFormatters'
 
 const COLORS = ['#2563eb', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#6366f1']
 
@@ -104,7 +105,7 @@ export default function AnalyticsPage() {
   ].filter(item => item.value > 0) : []
 
   const contentSourceData = contentStats?.by_source?.filter(source => source.active && source.total_items > 0).map(source => ({
-    name: source.source_name,
+    name: getSourceDisplayName(source.source_name),
     value: source.total_items,
   })) || []
 

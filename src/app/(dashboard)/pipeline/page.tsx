@@ -15,13 +15,13 @@ import ErrorIcon from '@mui/icons-material/Error'
 import PlayArrowIcon from '@mui/icons-material/PlayArrow'
 import SettingsApplicationsIcon from '@mui/icons-material/SettingsApplications'
 import { OrchestratorControls } from '@/components/orchestrator/orchestrator-controls'
-import { ContentSelector } from '@/components/orchestrator/content-selector'
 import { usePipelineStats } from '@/hooks/useApi'
 import { useRouter } from 'next/navigation'
 import Button from '@mui/material/Button'
+import type { ContentItem } from '@/types/api'
 
 export default function PipelinePage() {
-  const [selectedContent, setSelectedContent] = useState<any>(null)
+  const [selectedContent, setSelectedContent] = useState<ContentItem | null>(null)
   const { data: statsData, isLoading: statsLoading } = usePipelineStats()
   const router = useRouter()
 
@@ -141,23 +141,12 @@ export default function PipelinePage() {
         {/* Orchestrator Controls */}
         <Grid size={{ xs: 12 }}>
           <Paper elevation={0} sx={{ p: 3, borderRadius: 3 }}>
-            <OrchestratorControls selectedContent={selectedContent} />
-          </Paper>
-        </Grid>
-
-        {/* Content Selection */}
-        <Grid size={{ xs: 12 }}>
-          <Paper elevation={2} sx={{ p: 3, borderRadius: 2, height: '100%' }}>
-            <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
-              Select Content
-            </Typography>
-            <ContentSelector 
-              onContentSelect={setSelectedContent}
+            <OrchestratorControls 
               selectedContent={selectedContent}
+              onContentSelect={setSelectedContent}
             />
           </Paper>
         </Grid>
-
       </Grid>
     </Box>
   )
