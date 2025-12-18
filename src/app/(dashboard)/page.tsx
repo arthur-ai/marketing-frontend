@@ -109,25 +109,9 @@ export default function DashboardPage() {
         <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
           Welcome to Marketing Tool
         </Typography>
-        <Typography variant="body1" sx={{ opacity: 0.9, mb: 3 }}>
+        <Typography variant="body1" sx={{ opacity: 0.9 }}>
           Transform your marketing content with AI-powered automation and intelligent workflows
         </Typography>
-        <Button
-          variant="contained"
-          size="large"
-          startIcon={<RocketLaunchIcon />}
-          onClick={() => router.push('/pipeline')}
-          sx={{
-            bgcolor: 'white',
-            color: 'primary.main',
-            fontWeight: 600,
-            '&:hover': {
-              bgcolor: 'grey.100',
-            },
-          }}
-        >
-          Start Processing
-        </Button>
       </Paper>
 
       {/* Stats Grid */}
