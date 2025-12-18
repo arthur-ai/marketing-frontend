@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Box,
@@ -8,7 +8,6 @@ import {
   Typography,
   Card,
   CardContent,
-  Grid,
   Button,
   Chip,
   CircularProgress,
@@ -25,15 +24,19 @@ import {
   AccessTime,
   Error as ErrorIcon,
   Refresh,
+  Cancel as CancelIcon,
 } from '@mui/icons-material'
-import { usePendingApprovals } from '@/hooks/useApi'
+import { usePendingApprovals, useDecideApproval } from '@/hooks/useApi'
 import { getApprovalRoute } from '@/lib/approval-routing'
 import { getJobRoute } from '@/lib/job-routing'
+import { showErrorToast, showProcessingToast } from '@/lib/toast-utils'
 
 export default function ApprovalsPage() {
   const router = useRouter()
   // Enable polling on approvals page
   const { data, isLoading, refetch } = usePendingApprovals(undefined, true)
+  const decideApprovalMutation = useDecideApproval()
+  const [isProcessingBulk, setIsProcessingBulk] = useState(false)
 
   const formatDateTime = (dateString: string) => {
     const date = new Date(dateString)
@@ -72,6 +75,116 @@ export default function ApprovalsPage() {
         return <ErrorIcon color="error" />
       default:
         return <AccessTime />
+    }
+  }
+
+  const handleApproveAll = async () => {
+    const currentApprovals = data?.data?.approvals || []
+    const pendingApprovals = currentApprovals.filter(a => a.status === 'pending')
+    if (pendingApprovals.length === 0) {
+      showErrorToast('No Pending Approvals', 'There are no pending approvals to approve.')
+      return
+    }
+
+    if (!confirm(`Are you sure you want to approve all ${pendingApprovals.length} pending approval(s)?`)) {
+      return
+    }
+
+    setIsProcessingBulk(true)
+    const processingToast = showProcessingToast(`Approving ${pendingApprovals.length} approval(s)...`)
+
+    try {
+      const results = await Promise.allSettled(
+        pendingApprovals.map(approval =>
+          decideApprovalMutation.mutateAsync({
+            approvalId: approval.id,
+            decision: {
+              decision: 'approve',
+              reviewed_by: 'current_user',
+            },
+          })
+        )
+      )
+
+      const successful = results.filter(r => r.status === 'fulfilled').length
+      const failed = results.filter(r => r.status === 'rejected').length
+
+      if (failed === 0) {
+        processingToast.success(
+          'All Approvals Approved',
+          `Successfully approved ${successful} approval(s).`
+        )
+      } else {
+        processingToast.error(
+          'Partial Success',
+          `Approved ${successful} approval(s), but ${failed} failed.`
+        )
+      }
+
+      // Refetch to update the list
+      await refetch()
+    } catch (error) {
+      processingToast.error(
+        'Approval Failed',
+        error instanceof Error ? error.message : 'Failed to approve all approvals'
+      )
+    } finally {
+      setIsProcessingBulk(false)
+    }
+  }
+
+  const handleCancelAll = async () => {
+    const currentApprovals = data?.data?.approvals || []
+    const pendingApprovals = currentApprovals.filter(a => a.status === 'pending')
+    if (pendingApprovals.length === 0) {
+      showErrorToast('No Pending Approvals', 'There are no pending approvals to cancel.')
+      return
+    }
+
+    if (!confirm(`Are you sure you want to reject all ${pendingApprovals.length} pending approval(s)? This action cannot be undone.`)) {
+      return
+    }
+
+    setIsProcessingBulk(true)
+    const processingToast = showProcessingToast(`Rejecting ${pendingApprovals.length} approval(s)...`)
+
+    try {
+      const results = await Promise.allSettled(
+        pendingApprovals.map(approval =>
+          decideApprovalMutation.mutateAsync({
+            approvalId: approval.id,
+            decision: {
+              decision: 'reject',
+              reviewed_by: 'current_user',
+            },
+          })
+        )
+      )
+
+      const successful = results.filter(r => r.status === 'fulfilled').length
+      const failed = results.filter(r => r.status === 'rejected').length
+
+      if (failed === 0) {
+        processingToast.success(
+          'All Approvals Rejected',
+          `Successfully rejected ${successful} approval(s).`
+        )
+      } else {
+        processingToast.error(
+          'Partial Success',
+          `Rejected ${successful} approval(s), but ${failed} failed.`
+        )
+      }
+
+      // Refetch to update the list
+      await refetch()
+    } catch (error) {
+      processingToast.error(
+        'Rejection Failed',
+        error instanceof Error ? error.message : 'Failed to reject all approvals'
+      )
+    } finally {
+      setIsProcessingBulk(false)
     }
   }
 
@@ -140,12 +253,38 @@ export default function ApprovalsPage() {
         <Card>
           <CardContent>
             <Box sx={{ mb: 3, pb: 2, borderBottom: 1, borderColor: 'divider' }}>
-              <Typography variant="h6" gutterBottom>
-                Pending Approvals ({pending})
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Please review and approve or reject the following pipeline outputs.
-              </Typography>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                <Box>
+                  <Typography variant="h6" gutterBottom>
+                    Pending Approvals ({pending})
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Please review and approve or reject the following pipeline outputs.
+                  </Typography>
+                </Box>
+                <Stack direction="row" spacing={1}>
+                  <Button
+                    variant="outlined"
+                    color="error"
+                    startIcon={<CancelIcon />}
+                    onClick={handleCancelAll}
+                    disabled={isProcessingBulk || pending === 0}
+                    size="small"
+                  >
+                    Cancel All
+                  </Button>
+                  <Button
+                    variant="contained"
+                    color="success"
+                    startIcon={<CheckCircle />}
+                    onClick={handleApproveAll}
+                    disabled={isProcessingBulk || pending === 0}
+                    size="small"
+                  >
+                    Approve All
+                  </Button>
+                </Stack>
+              </Box>
             </Box>
               
               <List>

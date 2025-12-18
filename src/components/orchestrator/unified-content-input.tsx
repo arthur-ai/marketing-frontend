@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo, useId } from 'react'
+import { useState, useEffect, useMemo, useId, useRef } from 'react'
 import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Card from '@mui/material/Card'
@@ -122,22 +122,44 @@ export function UnifiedContentInput({
     }
   }, [externalContentType])
 
+  // Use ref to store the latest callback to avoid including it in dependencies
+  const onManualInputChangeRef = useRef(onManualInputChange)
+  useEffect(() => {
+    onManualInputChangeRef.current = onManualInputChange
+  }, [onManualInputChange])
+
+  // Track previous values to avoid unnecessary callbacks
+  const prevValuesRef = useRef({ activeTab, manualTitle, manualContent, contentType })
+  
   // Notify parent of manual input changes
   useEffect(() => {
+    const prev = prevValuesRef.current
+    const hasChanged = 
+      prev.activeTab !== activeTab ||
+      prev.manualTitle !== manualTitle ||
+      prev.manualContent !== manualContent ||
+      prev.contentType !== contentType
+
+    if (!hasChanged) {
+      return
+    }
+
+    prevValuesRef.current = { activeTab, manualTitle, manualContent, contentType }
+
     if (activeTab === 1) {
       if (manualTitle.trim() && manualContent.trim()) {
-        onManualInputChange({
+        onManualInputChangeRef.current({
           title: manualTitle,
           content: manualContent,
           contentType,
         })
       } else {
-        onManualInputChange(null)
+        onManualInputChangeRef.current(null)
       }
     } else {
-      onManualInputChange(null)
+      onManualInputChangeRef.current(null)
     }
-  }, [activeTab, manualTitle, manualContent, contentType, onManualInputChange])
+  }, [activeTab, manualTitle, manualContent, contentType])
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setActiveTab(newValue)
