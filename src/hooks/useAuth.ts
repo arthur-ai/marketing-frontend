@@ -1,6 +1,6 @@
 'use client'
 
-import { useSession } from 'next-auth/react'
+import { authClient } from '@/lib/auth-client'
 
 export interface User {
   id?: string
@@ -17,11 +17,11 @@ export interface Session {
 }
 
 export function useAuth() {
-  const { data: session, status } = useSession()
+  const { data: session, isPending } = authClient.useSession()
 
   const user = session?.user as User | undefined
-  const isAuthenticated = status === 'authenticated'
-  const isLoading = status === 'loading'
+  const isAuthenticated = !!session && !!session.user
+  const isLoading = isPending
 
   const hasRole = (role: string): boolean => {
     if (!user?.roles) return false

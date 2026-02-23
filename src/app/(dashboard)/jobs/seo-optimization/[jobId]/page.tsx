@@ -29,7 +29,7 @@ export default function SEOOptimizationJobPage() {
 
   const job = jobData?.data
   const stepResult = stepResultData?.data
-  const approvals = approvalsData?.data?.approvals || []
+  const approvals = useMemo(() => approvalsData?.data?.approvals || [], [approvalsData?.data?.approvals])
 
   const optimizationApproval = useMemo(() => {
     return approvals.find((a: any) => a.agent_name === 'seo_optimization' || a.pipeline_step === 'seo_optimization')

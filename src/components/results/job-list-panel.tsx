@@ -164,6 +164,11 @@ export function JobListPanel({
                           ? `Completed: ${formatTimestamp(job.completed_at)}`
                           : 'In Progress'}
                       </Typography>
+                      {job.triggered_by && (
+                        <Typography variant="caption" color="text.secondary">
+                          By: {job.triggered_by.username || job.triggered_by.email || job.triggered_by.user_id}
+                        </Typography>
+                      )}
                     </Stack>
                   }
                   secondaryTypographyProps={{

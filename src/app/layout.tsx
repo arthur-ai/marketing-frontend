@@ -1,7 +1,4 @@
-import { QueryProvider } from '@/components/providers/QueryProvider'
-import { SessionProvider } from '@/components/providers/SessionProvider'
-import { ToastProvider } from '@/components/providers/ToastProvider'
-import { ThemeProvider } from '@/components/providers/ThemeProvider'
+import { Providers } from '@/components/providers/Providers'
 import './globals.css'
 
 export const metadata = {
@@ -17,14 +14,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body>
-        <SessionProvider>
-          <ThemeProvider>
-            <QueryProvider>
-              <ToastProvider />
-              {children}
-            </QueryProvider>
-          </ThemeProvider>
-        </SessionProvider>
+        <Providers>{children}</Providers>
       </body>
     </html>
   )

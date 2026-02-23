@@ -1,6 +1,6 @@
 'use client'
 
-import { signIn } from 'next-auth/react'
+import { authClient } from '@/lib/auth-client'
 import Button from '@mui/material/Button'
 
 interface LoginButtonProps {
@@ -15,7 +15,10 @@ export function LoginButton({
   fullWidth = false,
 }: LoginButtonProps) {
   const handleLogin = () => {
-    signIn('keycloak', { callbackUrl: '/' })
+    authClient.signIn.oauth2({
+      providerId: 'keycloak',
+      callbackURL: '/',
+    })
   }
 
   return (

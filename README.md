@@ -50,10 +50,23 @@ npm install
 cp env.example .env.local
 ```
 
-4. Update `.env.local` with your API URL:
+4. Update `.env.local` with your configuration:
 ```bash
+# Backend API Configuration
 NEXT_PUBLIC_BACKEND_API_BASE_URL=http://localhost:8000
 NEXT_PUBLIC_BACKEND_WEBSOCKET_URL=ws://localhost:8000
+
+# Keycloak Frontend Configuration (REQUIRED for authentication)
+NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_SECRET=your-nextauth-secret-here  # Generate with: openssl rand -base64 32
+KEYCLOAK_CLIENT_ID=marketing-tool-frontend
+KEYCLOAK_CLIENT_SECRET=your-frontend-client-secret
+KEYCLOAK_ISSUER=https://your-keycloak-server.com/realms/your-realm-name
+```
+
+**Important**: Generate a secure `NEXTAUTH_SECRET`:
+```bash
+openssl rand -base64 32
 ```
 
 5. Start the development server:
@@ -65,11 +78,30 @@ npm run dev
 
 ## Environment Variables
 
+### Required for Local Development
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `NEXT_PUBLIC_BACKEND_API_BASE_URL` | Backend API URL | `http://localhost:8000` |
+| `NEXT_PUBLIC_BACKEND_WEBSOCKET_URL` | WebSocket URL for real-time updates | `ws://localhost:8000` |
+| `NEXTAUTH_URL` | Base URL of your application | `http://localhost:3000` |
+| `NEXTAUTH_SECRET` | Secret for encrypting JWT tokens | Generate with `openssl rand -base64 32` |
+| `KEYCLOAK_CLIENT_ID` | Keycloak frontend client ID | `marketing-tool-frontend` |
+| `KEYCLOAK_CLIENT_SECRET` | Keycloak frontend client secret | Get from Keycloak admin console |
+| `KEYCLOAK_ISSUER` | Keycloak issuer URL | `https://your-keycloak-server.com/realms/your-realm` |
+
+### Optional
+
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `NEXT_PUBLIC_BACKEND_API_BASE_URL` | Backend API URL | `http://localhost:8000` or `/api` (relative) |
-| `NEXT_PUBLIC_BACKEND_WEBSOCKET_URL` | WebSocket URL for real-time updates | `ws://localhost:8000` or `wss://domain/api` |
-| `NEXT_PUBLIC_API_KEY` | API key for authentication (optional) | - |
+| `NEXT_PUBLIC_API_KEY` | API key for authentication (if not using Keycloak) | - |
+
+### Setting Up Keycloak
+
+1. Follow the [Keycloak Setup Guide](../marketing_tool/docs/KEYCLOAK_SETUP.md) in the backend repository
+2. Create a frontend client in Keycloak (public client)
+3. Copy the client ID and secret to your `.env.local` file
+4. Set `KEYCLOAK_ISSUER` to your Keycloak realm URL
 
 ## Project Structure
 

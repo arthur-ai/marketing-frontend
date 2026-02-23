@@ -134,6 +134,16 @@ export function JobDetailsPanel({
               }
             />
           </Grid>
+          {(selectedJob.metadata.triggered_by_user_id || selectedJob.metadata.triggered_by_username || selectedJob.metadata.triggered_by_email) && (
+            <Grid size={{ xs: 12 }}>
+              <Typography variant="body2" color="text.secondary">
+                Triggered By
+              </Typography>
+              <Typography variant="body2">
+                {selectedJob.metadata.triggered_by_username || selectedJob.metadata.triggered_by_email || selectedJob.metadata.triggered_by_user_id}
+              </Typography>
+            </Grid>
+          )}
         </Grid>
 
         {/* Resume Pipeline button */}

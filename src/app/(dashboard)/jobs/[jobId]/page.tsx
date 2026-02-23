@@ -146,6 +146,11 @@ export default function GenericJobPage() {
                 <strong>Current Step:</strong> {job.current_step}
               </Typography>
             )}
+            {(job.metadata?.triggered_by_user_id || job.metadata?.triggered_by_username || job.metadata?.triggered_by_email) && (
+              <Typography variant="body2" gutterBottom>
+                <strong>Triggered By:</strong> {job.metadata.triggered_by_username || job.metadata.triggered_by_email || job.metadata.triggered_by_user_id}
+              </Typography>
+            )}
           </Box>
         </CardContent>
       </Card>

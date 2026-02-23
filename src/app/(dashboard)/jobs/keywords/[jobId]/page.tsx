@@ -28,7 +28,7 @@ export default function SEOKeywordsJobPage() {
 
   const job = jobData?.data
   const stepResult = stepResultData?.data
-  const approvals = approvalsData?.data?.approvals || []
+  const approvals = useMemo(() => approvalsData?.data?.approvals || [], [approvalsData?.data?.approvals])
 
   const keywordApproval = useMemo(() => {
     return approvals.find((a: any) => a.agent_name === 'seo_keywords' || a.pipeline_step === 'seo_keywords')

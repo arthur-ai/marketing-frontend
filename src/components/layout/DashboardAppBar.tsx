@@ -7,6 +7,7 @@ import Typography from '@mui/material/Typography'
 import Box from '@mui/material/Box'
 import MenuIcon from '@mui/icons-material/Menu'
 import { UserProfile } from '@/components/auth/UserProfile'
+import { NotificationCenter } from '@/components/layout/NotificationCenter'
 
 interface DashboardAppBarProps {
   onMenuClick: () => void
@@ -45,7 +46,8 @@ export function DashboardAppBar({ onMenuClick, drawerWidth }: DashboardAppBarPro
         >
           Marketing Pipeline
         </Typography>
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <NotificationCenter />
           <UserProfile />
         </Box>
       </Toolbar>

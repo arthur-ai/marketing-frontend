@@ -1,5 +1,107 @@
 import axios, { AxiosResponse, InternalAxiosRequestConfig } from 'axios'
-import { getSession } from 'next-auth/react'
+import { authClient } from './auth-client'
+
+// Get session using Better Auth
+const getSession = async () => {
+  if (typeof window === 'undefined') {
+    console.log('[API] getSession called on server, returning null')
+    return null
+  }
+  try {
+    console.log('[API] Fetching session from authClient')
+    const session = await authClient.getSession()
+    console.log('[API] Session response:', {
+      hasData: !!session.data,
+      hasError: !!session.error,
+      dataKeys: session.data ? Object.keys(session.data) : [],
+      userId: session.data?.user?.id,
+      userEmail: session.data?.user?.email,
+    })
+    
+    if (!session.data) {
+      console.log('[API] No session data, returning null')
+      return null
+    }
+    
+    // Try to get access token for Keycloak provider
+    try {
+      console.log('[API] Fetching access token for keycloak provider')
+      const tokenResponse = await authClient.getAccessToken({
+        providerId: 'keycloak',
+      })
+      
+      // Better Auth getAccessToken can return different structures
+      // Check all possible locations for the token
+      let accessToken: string | undefined
+      
+      // Try different possible response structures
+      if (typeof tokenResponse === 'string') {
+        accessToken = tokenResponse
+      } else if (tokenResponse?.accessToken) {
+        accessToken = tokenResponse.accessToken
+      } else if (tokenResponse?.data?.accessToken) {
+        accessToken = tokenResponse.data.accessToken
+      } else if ((tokenResponse as any)?.data && typeof (tokenResponse as any).data === 'string') {
+        accessToken = (tokenResponse as any).data
+      }
+      
+      console.log('[API] Access token response:', {
+        responseType: typeof tokenResponse,
+        responseKeys: tokenResponse && typeof tokenResponse === 'object' ? Object.keys(tokenResponse) : [],
+        hasAccessToken: !!accessToken,
+        accessTokenType: typeof accessToken,
+        accessTokenLength: accessToken?.length,
+        // Don't log full token, just preview
+      })
+      
+      if (accessToken && typeof accessToken === 'string' && accessToken.length > 10) {
+        // Verify it looks like a JWT token (starts with eyJ) or is a valid token
+        const isJWT = accessToken.startsWith('eyJ')
+        console.log('[API] Successfully retrieved access token:', {
+          tokenPreview: accessToken.substring(0, 30) + '...',
+          tokenLength: accessToken.length,
+          isJWT,
+          startsWith: accessToken.substring(0, 10),
+        })
+        
+        // Add accessToken to session object for compatibility
+        return {
+          ...session.data,
+          accessToken: accessToken,
+        }
+      } else {
+        console.warn('[API] Access token response does not contain valid accessToken:', {
+          accessTokenType: typeof accessToken,
+          accessTokenLength: accessToken?.length,
+          accessTokenPreview: accessToken ? accessToken.substring(0, 50) : 'null/undefined',
+          responseStructure: tokenResponse && typeof tokenResponse === 'object' ? Object.keys(tokenResponse) : 'not an object',
+          fullResponseType: typeof tokenResponse,
+        })
+        return session.data
+      }
+    } catch (tokenError) {
+      // If token fetch fails, return session without token
+      // This might happen if user hasn't completed OAuth flow or account isn't linked
+      console.warn('[API] Failed to get access token, returning session without token:', {
+        error: tokenError instanceof Error ? tokenError.message : String(tokenError),
+        errorName: tokenError instanceof Error ? tokenError.name : undefined,
+        stack: tokenError instanceof Error ? tokenError.stack : undefined,
+      })
+      return session.data
+    }
+  } catch (error) {
+    console.error('[API] Error getting session:', {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    })
+    return null
+  }
+}
+
+const getSignOut = async () => {
+  if (typeof window === 'undefined') return null
+  return () => authClient.signOut()
+}
 import type { 
   HealthResponse, 
   ReadyResponse, 
@@ -53,16 +155,62 @@ export const apiClient = axios.create({
   },
 })
 
-// Request interceptor to add access token
+// Request interceptor to add access token and handle auth errors
 apiClient.interceptors.request.use(
   async (config: InternalAxiosRequestConfig) => {
+    // Only get session in browser context (client-side)
+    // Better Auth session works client-side
+    if (typeof window === 'undefined') {
+      return config
+    }
+    
+    // Check if we've handled an auth error - don't block, but let it fail naturally
+    // The response interceptor will handle the redirect
+    if (authErrorHandled) {
+      const isHealthCheck = config.url?.includes('/health') || config.url?.includes('/ready')
+      const isAuthCheck = config.url?.includes('/auth/session')
+      if (!isHealthCheck && !isAuthCheck) {
+        // Let the request proceed - it will fail with 401 and trigger redirect
+      }
+    }
+    
     try {
+      // Only get session in browser context
       const session = await getSession()
+      const requestUrl = `${config.method?.toUpperCase()} ${config.baseURL}${config.url}`
       if (session && (session as any).accessToken) {
-        config.headers.Authorization = `Bearer ${(session as any).accessToken}`
+        const token = (session as any).accessToken
+        const authHeader = `Bearer ${token}`
+        config.headers.Authorization = authHeader
+        
+        // Debug: Log token details to verify it's being sent
+        if (process.env.NODE_ENV === 'development') {
+          const tokenPreview = typeof token === 'string' && token.length > 20 
+            ? token.substring(0, 30) + '...' 
+            : String(token)
+          console.log(`[API] Adding Authorization header for ${requestUrl}:`, {
+            tokenPreview,
+            tokenLength: typeof token === 'string' ? token.length : 'not a string',
+            tokenType: typeof token,
+            isJWT: typeof token === 'string' && token.startsWith('eyJ'),
+            headerValue: authHeader.substring(0, 50) + '...',
+            headerSet: !!config.headers.Authorization,
+            allHeaders: Object.keys(config.headers),
+          })
+        }
+      } else {
+        // Log warning if session exists but no access token (helps debug auth issues)
+        if (session && !(session as any).accessToken) {
+          console.warn(`[API] Session exists but accessToken is missing for ${requestUrl}. Request will proceed without token.`, {
+            sessionKeys: Object.keys(session),
+            sessionUser: session.user ? Object.keys(session.user) : 'no user',
+          })
+        } else if (!session) {
+          console.warn(`[API] No session available for ${requestUrl}. Request will proceed without token.`)
+        }
       }
     } catch (error) {
-      console.error('Error getting session for API request:', error)
+      console.error(`[API] Error getting session for ${config.method?.toUpperCase()} ${config.baseURL}${config.url}:`, error)
     }
     return config
   },
@@ -71,27 +219,122 @@ apiClient.interceptors.request.use(
   }
 )
 
+// Global flag to track if we've already shown an auth error and stopped requests
+let authErrorHandled = false
+// Track when user logged in to prevent immediate sign-out on 401s
+let loginTimestamp: number | null = null
+const LOGIN_GRACE_PERIOD = 10000 // 10 seconds grace period after login
+
+// Function to reset auth error state (call after successful login)
+export function resetAuthErrorState() {
+  authErrorHandled = false
+  loginTimestamp = Date.now()
+  console.log('[API] Auth error state reset, grace period started')
+}
+
 // Response interceptor for error handling
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // If we get a successful response, reset the auth error flag
+    // This allows the app to recover if auth was temporarily broken
+    if (authErrorHandled && response.status >= 200 && response.status < 300) {
+      authErrorHandled = false
+    }
+    return response
+  },
   async (error) => {
-    console.error('API Error:', error.response?.data || error.message)
+    const requestUrl = error.config?.url || 'unknown'
+    const isBetterAuthEndpoint = requestUrl.includes('/api/auth/') || requestUrl.includes('/auth/')
     
-    // Handle 401 Unauthorized - token might be expired
+    // Handle 401 Unauthorized - token might be expired or invalid
     if (error.response?.status === 401) {
-      // Try to refresh the session
-      const session = await getSession()
-      if (session && (session as any).accessToken) {
-        // Retry the request with new token
-        const config = error.config
-        config.headers.Authorization = `Bearer ${(session as any).accessToken}`
-        return apiClient.request(config)
+      console.warn('[API] Received 401 Unauthorized. Token may be expired or invalid.', {
+        url: requestUrl,
+        method: error.config?.method,
+        hasAuthHeader: !!error.config?.headers?.Authorization,
+        authErrorHandled,
+        isBetterAuthEndpoint,
+        currentPath: typeof window !== 'undefined' ? window.location.pathname : 'N/A',
+      })
+      
+      // Don't sign out for Better Auth endpoints - they handle their own auth
+      if (isBetterAuthEndpoint) {
+        console.log('[API] 401 on Better Auth endpoint, not signing out')
+        return Promise.reject(error)
       }
+      
+      // Only handle in browser context
+      if (typeof window !== 'undefined') {
+        // Check if we're in the grace period after login
+        const timeSinceLogin = loginTimestamp ? Date.now() - loginTimestamp : Infinity
+        const inGracePeriod = timeSinceLogin < LOGIN_GRACE_PERIOD
+        
+        if (inGracePeriod) {
+          console.warn(`[API] 401 on ${requestUrl} but within ${LOGIN_GRACE_PERIOD}ms grace period after login (${Math.round(timeSinceLogin)}ms ago). Not signing out.`)
+          // Don't sign out during grace period - token might still be initializing
+          return Promise.reject(error)
+        }
+        
+        // If we've already handled an auth error, don't retry or show multiple toasts
+        if (authErrorHandled) {
+          console.log('[API] Auth error already handled, rejecting request')
+          // Reject immediately without retrying
+          return Promise.reject(error)
+        }
+        
+        // Mark that we're handling an auth error
+        authErrorHandled = true
+        console.log('[API] Marking auth error as handled, will sign out and redirect')
+        
+        try {
+          // Clear the session immediately - the token is invalid, don't try to reuse it
+          console.error(`[API] 401 Unauthorized on ${requestUrl} - clearing session and redirecting to login.`)
+          
+          // Sign out to clear the session completely (only on client side)
+          const signOut = await getSignOut()
+          if (signOut) {
+            try {
+              console.log('[API] Calling signOut due to 401 error')
+              await signOut()
+              console.log('[API] SignOut completed')
+            } catch (signOutError) {
+              console.error('[API] Error during signOut:', signOutError)
+            }
+          }
+          
+          // Redirect to login page (reset flag before redirect to allow new session)
+          if (!window.location.pathname.includes('/login')) {
+            console.log('[API] Redirecting to login page due to 401')
+            authErrorHandled = false // Reset flag before redirect to allow new session
+            window.location.href = '/login'
+          } else {
+            console.log('[API] Already on login page, not redirecting')
+          }
+          
+        } catch (sessionError) {
+          console.error('[API] Error handling 401:', sessionError)
+          // Force redirect even if signOut fails
+          if (!window.location.pathname.includes('/login')) {
+            authErrorHandled = false // Reset flag before redirect
+            window.location.href = '/login'
+          }
+        }
+      }
+    } else {
+      // Log other errors
+      console.error('[API] Error:', {
+        status: error.response?.status,
+        url: requestUrl,
+        method: error.config?.method,
+        message: error.message,
+        data: error.response?.data,
+      })
     }
     
     return Promise.reject(error)
   }
 )
+
 
 // API endpoints that match your backend
 export const api = {

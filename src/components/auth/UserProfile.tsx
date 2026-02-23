@@ -1,6 +1,6 @@
 'use client'
 
-import { signOut } from 'next-auth/react'
+import { authClient } from '@/lib/auth-client'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import Button from '@mui/material/Button'
@@ -31,9 +31,10 @@ export function UserProfile({ showRoles = true }: UserProfileProps) {
     setAnchorEl(null)
   }
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     handleClose()
-    signOut({ callbackUrl: '/login' })
+    await authClient.signOut()
+    window.location.href = '/login'
   }
 
   if (!isAuthenticated || !user) {

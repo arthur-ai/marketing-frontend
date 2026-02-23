@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
-import { signOut } from 'next-auth/react'
+import { authClient } from '@/lib/auth-client'
 import { useRouter } from 'next/navigation'
 import Box from '@mui/material/Box'
 import CircularProgress from '@mui/material/CircularProgress'
@@ -11,7 +11,8 @@ export default function LogoutPage() {
 
   useEffect(() => {
     const handleLogout = async () => {
-      await signOut({ callbackUrl: '/login', redirect: true })
+      await authClient.signOut()
+      router.push('/login')
     }
     handleLogout()
   }, [router])

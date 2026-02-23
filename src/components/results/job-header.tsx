@@ -111,6 +111,11 @@ export function JobHeader({
             <Typography variant="caption" color="text.secondary">
               Job ID: {job.job_id.substring(0, 8)}...
             </Typography>
+            {(job.metadata.triggered_by_user_id || job.metadata.triggered_by_username || job.metadata.triggered_by_email) && (
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                Triggered by: {job.metadata.triggered_by_username || job.metadata.triggered_by_email || job.metadata.triggered_by_user_id}
+              </Typography>
+            )}
           </Box>
 
           {/* Approval Status Badge - Only show if not failed */}
