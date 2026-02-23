@@ -97,6 +97,31 @@ Parameters:
     Default: ''
     Description: Route53 Hosted Zone ID (optional)
 
+  # --- Auth parameters ---
+  BetterAuthUrl:
+    Type: String
+    Description: Public URL of the frontend (e.g., https://app.example.com). Used by Better Auth for cookie domain and OAuth redirects.
+
+  BetterAuthSecretArn:
+    Type: String
+    Description: ARN of the AWS Secrets Manager secret that holds BETTER_AUTH_SECRET (a random 32+ char string).
+
+  KeycloakClientId:
+    Type: String
+    Description: Keycloak client ID for the frontend (e.g., marketing-tool-frontend)
+
+  KeycloakClientSecretArn:
+    Type: String
+    Description: ARN of the AWS Secrets Manager secret that holds KEYCLOAK_CLIENT_SECRET.
+
+  KeycloakIssuer:
+    Type: String
+    Description: Keycloak realm issuer URL (e.g., https://auth.example.com/realms/marketing-tool)
+
+  DatabaseUrlArn:
+    Type: String
+    Description: ARN of the AWS Secrets Manager secret that holds DATABASE_URL (PostgreSQL connection string for Better Auth tables).
+
 Conditions:
   HasCertificate: !Not [!Equals [!Ref CertificateArn, '']]
   HasDomain: !Not [!Equals [!Ref DomainName, '']]
@@ -262,17 +287,21 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
       Policies:
-        - !If
-          - HasDockerRegistryCredentials
-          - PolicyName: SecretsManagerAccess
-            PolicyDocument:
-              Version: '2012-10-17'
-              Statement:
-                - Effect: Allow
-                  Action:
-                    - secretsmanager:GetSecretValue
-                  Resource: !Ref DockerRegistrySecret
-          - !Ref AWS::NoValue
+        - PolicyName: SecretsManagerAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource:
+                  - !Ref BetterAuthSecretArn
+                  - !Ref KeycloakClientSecretArn
+                  - !Ref DatabaseUrlArn
+                  - !If
+                    - HasDockerRegistryCredentials
+                    - !Ref DockerRegistrySecret
+                    - !Ref AWS::NoValue
       Tags:
         - Key: Name
           Value: !Sub '${EnvironmentName}-marketing-frontend-execution-role'
@@ -321,6 +350,20 @@ Resources:
               Value: !Ref BackendApiUrl
             - Name: NEXT_PUBLIC_BACKEND_WEBSOCKET_URL
               Value: !Ref BackendWebSocketUrl
+            - Name: BETTER_AUTH_URL
+              Value: !Ref BetterAuthUrl
+            - Name: KEYCLOAK_CLIENT_ID
+              Value: !Ref KeycloakClientId
+            - Name: KEYCLOAK_ISSUER
+              Value: !Ref KeycloakIssuer
+          # Sensitive values pulled from Secrets Manager at task start (never in plaintext)
+          Secrets:
+            - Name: BETTER_AUTH_SECRET
+              ValueFrom: !Ref BetterAuthSecretArn
+            - Name: KEYCLOAK_CLIENT_SECRET
+              ValueFrom: !Ref KeycloakClientSecretArn
+            - Name: DATABASE_URL
+              ValueFrom: !Ref DatabaseUrlArn
           LogConfiguration:
             LogDriver: awslogs
             Options:

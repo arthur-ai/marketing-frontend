@@ -14,6 +14,14 @@ services:
       - NODE_ENV=production
       - NEXT_PUBLIC_BACKEND_API_BASE_URL=${NEXT_PUBLIC_BACKEND_API_BASE_URL:-http://localhost:8000}
       - NEXT_PUBLIC_BACKEND_WEBSOCKET_URL=${NEXT_PUBLIC_BACKEND_WEBSOCKET_URL:-ws://localhost:8000}
+      # Better Auth configuration
+      - BETTER_AUTH_URL=${BETTER_AUTH_URL:-http://localhost:3000}
+      - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
+      - DATABASE_URL=${DATABASE_URL}
+      # Keycloak configuration
+      - KEYCLOAK_CLIENT_ID=${KEYCLOAK_CLIENT_ID:-marketing-tool-frontend}
+      - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET}
+      - KEYCLOAK_ISSUER=${KEYCLOAK_ISSUER}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/"]

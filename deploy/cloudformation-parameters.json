@@ -66,17 +66,29 @@
   {
     "ParameterKey": "HostedZoneId",
     "ParameterValue": ""
+  },
+  {
+    "ParameterKey": "BetterAuthUrl",
+    "ParameterValue": "REPLACE_WITH_YOUR_FRONTEND_URL"
+  },
+  {
+    "ParameterKey": "BetterAuthSecretArn",
+    "ParameterValue": "REPLACE_WITH_SECRET_ARN"
+  },
+  {
+    "ParameterKey": "KeycloakClientId",
+    "ParameterValue": "marketing-tool-frontend"
+  },
+  {
+    "ParameterKey": "KeycloakClientSecretArn",
+    "ParameterValue": "REPLACE_WITH_SECRET_ARN"
+  },
+  {
+    "ParameterKey": "KeycloakIssuer",
+    "ParameterValue": "REPLACE_WITH_YOUR_KEYCLOAK_ISSUER_URL"
+  },
+  {
+    "ParameterKey": "DatabaseUrlArn",
+    "ParameterValue": "REPLACE_WITH_SECRET_ARN"
   }
 ]
-
-
-
-
-
-
-
-
-
-
-
-

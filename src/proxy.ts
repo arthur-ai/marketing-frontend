@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { auth } from '@/lib/auth'
+// Use the Edge-compatible auth instance — pg cannot run in the Edge runtime.
+// authEdge verifies sessions via the JWE cookie written by auth.ts (Node.js).
+import { authEdge } from '@/lib/auth-edge'
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -15,10 +17,10 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // Check for authentication session using Better Auth
+  // Check for authentication session using the Edge-compatible Better Auth instance
   try {
     console.log('[Proxy] Checking session for path:', pathname)
-    const session = await auth.api.getSession({
+    const session = await authEdge.api.getSession({
       headers: request.headers,
     })
 

@@ -94,8 +94,8 @@ const nextConfig = {
     
     return config
   },
-  // External packages for server components
-  serverExternalPackages: ['next-auth'],
+  // External packages for server components (Node.js runtime only, not Edge)
+  serverExternalPackages: ['next-auth', 'pg', 'pg-native'],
   // Turbopack configuration for Next.js 16
   // Note: Turbopack handles React resolution automatically in Next.js 16
   // We only need minimal config - the webpack config handles React aliases for webpack builds
