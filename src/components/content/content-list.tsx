@@ -97,7 +97,7 @@ export function ContentList({ sourceName, limit = 10 }: ContentListProps) {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-      {data.data.content_items.map((item: ContentItem) => {
+      {data.data.content_items.map((item: ContentItem, index: number) => {
         const metadata = item.metadata || {}
         const seoScore = metadata.seo_score
         const engagementScore = metadata.engagement_score
@@ -113,7 +113,7 @@ export function ContentList({ sourceName, limit = 10 }: ContentListProps) {
         
         return (
           <Card 
-            key={item.id} 
+            key={`${item.id}-${index}`} 
             elevation={2}
             sx={{
               transition: 'all 0.2s',

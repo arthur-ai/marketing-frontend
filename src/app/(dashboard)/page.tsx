@@ -19,8 +19,9 @@ import RocketLaunchIcon from '@mui/icons-material/RocketLaunch'
 import { useRouter } from 'next/navigation'
 import { useDashboardStats, useRecentActivity } from '@/hooks/useApi'
 import { formatDistanceToNow } from 'date-fns'
+import { ClientOnly } from '@/components/providers/ClientOnly'
 
-export default function DashboardPage() {
+function DashboardContent() {
   const router = useRouter()
   const { data: statsData, isLoading: statsLoading } = useDashboardStats()
   const { data: activityData, isLoading: activityLoading } = useRecentActivity(7)
@@ -269,6 +270,18 @@ export default function DashboardPage() {
         </Grid>
       </Grid>
     </Box>
+  )
+}
+
+export default function DashboardPage() {
+  return (
+    <ClientOnly fallback={
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh' }}>
+        <CircularProgress />
+      </Box>
+    }>
+      <DashboardContent />
+    </ClientOnly>
   )
 }
 

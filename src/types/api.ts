@@ -17,6 +17,7 @@ export interface Job {
   type: string
   status: JobStatus
   content_id: string
+  user_id?: string
   created_at: string
   started_at?: string
   completed_at?: string
@@ -36,6 +37,12 @@ export interface Job {
   }
   // Quality warnings (from result.quality_warnings)
   quality_warnings?: string[]
+  // User who triggered the job (from metadata)
+  triggered_by?: {
+    user_id: string
+    username?: string
+    email?: string
+  }
 }
 
 export interface JobSubmissionResponse {
@@ -635,6 +642,11 @@ export interface JobListItem {
     failed: number
   }
   chain_status?: 'all_completed' | 'in_progress' | 'blocked' | 'failed'
+  triggered_by?: {
+    user_id: string
+    username?: string
+    email?: string
+  }
 }
 
 // Pipeline Flow Types

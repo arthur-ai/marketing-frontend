@@ -28,6 +28,15 @@ export function normalizeResultStructure(result: unknown): unknown {
  * Transform JobResponse to JobListItem format
  */
 export function transformJobResponseToListItem(job: JobResponse): JobListItem {
+  // Extract triggered_by from metadata
+  const triggered_by = job.metadata?.triggered_by_user_id
+    ? {
+        user_id: job.metadata.triggered_by_user_id as string,
+        username: job.metadata.triggered_by_username as string | undefined,
+        email: job.metadata.triggered_by_email as string | undefined,
+      }
+    : undefined;
+
   return {
     job_id: job.id,
     content_type: job.type,
@@ -45,6 +54,7 @@ export function transformJobResponseToListItem(job: JobResponse): JobListItem {
       | 'blocked'
       | 'failed'
       | undefined,
+    triggered_by,
   };
 }
 
