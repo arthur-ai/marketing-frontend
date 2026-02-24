@@ -1,7 +1,6 @@
 'use client'
 
-import { Paper } from '@mui/material'
-import { SyntaxHighlighter, vs2015 } from '@/lib/syntax-highlighter'
+import { Box, Paper } from '@mui/material'
 
 interface JsonDisplayProps {
   data: unknown
@@ -9,7 +8,7 @@ interface JsonDisplayProps {
   title?: string
 }
 
-export function JsonDisplay({ data, maxHeight = '600px', title }: JsonDisplayProps) {
+export function JsonDisplay({ data, maxHeight = '600px' }: JsonDisplayProps) {
   return (
     <Paper
       elevation={0}
@@ -23,19 +22,22 @@ export function JsonDisplay({ data, maxHeight = '600px', title }: JsonDisplayPro
         maxHeight,
       }}
     >
-      <SyntaxHighlighter
-        language="json"
-        style={vs2015}
-        customStyle={{
+      <Box
+        component="pre"
+        sx={{
           margin: 0,
-          borderRadius: '0.5rem',
-          fontSize: '0.875rem',
           padding: '1.5rem',
+          fontSize: '0.875rem',
+          fontFamily: 'monospace',
+          whiteSpace: 'pre-wrap',
+          wordBreak: 'break-word',
+          color: '#abb2bf',
           background: 'transparent',
+          lineHeight: 1.6,
         }}
       >
         {JSON.stringify(data, null, 2)}
-      </SyntaxHighlighter>
+      </Box>
     </Paper>
   )
 }

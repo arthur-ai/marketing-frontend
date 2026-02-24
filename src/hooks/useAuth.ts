@@ -17,6 +17,15 @@ export interface Session {
   expires?: string
 }
 
+const DEV_BYPASS = process.env.NEXT_PUBLIC_DEV_AUTH_BYPASS === 'true'
+
+const DEV_USER: User = {
+  id: 'dev-user-id',
+  name: 'Dev User',
+  email: 'dev@localhost',
+  roles: ['admin', 'user', 'content_editor', 'approver'],
+}
+
 function extractRolesFromToken(accessToken: string): string[] {
   try {
     // JWT payload is base64url encoded — normalize padding before decoding
@@ -29,10 +38,12 @@ function extractRolesFromToken(accessToken: string): string[] {
 }
 
 export function useAuth() {
+  // Always call hooks unconditionally (Rules of Hooks)
   const { data: session, isPending } = authClient.useSession()
   const [roles, setRoles] = useState<string[]>([])
 
   useEffect(() => {
+    if (DEV_BYPASS) return
     if (!session?.user?.id) {
       setRoles([])
       return
@@ -50,6 +61,19 @@ export function useAuth() {
       })
       .catch(() => {})
   }, [session?.user?.id])
+
+  // In dev bypass mode, return a mock dev user without Keycloak
+  if (DEV_BYPASS) {
+    return {
+      user: DEV_USER,
+      session: { user: DEV_USER } as Session,
+      isAuthenticated: true,
+      isLoading: false,
+      hasRole: (role: string) => DEV_USER.roles!.includes(role),
+      hasAnyRole: (rolesToCheck: string[]) => rolesToCheck.some((r) => DEV_USER.roles!.includes(r)),
+      hasAllRoles: (rolesToCheck: string[]) => rolesToCheck.every((r) => DEV_USER.roles!.includes(r)),
+    }
+  }
 
   const user: User | undefined = session?.user
     ? { ...session.user, roles }

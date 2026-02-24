@@ -263,7 +263,7 @@ export function useListJobs(jobType?: string, status?: string) {
 
 export function useCancelJob() {
   const queryClient = useQueryClient()
-  
+
   return useMutation({
     mutationFn: (jobId: string) => api.cancelJob(jobId),
     onSuccess: () => {
@@ -272,20 +272,44 @@ export function useCancelJob() {
   })
 }
 
+export function useForceDeleteJob() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (jobId: string) => api.forceDeleteJob(jobId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['jobs'] })
+      queryClient.invalidateQueries({ queryKey: ['analytics'] })
+    },
+  })
+}
+
+export function useDeleteAllJobs() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: () => api.deleteAllJobs(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['jobs'] })
+      queryClient.invalidateQueries({ queryKey: ['analytics'] })
+    },
+  })
+}
+
 // Analytics Hooks
-export function useDashboardStats() {
+export function useDashboardStats(userId?: string) {
   return useQuery({
-    queryKey: ['analytics', 'dashboard'],
-    queryFn: () => api.getDashboardStats(),
+    queryKey: ['analytics', 'dashboard', userId],
+    queryFn: () => api.getDashboardStats(userId),
     refetchInterval: 60000, // Refresh every 60 seconds
     staleTime: 60000,
   })
 }
 
-export function usePipelineStats() {
+export function usePipelineStats(userId?: string) {
   return useQuery({
-    queryKey: ['analytics', 'pipeline'],
-    queryFn: () => api.getPipelineStats(),
+    queryKey: ['analytics', 'pipeline', userId],
+    queryFn: () => api.getPipelineStats(userId),
     refetchInterval: 60000,
     staleTime: 60000,
   })
@@ -300,19 +324,19 @@ export function useContentStats() {
   })
 }
 
-export function useRecentActivity(days = 7) {
+export function useRecentActivity(days = 7, userId?: string) {
   return useQuery({
-    queryKey: ['analytics', 'recent-activity', days],
-    queryFn: () => api.getRecentActivity(days),
+    queryKey: ['analytics', 'recent-activity', days, userId],
+    queryFn: () => api.getRecentActivity(days, userId),
     refetchInterval: 60000,
     staleTime: 60000,
   })
 }
 
-export function useTrends(days = 7) {
+export function useTrends(days = 7, userId?: string) {
   return useQuery({
-    queryKey: ['analytics', 'trends', days],
-    queryFn: () => api.getTrends(days),
+    queryKey: ['analytics', 'trends', days, userId],
+    queryFn: () => api.getTrends(days, userId),
     refetchInterval: 60000,
     staleTime: 60000,
   })

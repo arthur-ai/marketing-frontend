@@ -11,18 +11,27 @@ import {
   CircularProgress,
   Alert,
   Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from '@mui/material';
 import { Refresh } from '@mui/icons-material';
-import { useResumeJob } from '@/hooks/useApi';
+import { useResumeJob, useForceDeleteJob } from '@/hooks/useApi';
 import { useJobList } from '@/hooks/useJobList';
 import { useJobDetails } from '@/hooks/useJobDetails';
 import { useFinalResult } from '@/hooks/useFinalResult';
+import { useAuth } from '@/hooks/useAuth';
 import { JobListPanel } from '@/components/results/job-list-panel';
 import { JobDetailsPanel } from '@/components/results/job-details-panel';
 import { ComparisonModals } from '@/components/results/comparison-modals';
 import { showSuccessToast, showErrorToast } from '@/lib/toast-utils';
 
 export default function ResultsPage() {
+  const { hasRole } = useAuth();
+  const isAdmin = hasRole('admin');
+
   // Job list management
   const {
     jobs,
@@ -35,7 +44,10 @@ export default function ResultsPage() {
     setFilterType,
     filterStatus,
     setFilterStatus,
+    filterUserId,
+    setFilterUserId,
     contentTypes,
+    uniqueUsers,
     refetch: refetchJobs,
   } = useJobList();
 
@@ -68,6 +80,13 @@ export default function ResultsPage() {
 
   // Resume job mutation
   const resumeJobMutation = useResumeJob();
+
+  // Force-delete job mutation (admin)
+  const forceDeleteJobMutation = useForceDeleteJob();
+
+  // Delete confirmation dialog state
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [jobToDelete, setJobToDelete] = useState<string | null>(null);
 
   // Step comparison modal state
   const [comparisonModalOpen, setComparisonModalOpen] = useState(false);
@@ -134,6 +153,30 @@ export default function ResultsPage() {
     [selectedJob, fetchJobDetails, resumeJobMutation, refetchJobs]
   );
 
+  // Admin: initiate delete confirmation
+  const handleDeleteJobClick = useCallback((jobId: string) => {
+    setJobToDelete(jobId);
+    setDeleteDialogOpen(true);
+  }, []);
+
+  // Admin: confirm and execute delete
+  const handleDeleteConfirm = useCallback(async () => {
+    if (!jobToDelete) return;
+    setDeleteDialogOpen(false);
+    try {
+      await forceDeleteJobMutation.mutateAsync(jobToDelete);
+      showSuccessToast('Job Deleted', `Job ${jobToDelete.substring(0, 8)}... permanently deleted.`);
+      refetchJobs();
+    } catch (error) {
+      showErrorToast(
+        'Delete Failed',
+        error instanceof Error ? error.message : 'Failed to delete job'
+      );
+    } finally {
+      setJobToDelete(null);
+    }
+  }, [jobToDelete, forceDeleteJobMutation, refetchJobs]);
+
   // Initial fetch
   useEffect(() => {
     refetchJobs();
@@ -180,6 +223,11 @@ export default function ResultsPage() {
             setFilterStatus={setFilterStatus}
             contentTypes={contentTypes}
             onSelectJob={handleSelectJob}
+            isAdmin={isAdmin}
+            uniqueUsers={uniqueUsers}
+            filterUserId={filterUserId}
+            setFilterUserId={setFilterUserId}
+            onDeleteJob={isAdmin ? handleDeleteJobClick : undefined}
           />
         </Grid>
 
@@ -193,8 +241,6 @@ export default function ResultsPage() {
               onNavigateToParent={handleSelectJob}
               onNavigateToSubjob={fetchSubjobDetails}
               onViewStepIO={handleViewStepIO}
-              onResumePipeline={handleResumePipeline}
-              isResuming={resumeJobMutation.isPending}
               onDecisionMade={handleDecisionMade}
             />
           ) : (
@@ -219,6 +265,27 @@ export default function ResultsPage() {
         onClose={() => { setComparisonModalOpen(false); setSelectedStepForComparison(null); }}
         onStepClose={() => { setComparisonModalOpen(false); setSelectedStepForComparison(null); }}
       />
+
+      {/* Admin: Delete confirmation dialog */}
+      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+        <DialogTitle>Delete Job Permanently?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Job <strong>{jobToDelete?.substring(0, 8)}...</strong> will be permanently removed from the database. This cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+          <Button
+            onClick={handleDeleteConfirm}
+            color="error"
+            variant="contained"
+            disabled={forceDeleteJobMutation.isPending}
+          >
+            Delete Permanently
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 }

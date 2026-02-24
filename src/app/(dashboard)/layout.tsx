@@ -21,44 +21,32 @@ function DashboardLayoutContent({
   const router = useRouter()
   const { data: session, isPending } = authClient.useSession()
 
+  const devBypass = process.env.NEXT_PUBLIC_DEV_AUTH_BYPASS === 'true'
+
   // Redirect to login if session is invalid or expired
   useEffect(() => {
+    if (devBypass) return
+
     const currentPath = typeof window !== 'undefined' ? window.location.pathname : pathname
-    console.log('[DashboardLayout] Session check:', {
-      isPending,
-      hasSession: !!session,
-      hasUser: !!session?.user,
-      userId: session?.user?.id,
-      userEmail: session?.user?.email,
-      currentPath,
-      isLoginPage: currentPath.includes('/login'),
-      sessionKeys: session ? Object.keys(session) : [],
-    })
 
     // Only redirect if we're not already on the login page
     if (typeof window !== 'undefined' && currentPath.includes('/login')) {
-      console.log('[DashboardLayout] Already on login page, skipping redirect check')
       return
     }
-    
+
     // Check if session is invalid (user is null)
-    // Better Auth stores OAuth tokens separately - accessToken will be fetched when needed for API calls
     if (!isPending && (!session || !session.user)) {
       console.log('[DashboardLayout] No valid session, redirecting to login')
       router.push('/login')
-      return
-    } else if (!isPending && session?.user) {
-      console.log('[DashboardLayout] Valid session found, staying on dashboard')
     }
-  }, [isPending, session, router, pathname])
+  }, [isPending, session, router, pathname, devBypass])
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen)
   }
 
-  // Show loading state while checking session
-  if (isPending) {
-    console.log('[DashboardLayout] Session pending, showing loading')
+  // Show loading state while checking session (skip in dev bypass mode)
+  if (!devBypass && isPending) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
         Loading...
@@ -66,14 +54,10 @@ function DashboardLayoutContent({
     )
   }
 
-  // Don't render dashboard if not authenticated
-  // Better Auth stores OAuth tokens separately - accessToken will be fetched when needed
-  if (!session || !session.user) {
-    console.log('[DashboardLayout] No session or user, returning null (will redirect via useEffect)')
+  // Don't render dashboard if not authenticated (skip in dev bypass mode)
+  if (!devBypass && (!session || !session.user)) {
     return null
   }
-
-  console.log('[DashboardLayout] Rendering dashboard for user:', session.user.email || session.user.id)
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>

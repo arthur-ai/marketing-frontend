@@ -16,8 +16,9 @@ import {
   ListItemText,
   Chip,
   Tooltip,
+  IconButton,
 } from '@mui/material';
-import { Search } from '@mui/icons-material';
+import { Search, DeleteForever, Person } from '@mui/icons-material';
 import type { JobListItem } from '@/types/api';
 import { formatTimestamp } from '@/utils/contentFormatters';
 
@@ -39,6 +40,11 @@ function getJobSubline(job: JobListItem): string {
   return user ? `${dateStr} · by ${user}` : dateStr;
 }
 
+interface UniqueUser {
+  user_id: string;
+  display: string;
+}
+
 interface JobListPanelProps {
   jobs: JobListItem[];
   filteredJobs: JobListItem[];
@@ -51,6 +57,12 @@ interface JobListPanelProps {
   setFilterStatus: (status: string) => void;
   contentTypes: string[];
   onSelectJob: (jobId: string) => void;
+  // Admin-only props
+  isAdmin?: boolean;
+  uniqueUsers?: UniqueUser[];
+  filterUserId?: string;
+  setFilterUserId?: (userId: string | undefined) => void;
+  onDeleteJob?: (jobId: string) => void;
 }
 
 export function JobListPanel({
@@ -65,6 +77,11 @@ export function JobListPanel({
   setFilterStatus,
   contentTypes,
   onSelectJob,
+  isAdmin = false,
+  uniqueUsers = [],
+  filterUserId,
+  setFilterUserId,
+  onDeleteJob,
 }: JobListPanelProps) {
   return (
     <Card>
@@ -110,6 +127,29 @@ export function JobListPanel({
             </FormControl>
           </Box>
 
+          {/* Admin-only user filter */}
+          {isAdmin && uniqueUsers.length > 0 && setFilterUserId && (
+            <FormControl size="small" fullWidth>
+              <InputLabel>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <Person fontSize="small" />
+                  User
+                </Box>
+              </InputLabel>
+              <Select
+                value={filterUserId || ''}
+                label="User"
+                onChange={(e) => setFilterUserId(e.target.value || undefined)}
+              >
+                <MenuItem value="">All Users</MenuItem>
+                {uniqueUsers.map((u) => (
+                  <MenuItem key={u.user_id} value={u.user_id}>
+                    {u.display}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )}
         </Box>
 
         <List sx={{ maxHeight: 'calc(100vh - 400px)', overflow: 'auto' }}>
@@ -117,21 +157,35 @@ export function JobListPanel({
             <ListItem
               key={job.job_id}
               disablePadding
-              sx={{
-                borderRadius: 1,
-                mb: 1,
-              }}
+              sx={{ borderRadius: 1, mb: 1 }}
+              secondaryAction={
+                isAdmin && onDeleteJob ? (
+                  <Tooltip title="Delete job permanently">
+                    <IconButton
+                      edge="end"
+                      size="small"
+                      color="error"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDeleteJob(job.job_id);
+                      }}
+                      sx={{ opacity: 0.6, '&:hover': { opacity: 1 } }}
+                    >
+                      <DeleteForever fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                ) : undefined
+              }
             >
               <ListItemButton
                 selected={selectedJobId === job.job_id}
                 onClick={() => onSelectJob(job.job_id)}
                 sx={{
                   borderRadius: 1,
+                  pr: isAdmin ? 5 : undefined,
                   '&.Mui-selected': {
                     bgcolor: 'primary.light',
-                    '&:hover': {
-                      bgcolor: 'primary.light',
-                    },
+                    '&:hover': { bgcolor: 'primary.light' },
                   },
                 }}
               >

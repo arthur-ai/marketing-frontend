@@ -12,7 +12,6 @@ import {
 import { NavigateNext, VerifiedUser } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
 import type { JobResults } from '@/types/results';
-import { formatJobDisplayName } from '@/utils/contentFormatters';
 
 interface JobHeaderProps {
   job: JobResults;
@@ -84,7 +83,10 @@ export function JobHeader({
           <Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
               <Typography variant="h6" gutterBottom={false}>
-                {formatJobDisplayName(job.metadata)}
+                {job.metadata.title ||
+                  (job.metadata.content_type
+                    ? job.metadata.content_type.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())
+                    : 'Job')}
               </Typography>
               <Button
                 size="small"
@@ -94,11 +96,6 @@ export function JobHeader({
                 View Job
               </Button>
             </Box>
-            {job.metadata.title && (
-              <Typography variant="subtitle2" color="text.secondary">
-                {job.metadata.title}
-              </Typography>
-            )}
             <Typography variant="caption" color="text.secondary">
               Job ID: {job.job_id.substring(0, 8)}...
             </Typography>

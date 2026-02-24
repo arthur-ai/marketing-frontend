@@ -19,37 +19,18 @@ function LoginContent() {
   const error = searchParams.get('error')
 
   useEffect(() => {
-    console.log('[LoginPage] Session check:', {
-      isPending,
-      hasSession: !!session,
-      hasUser: !!session?.user,
-      userId: session?.user?.id,
-      userEmail: session?.user?.email,
-      userName: session?.user?.name,
-      sessionKeys: session ? Object.keys(session) : [],
-      error,
-      pathname: typeof window !== 'undefined' ? window.location.pathname : 'N/A',
-    })
+    // Dev bypass: skip Keycloak entirely and go straight to dashboard
+    if (process.env.NEXT_PUBLIC_DEV_AUTH_BYPASS === 'true') {
+      router.push('/')
+      return
+    }
 
     // If already authenticated with a valid user, reset auth error state and redirect to dashboard
-    // Better Auth stores OAuth tokens separately, so we don't need to check for accessToken here
-    // The accessToken will be fetched when needed for API calls
     if (session?.user && !error) {
-      console.log('[LoginPage] User authenticated, redirecting to dashboard')
-      // Reset auth error state to allow API calls
       resetAuthErrorState()
-      // Small delay to ensure state is reset before navigation
       setTimeout(() => {
-        console.log('[LoginPage] Executing redirect to /')
         router.push('/')
       }, 100)
-      return
-    } else {
-      console.log('[LoginPage] Not redirecting - session check failed:', {
-        hasSession: !!session,
-        hasUser: !!session?.user,
-        hasError: !!error,
-      })
     }
   }, [session, router, error])
 
@@ -61,34 +42,16 @@ function LoginContent() {
   }
 
   if (isPending) {
-    console.log('[LoginPage] Session is pending, showing loading')
     return (
-      <Box
-        sx={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          minHeight: '100vh',
-        }}
-      >
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
         <CircularProgress />
       </Box>
     )
   }
 
-  // Only redirect if we have a valid session
-  // Don't redirect if there's an error (let user see the error message)
-  // Better Auth stores OAuth tokens separately, so we don't need to check for accessToken here
   if (session?.user && !error) {
-    console.log('[LoginPage] Rendering null - will redirect via useEffect')
-    return null // Will redirect
+    return null // Will redirect via useEffect
   }
-
-  console.log('[LoginPage] Rendering login form:', {
-    hasSession: !!session,
-    hasUser: !!session?.user,
-    error,
-  })
 
   return (
     <Container maxWidth="sm">

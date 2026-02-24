@@ -38,8 +38,6 @@ interface JobDetailsPanelProps {
   onNavigateToParent?: (parentJobId: string) => void;
   onNavigateToSubjob?: (subjobId: string) => void;
   onViewStepIO: (stepName: string) => void;
-  onResumePipeline?: (jobId: string) => void;
-  isResuming?: boolean;
   onDecisionMade?: (decision: string) => void;
 }
 
@@ -50,8 +48,6 @@ export function JobDetailsPanel({
   onNavigateToParent,
   onNavigateToSubjob,
   onViewStepIO,
-  onResumePipeline,
-  isResuming = false,
   onDecisionMade,
 }: JobDetailsPanelProps) {
   const inputContent =
@@ -125,23 +121,6 @@ export function JobDetailsPanel({
             onDecisionMade={onDecisionMade}
           />
         )}
-
-        {/* Resume Pipeline button — fallback when waiting_for_approval but no pending approval */}
-        {!hasFailedSubjobs &&
-          selectedJob.metadata.status === 'waiting_for_approval' &&
-          !firstPendingApproval &&
-          onResumePipeline && (
-            <Box sx={{ mt: 2 }}>
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={() => onResumePipeline(selectedJob.job_id)}
-                disabled={isResuming}
-              >
-                {isResuming ? 'Resuming...' : 'Resume Pipeline'}
-              </Button>
-            </Box>
-          )}
 
         {/* Failed Optional Steps */}
         {selectedJob.metadata.failed_steps && selectedJob.metadata.failed_steps.length > 0 && (

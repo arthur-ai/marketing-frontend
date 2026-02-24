@@ -372,8 +372,8 @@ export const api = {
   listJobs: (jobType?: string, status?: string, limit = 50, includeSubjobStatus?: boolean): Promise<AxiosResponse<JobListResponse>> => 
     apiClient.get('/v1/jobs', { params: { job_type: jobType, status, limit, include_subjob_status: includeSubjobStatus } }),
   
-  listResultsJobs: (limit = 50, dateFrom?: string, dateTo?: string): Promise<AxiosResponse<JobListResponse>> => 
-    apiClient.get('/v1/results/jobs', { params: { limit, date_from: dateFrom, date_to: dateTo } }),
+  listResultsJobs: (limit = 50, dateFrom?: string, dateTo?: string, filterUserId?: string): Promise<AxiosResponse<JobListResponse>> =>
+    apiClient.get('/v1/results/jobs', { params: { limit, date_from: dateFrom, date_to: dateTo, filter_user_id: filterUserId } }),
   
   getJob: (jobId: string): Promise<AxiosResponse<JobResponse>> => 
     apiClient.get(`/v1/jobs/${jobId}`),
@@ -424,8 +424,14 @@ export const api = {
       }
     }),
   
-  cancelJob: (jobId: string): Promise<AxiosResponse<{ success: boolean; message: string }>> => 
+  cancelJob: (jobId: string): Promise<AxiosResponse<{ success: boolean; message: string }>> =>
     apiClient.delete(`/v1/jobs/${jobId}`),
+
+  forceDeleteJob: (jobId: string): Promise<AxiosResponse<{ success: boolean; message: string; job_id: string }>> =>
+    apiClient.delete(`/v1/jobs/${jobId}/force`),
+
+  deleteAllJobs: (): Promise<AxiosResponse<{ success: boolean; message: string; deleted_count: number }>> =>
+    apiClient.delete('/v1/jobs/all'),
   
   resumeJob: (jobId: string): Promise<AxiosResponse<{ success: boolean; message: string; original_job_id: string; resume_job_id: string; resuming_from_step: number; resuming_from_step_name: string }>> => 
     apiClient.post(`/v1/jobs/${jobId}/resume`),
@@ -480,20 +486,20 @@ export const api = {
     apiClient.post(`/v1/approvals/${approvalId}/retry`),
   
   // Analytics
-  getDashboardStats: (): Promise<AxiosResponse<DashboardStats>> => 
-    apiClient.get('/v1/analytics/dashboard'),
-  
-  getPipelineStats: (): Promise<AxiosResponse<PipelineStats>> => 
-    apiClient.get('/v1/analytics/pipeline'),
-  
-  getContentStats: (): Promise<AxiosResponse<ContentStats>> => 
+  getDashboardStats: (userId?: string): Promise<AxiosResponse<DashboardStats>> =>
+    apiClient.get('/v1/analytics/dashboard', { params: { user_id: userId } }),
+
+  getPipelineStats: (userId?: string): Promise<AxiosResponse<PipelineStats>> =>
+    apiClient.get('/v1/analytics/pipeline', { params: { user_id: userId } }),
+
+  getContentStats: (): Promise<AxiosResponse<ContentStats>> =>
     apiClient.get('/v1/analytics/content'),
-  
-  getRecentActivity: (days = 7): Promise<AxiosResponse<RecentActivity>> => 
-    apiClient.get('/v1/analytics/recent-activity', { params: { days } }),
-  
-  getTrends: (days = 7): Promise<AxiosResponse<TrendData>> => 
-    apiClient.get('/v1/analytics/trends', { params: { days } }),
+
+  getRecentActivity: (days = 7, userId?: string): Promise<AxiosResponse<RecentActivity>> =>
+    apiClient.get('/v1/analytics/recent-activity', { params: { days, user_id: userId } }),
+
+  getTrends: (days = 7, userId?: string): Promise<AxiosResponse<TrendData>> =>
+    apiClient.get('/v1/analytics/trends', { params: { days, user_id: userId } }),
   
   // Internal Docs Configuration
   getInternalDocsConfig: (): Promise<AxiosResponse<any>> => 
