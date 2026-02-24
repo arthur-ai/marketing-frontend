@@ -14,14 +14,24 @@ if (!process.env.KEYCLOAK_ISSUER) {
 // (user, session, account, verification) alongside the backend's tables.
 // Run `npx @better-auth/cli migrate` once to create those tables.
 const pool = process.env.DATABASE_URL
-  ? new Pool({ connectionString: process.env.DATABASE_URL })
+  ? new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+    })
   : undefined
 
+const baseURL = process.env.BETTER_AUTH_URL || 'http://localhost:3000'
+
 export const auth = betterAuth({
-  baseURL: process.env.BETTER_AUTH_URL || 'http://localhost:3000',
+  baseURL,
   basePath: '/auth',
   secret: process.env.BETTER_AUTH_SECRET || process.env.NEXTAUTH_SECRET,
   database: pool,
+  trustedOrigins: [
+    baseURL,
+    baseURL.replace(/^https?:\/\//, 'http://'),
+    baseURL.replace(/^https?:\/\//, 'https://'),
+  ],
   emailAndPassword: {
     enabled: false,
   },
