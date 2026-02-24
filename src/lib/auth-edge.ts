@@ -18,7 +18,7 @@ import { betterAuth } from 'better-auth'
 
 export const authEdge = betterAuth({
   baseURL: process.env.BETTER_AUTH_URL || 'http://localhost:3000',
-  basePath: '/api/auth',
+  basePath: '/auth',
   secret: process.env.BETTER_AUTH_SECRET || process.env.NEXTAUTH_SECRET,
   session: {
     cookieCache: {
