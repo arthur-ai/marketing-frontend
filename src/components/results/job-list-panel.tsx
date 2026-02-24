@@ -14,13 +14,30 @@ import {
   ListItem,
   ListItemButton,
   ListItemText,
-  Stack,
   Chip,
   Tooltip,
 } from '@mui/material';
 import { Search } from '@mui/icons-material';
 import type { JobListItem } from '@/types/api';
-import { formatTimestamp, formatJobDisplayName } from '@/utils/contentFormatters';
+import { formatTimestamp } from '@/utils/contentFormatters';
+
+function getJobTitle(job: JobListItem): string {
+  if (job.metadata?.title) return job.metadata.title;
+  if (job.content_type) return job.content_type.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
+  return 'Job';
+}
+
+function getJobSubline(job: JobListItem): string {
+  const date = job.completed_at || job.created_at;
+  const dateStr = date ? formatTimestamp(date) : 'Unknown date';
+  const user = job.metadata?.triggered_by_username
+    ?? job.metadata?.triggered_by_email
+    ?? job.user_id
+    ?? job.triggered_by?.username
+    ?? job.triggered_by?.email
+    ?? null;
+  return user ? `${dateStr} · by ${user}` : dateStr;
+}
 
 interface JobListPanelProps {
   jobs: JobListItem[];
@@ -120,32 +137,15 @@ export function JobListPanel({
               >
                 <ListItemText
                   primary={
-                    <Box>
-                      <Typography variant="body2" fontWeight="medium" noWrap>
-                        {formatJobDisplayName(job)}
-                      </Typography>
-                    </Box>
+                    <Typography variant="body2" fontWeight="medium" noWrap>
+                      {getJobTitle(job)}
+                    </Typography>
                   }
                   secondary={
-                    <Stack spacing={0.5} sx={{ mt: 1 }}>
-                      <Typography variant="caption" color="text.secondary">
-                        Steps: {job.step_count}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {job.completed_at
-                          ? `Completed: ${formatTimestamp(job.completed_at)}`
-                          : 'In Progress'}
-                      </Typography>
-                      {job.triggered_by && (
-                        <Typography variant="caption" color="text.secondary">
-                          By: {job.triggered_by.username || job.triggered_by.email || job.triggered_by.user_id}
-                        </Typography>
-                      )}
-                    </Stack>
+                    <Typography variant="caption" color="text.secondary" noWrap>
+                      {getJobSubline(job)}
+                    </Typography>
                   }
-                  secondaryTypographyProps={{
-                    component: 'div' as const,
-                  }}
                 />
                 <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.5 }}>
                   {job.status === 'waiting_for_approval' &&

@@ -40,7 +40,7 @@ interface JobDetailsPanelProps {
   onViewStepIO: (stepName: string) => void;
   onResumePipeline?: (jobId: string) => void;
   isResuming?: boolean;
-  onDecisionMade?: () => void;
+  onDecisionMade?: (decision: string) => void;
 }
 
 export function JobDetailsPanel({
@@ -118,7 +118,15 @@ export function JobDetailsPanel({
           )}
         </Grid>
 
-        {/* Resume Pipeline button */}
+        {/* Inline Approval Panel — shown first for waiting_for_approval */}
+        {hasPendingApprovals && firstPendingApproval && onDecisionMade && (
+          <InlineApprovalPanel
+            approval={firstPendingApproval}
+            onDecisionMade={onDecisionMade}
+          />
+        )}
+
+        {/* Resume Pipeline button — fallback when waiting_for_approval but no pending approval */}
         {!hasFailedSubjobs &&
           selectedJob.metadata.status === 'waiting_for_approval' &&
           !firstPendingApproval &&
@@ -192,14 +200,6 @@ export function JobDetailsPanel({
               <QualityWarningsDisplay jobResults={selectedJob} />
             </AccordionSection>
           </Box>
-        )}
-
-        {/* Inline Approval Panel */}
-        {hasPendingApprovals && firstPendingApproval && onDecisionMade && (
-          <InlineApprovalPanel
-            approval={firstPendingApproval}
-            onDecisionMade={onDecisionMade}
-          />
         )}
 
         <Divider sx={{ my: 3 }} />

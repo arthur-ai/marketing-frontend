@@ -12,7 +12,6 @@ import { getJobRoute } from '@/lib/job-routing'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { LoadingErrorState } from '@/components/shared/LoadingErrorState'
 import { AccordionSection } from '@/components/shared/AccordionSection'
-import { JsonDisplay } from '@/components/shared/JsonDisplay'
 import { ConfidenceScore } from '@/components/shared/ConfidenceScore'
 import { ApprovalStatusAlert } from '@/components/shared/ApprovalStatusAlert'
 
@@ -31,8 +30,6 @@ export default function MarketingBriefApprovalPage() {
   const [editedData, setEditedData] = useState<any>(null)
   const [hasEditorChanges, setHasEditorChanges] = useState(false)
   const [expandedOutput, setExpandedOutput] = useState(false)
-  const [expandedInput, setExpandedInput] = useState(false)
-  const [expandedRawJson, setExpandedRawJson] = useState(false)
 
   const approval = data?.data
 
@@ -181,21 +178,6 @@ export default function MarketingBriefApprovalPage() {
                 />
               </AccordionSection>
 
-              <AccordionSection
-                title="Input Data"
-                defaultExpanded={false}
-                onChange={(expanded) => setExpandedInput(expanded)}
-              >
-                <JsonDisplay data={approval.input_data} />
-              </AccordionSection>
-
-              <AccordionSection
-                title="Raw JSON Output"
-                defaultExpanded={false}
-                onChange={(expanded) => setExpandedRawJson(expanded)}
-              >
-                <JsonDisplay data={approval.output_data} />
-              </AccordionSection>
             </CardContent>
           </Card>
 

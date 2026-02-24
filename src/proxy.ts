@@ -7,6 +7,11 @@ import { authEdge } from '@/lib/auth-edge'
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
+  // Dev bypass: skip session check entirely for local development
+  if (process.env.NEXT_PUBLIC_DEV_AUTH_BYPASS === 'true') {
+    return NextResponse.next()
+  }
+
   // Public paths that don't require authentication
   const publicPaths = ['/login', '/logout', '/auth', '/api/health', '/healthz']
   const isPublicPath = publicPaths.some((path) => pathname.startsWith(path))

@@ -30,7 +30,6 @@ import { StepEditor } from '@/components/approvals/StepEditor'
 import { MarkdownSection } from '@/components/approvals/sections/shared/MarkdownSection'
 import { SEOAnalysisMetrics } from '@/components/approvals/sections/seo/SEOAnalysisMetrics'
 import { AccordionSection } from '@/components/shared/AccordionSection'
-import { JsonDisplay } from '@/components/shared/JsonDisplay'
 import { ConfidenceScore } from '@/components/shared/ConfidenceScore'
 
 interface SelectedKeywords {
@@ -43,7 +42,7 @@ interface SelectedKeywords {
 
 interface InlineApprovalPanelProps {
   approval: PendingApprovalSummary
-  onDecisionMade: () => void
+  onDecisionMade: (decision: string) => void
 }
 
 export function InlineApprovalPanel({ approval, onDecisionMade }: InlineApprovalPanelProps) {
@@ -175,7 +174,7 @@ export function InlineApprovalPanel({ approval, onDecisionMade }: InlineApproval
       }
       await decideApprovalMutation.mutateAsync({ approvalId: approval.id, decision: decisionRequest })
       showSuccessToast('Keywords Selected', `Selected ${totalSelected} keyword(s) successfully`)
-      onDecisionMade()
+      onDecisionMade('modify')
     } catch (error) {
       showErrorToast('Selection failed', error instanceof Error ? error.message : 'Failed to submit keyword selection')
     }
@@ -215,7 +214,7 @@ export function InlineApprovalPanel({ approval, onDecisionMade }: InlineApproval
       await decideApprovalMutation.mutateAsync({ approvalId: approval.id, decision: decisionRequest })
       const actionText = actualDecision === 'rerun' ? 'rerun' : `${actualDecision}d`
       showSuccessToast(`Approval ${actionText}`, `Content from ${approval.pipeline_step || 'step'} has been ${actionText}`)
-      onDecisionMade()
+      onDecisionMade(actualDecision)
     } catch (error) {
       showErrorToast('Decision failed', error instanceof Error ? error.message : 'Failed to submit decision')
     }
@@ -227,7 +226,7 @@ export function InlineApprovalPanel({ approval, onDecisionMade }: InlineApproval
     try {
       await cancelJobMutation.mutateAsync(approval.job_id)
       showSuccessToast('Job Cancelled', 'The job has been cancelled successfully.')
-      onDecisionMade()
+      onDecisionMade('cancel')
     } catch (error) {
       showErrorToast('Cancel Failed', error instanceof Error ? error.message : 'Failed to cancel job')
     }
@@ -278,7 +277,7 @@ export function InlineApprovalPanel({ approval, onDecisionMade }: InlineApproval
         </Alert>
       )}
 
-      {/* Generated Output + Input Data */}
+      {/* Generated Output */}
       <Card sx={{ mb: 2 }}>
         <CardContent sx={{ p: 0, '&:last-child': { pb: 0 } }}>
           <AccordionSection title="Generated Output" defaultExpanded={true}>
@@ -306,10 +305,6 @@ export function InlineApprovalPanel({ approval, onDecisionMade }: InlineApproval
                 content={formatApprovalOutput(approval.output_data, approval.pipeline_step || 'unknown')}
               />
             )}
-          </AccordionSection>
-
-          <AccordionSection title="Input Data" defaultExpanded={false}>
-            <JsonDisplay data={approval.input_data} />
           </AccordionSection>
         </CardContent>
       </Card>

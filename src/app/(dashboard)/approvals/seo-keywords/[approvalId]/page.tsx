@@ -35,7 +35,6 @@ export default function SEOKeywordsApprovalPage() {
     long_tail: [],
   })
   const [expandedOutput, setExpandedOutput] = useState(false)
-  const [expandedInput, setExpandedInput] = useState(false)
 
   const approval = data?.data
 
@@ -301,13 +300,6 @@ export default function SEOKeywordsApprovalPage() {
                 <JsonDisplay data={approval.output_data} />
               </AccordionSection>
 
-              <AccordionSection
-                title="Input Data"
-                defaultExpanded={false}
-                onChange={(expanded) => setExpandedInput(expanded)}
-              >
-                <JsonDisplay data={approval.input_data} />
-              </AccordionSection>
             </CardContent>
           </Card>
 

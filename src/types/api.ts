@@ -662,6 +662,8 @@ export interface JobListItem {
     email?: string
   }
   pending_approval_count?: number
+  user_id?: string
+  metadata?: Record<string, any>
 }
 
 // Pipeline Flow Types

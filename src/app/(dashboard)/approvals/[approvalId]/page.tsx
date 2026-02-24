@@ -38,7 +38,6 @@ import { SEOAnalysisMetrics } from '@/components/approvals/sections/seo/SEOAnaly
 import { PageHeader } from '@/components/shared/PageHeader'
 import { LoadingErrorState } from '@/components/shared/LoadingErrorState'
 import { AccordionSection } from '@/components/shared/AccordionSection'
-import { JsonDisplay } from '@/components/shared/JsonDisplay'
 import { ConfidenceScore } from '@/components/shared/ConfidenceScore'
 import { ApprovalStatusAlert } from '@/components/shared/ApprovalStatusAlert'
 
@@ -72,8 +71,6 @@ export default function ApprovalDetailPage() {
   const [editedData, setEditedData] = useState<any>(null)
   const [hasEditorChanges, setHasEditorChanges] = useState(false)
   const [expandedOutput, setExpandedOutput] = useState(true)
-  const [expandedInput, setExpandedInput] = useState(false)
-  const [expandedRawJson, setExpandedRawJson] = useState(false)
 
   const approval = data?.data
 
@@ -430,21 +427,6 @@ export default function ApprovalDetailPage() {
                 )}
               </AccordionSection>
 
-              <AccordionSection
-                title="Input Data"
-                defaultExpanded={false}
-                onChange={(expanded) => setExpandedInput(expanded)}
-              >
-                <JsonDisplay data={approval.input_data} />
-              </AccordionSection>
-
-              <AccordionSection
-                title="Raw JSON Output"
-                defaultExpanded={false}
-                onChange={(expanded) => setExpandedRawJson(expanded)}
-              >
-                <JsonDisplay data={approval.output_data} />
-              </AccordionSection>
             </CardContent>
           </Card>
 

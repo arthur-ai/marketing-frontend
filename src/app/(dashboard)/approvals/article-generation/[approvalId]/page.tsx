@@ -10,12 +10,10 @@ import type { ApprovalDecisionRequest } from '@/types/api'
 import { StepEditor } from '@/components/approvals/StepEditor'
 import { MarkdownSection } from '@/components/approvals/sections/shared/MarkdownSection'
 import { formatApprovalOutput } from '@/lib/approval-formatter'
-import { ListDisplay } from '@/components/approvals/sections/shared/ListDisplay'
 import { getJobRoute } from '@/lib/job-routing'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { LoadingErrorState } from '@/components/shared/LoadingErrorState'
 import { AccordionSection } from '@/components/shared/AccordionSection'
-import { JsonDisplay } from '@/components/shared/JsonDisplay'
 import { ConfidenceScore } from '@/components/shared/ConfidenceScore'
 import { ApprovalStatusAlert } from '@/components/shared/ApprovalStatusAlert'
 
@@ -34,8 +32,6 @@ export default function ArticleGenerationApprovalPage() {
   const [editedData, setEditedData] = useState<any>(null)
   const [hasEditorChanges, setHasEditorChanges] = useState(false)
   const [expandedOutput, setExpandedOutput] = useState(false)
-  const [expandedInput, setExpandedInput] = useState(false)
-  const [expandedRawJson, setExpandedRawJson] = useState(false)
 
   const approval = data?.data
 
@@ -187,121 +183,6 @@ export default function ArticleGenerationApprovalPage() {
                 </Box>
               </AccordionSection>
 
-              <AccordionSection
-                title="Input Data (SEO Keywords + Marketing Brief)"
-                defaultExpanded={false}
-                onChange={(expanded) => setExpandedInput(expanded)}
-              >
-                <Stack spacing={2}>
-                  {approval.input_data?.seo_keywords && (
-                    <Box>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1, color: 'primary.main' }}>
-                        From Step 1: SEO Keywords
-                      </Typography>
-                      <Paper
-                        elevation={0}
-                        sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}
-                      >
-                        <Box>
-                          <Typography variant="body2" component="div" sx={{ mb: 2 }}>
-                            <strong>Main Keyword:</strong> {approval.input_data.seo_keywords.main_keyword || 'N/A'}
-                          </Typography>
-                          {Array.isArray(approval.input_data.seo_keywords.primary_keywords) &&
-                            approval.input_data.seo_keywords.primary_keywords.length > 0 && (
-                              <Box sx={{ mb: 2 }}>
-                                <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
-                                  Primary Keywords:
-                                </Typography>
-                                <ListDisplay items={approval.input_data.seo_keywords.primary_keywords} />
-                              </Box>
-                            )}
-                          {approval.input_data.seo_keywords.secondary_keywords &&
-                            Array.isArray(approval.input_data.seo_keywords.secondary_keywords) &&
-                            approval.input_data.seo_keywords.secondary_keywords.length > 0 && (
-                              <Box sx={{ mb: 2 }}>
-                                <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
-                                  Secondary Keywords:
-                                </Typography>
-                                <ListDisplay items={approval.input_data.seo_keywords.secondary_keywords} />
-                              </Box>
-                            )}
-                          {approval.input_data.seo_keywords.search_intent && (
-                            <Typography variant="body2" component="div">
-                              <strong>Search Intent:</strong> {approval.input_data.seo_keywords.search_intent}
-                            </Typography>
-                          )}
-                        </Box>
-                      </Paper>
-                    </Box>
-                  )}
-                  {approval.input_data?.marketing_brief && (
-                    <Box>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1, color: 'primary.main' }}>
-                        From Step 2: Marketing Brief
-                      </Typography>
-                      <Paper
-                        elevation={0}
-                        sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}
-                      >
-                        <Box>
-                          {approval.input_data.marketing_brief.target_audience && (
-                            <Box sx={{ mb: 2 }}>
-                              <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
-                                Target Audience:
-                              </Typography>
-                              {Array.isArray(approval.input_data.marketing_brief.target_audience) ? (
-                                <ListDisplay items={approval.input_data.marketing_brief.target_audience} />
-                              ) : (
-                                <Typography variant="body2">{approval.input_data.marketing_brief.target_audience}</Typography>
-                              )}
-                            </Box>
-                          )}
-                          {approval.input_data.marketing_brief.key_messages && (
-                            <Box sx={{ mb: 2 }}>
-                              <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
-                                Key Messages:
-                              </Typography>
-                              {Array.isArray(approval.input_data.marketing_brief.key_messages) ? (
-                                <ListDisplay items={approval.input_data.marketing_brief.key_messages} />
-                              ) : (
-                                <Typography variant="body2">{approval.input_data.marketing_brief.key_messages}</Typography>
-                              )}
-                            </Box>
-                          )}
-                          {approval.input_data.marketing_brief.content_strategy && (
-                            <Box sx={{ mb: 2 }}>
-                              <Typography variant="body2" component="div">
-                                <strong>Content Strategy:</strong> {approval.input_data.marketing_brief.content_strategy}
-                              </Typography>
-                            </Box>
-                          )}
-                          {approval.input_data.marketing_brief.tone_and_voice && (
-                            <Box sx={{ mb: 2 }}>
-                              <Typography variant="body2" component="div">
-                                <strong>Tone and Voice:</strong> {approval.input_data.marketing_brief.tone_and_voice}
-                              </Typography>
-                            </Box>
-                          )}
-                        </Box>
-                      </Paper>
-                    </Box>
-                  )}
-                  <Box>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-                      Full Input Data (JSON)
-                    </Typography>
-                    <JsonDisplay data={approval.input_data} />
-                  </Box>
-                </Stack>
-              </AccordionSection>
-
-              <AccordionSection
-                title="Raw JSON Output"
-                defaultExpanded={false}
-                onChange={(expanded) => setExpandedRawJson(expanded)}
-              >
-                <JsonDisplay data={approval.output_data} />
-              </AccordionSection>
             </CardContent>
           </Card>
 

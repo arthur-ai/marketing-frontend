@@ -23,6 +23,7 @@ import {
 import { useMemo } from 'react'
 import { useJob, useJobApprovals } from '@/hooks/useApi'
 import { getJobRoute } from '@/lib/job-routing'
+import { InlineApprovalPanel } from '@/components/results/inline-approval-panel'
 
 export default function GenericJobPage() {
   const params = useParams()
@@ -30,9 +31,9 @@ export default function GenericJobPage() {
   const jobId = params.jobId as string
   
   const { data: jobData, isLoading: jobLoading, error: jobError } = useJob(jobId)
-  const { data: approvalsData } = useJobApprovals(jobId)
+  const { data: approvalsData, refetch: refetchApprovals } = useJobApprovals(jobId)
 
-  const job = jobData?.data
+  const job = jobData?.data?.job
   const approvals = approvalsData?.data?.approvals || []
 
   // Map of pipeline steps to their display names
@@ -186,24 +187,14 @@ export default function GenericJobPage() {
         </Alert>
       )}
 
-      {/* Approvals Link */}
+      {/* Inline Approval Panel */}
       {approvals.length > 0 && (
-        <Card sx={{ mt: 3 }}>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>
-              Approvals
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              This job has {approvals.length} approval(s). Visit the approvals page to manage them.
-            </Typography>
-            <Button
-              variant="outlined"
-              onClick={() => router.push('/approvals')}
-            >
-              View Approvals
-            </Button>
-          </CardContent>
-        </Card>
+        <Box sx={{ mt: 3 }}>
+          <InlineApprovalPanel
+            approval={approvals[0]}
+            onDecisionMade={() => refetchApprovals()}
+          />
+        </Box>
       )}
     </Container>
   )

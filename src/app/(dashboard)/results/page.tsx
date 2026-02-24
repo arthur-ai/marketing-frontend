@@ -107,13 +107,32 @@ export default function ResultsPage() {
     setComparisonModalOpen(true);
   }, []);
 
-  // Handle approval decision — refresh job details (re-embeds approvals) and list
-  const handleDecisionMade = useCallback(() => {
-    if (selectedJob) {
-      fetchJobDetails(selectedJob.job_id);
-    }
-    refetchJobs();
-  }, [selectedJob, fetchJobDetails, refetchJobs]);
+  // Handle approval decision — refresh job details and auto-resume pipeline on approve
+  const handleDecisionMade = useCallback(
+    async (decision: string) => {
+      if (selectedJob) {
+        fetchJobDetails(selectedJob.job_id);
+      }
+      if (decision === 'approve' && selectedJob) {
+        try {
+          const result = await resumeJobMutation.mutateAsync(selectedJob.job_id);
+          showSuccessToast(
+            'Approved & Resumed',
+            `Pipeline resumed from step ${result.data.resuming_from_step}.`
+          );
+          refetchJobs();
+        } catch (error) {
+          showErrorToast(
+            'Resume Failed',
+            error instanceof Error ? error.message : 'Failed to resume pipeline'
+          );
+        }
+      } else {
+        refetchJobs();
+      }
+    },
+    [selectedJob, fetchJobDetails, resumeJobMutation, refetchJobs]
+  );
 
   // Initial fetch
   useEffect(() => {
