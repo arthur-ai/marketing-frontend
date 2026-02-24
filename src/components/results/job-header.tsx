@@ -12,25 +12,16 @@ import {
 import { NavigateNext, VerifiedUser } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
 import type { JobResults } from '@/types/results';
-import type { ApprovalListItem } from '@/types/api';
 import { formatJobDisplayName } from '@/utils/contentFormatters';
 
 interface JobHeaderProps {
   job: JobResults;
-  approvalsData?: {
-    data?: {
-      total?: number;
-      pending?: number;
-      approvals?: ApprovalListItem[];
-    };
-  };
   onNavigateToParent?: (parentJobId: string) => void;
   onNavigateToSubjob?: (subjobId: string) => void;
 }
 
 export function JobHeader({
   job,
-  approvalsData,
   onNavigateToParent,
   onNavigateToSubjob,
 }: JobHeaderProps) {
@@ -118,22 +109,17 @@ export function JobHeader({
             )}
           </Box>
 
-          {/* Approval Status Badge - Only show if not failed */}
+          {/* Approval Status Badge */}
           {job.metadata.status !== 'failed' &&
-            approvalsData?.data &&
-            approvalsData.data.total !== undefined &&
-            approvalsData.data.total > 0 && (
+            job.pending_approvals &&
+            job.pending_approvals.length > 0 && (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Badge
-                  badgeContent={approvalsData.data.pending}
-                  color="warning"
-                  max={99}
-                >
+                <Badge badgeContent={job.pending_approvals.length} color="warning" max={99}>
                   <Chip
                     icon={<VerifiedUser />}
-                    label={`${approvalsData.data.pending || 0} Pending Approval${(approvalsData.data.pending || 0) !== 1 ? 's' : ''}`}
+                    label={`${job.pending_approvals.length} Pending Approval${job.pending_approvals.length !== 1 ? 's' : ''}`}
                     size="small"
-                    color={approvalsData.data.pending && approvalsData.data.pending > 0 ? 'warning' : 'success'}
+                    color="warning"
                     sx={{ height: 28 }}
                   />
                 </Badge>

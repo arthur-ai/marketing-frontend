@@ -8,7 +8,7 @@ import { showWarningToast } from '@/lib/toast-utils'
 export function PendingApprovalsBanner() {
   const pathname = usePathname()
   // Only enable polling on results, pipeline, and approvals pages
-  const shouldPoll = pathname === '/results' || pathname === '/pipeline' || pathname === '/approvals'
+  const shouldPoll = pathname === '/results' || pathname === '/pipeline'
   const { data, isLoading } = usePendingApprovals(undefined, shouldPoll)
   const lastShownCountRef = useRef<number>(0)
   const toastShownRef = useRef<boolean>(false)

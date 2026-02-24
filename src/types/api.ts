@@ -608,6 +608,19 @@ export interface StepInfo {
   error_message?: string
 }
 
+export interface PendingApprovalSummary {
+  id: string
+  job_id: string
+  pipeline_step: string
+  step_name: string
+  status: string
+  input_data: Record<string, any>
+  output_data: Record<string, any>
+  confidence_score?: number
+  suggestions?: string[]
+  created_at: string
+}
+
 export interface JobResultsSummary {
   job_id: string
   metadata: Record<string, any>
@@ -621,6 +634,7 @@ export interface JobResultsSummary {
     step_info?: PipelineStepInfo[]
   }
   quality_warnings?: string[]
+  pending_approvals?: PendingApprovalSummary[]
 }
 
 export interface JobListItem {
@@ -647,6 +661,7 @@ export interface JobListItem {
     username?: string
     email?: string
   }
+  pending_approval_count?: number
 }
 
 // Pipeline Flow Types

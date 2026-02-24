@@ -12,33 +12,21 @@ import {
   ListItemText,
   Button,
   Divider,
-  Alert,
   CircularProgress,
 } from '@mui/material';
 import {
   Description,
   Download,
 } from '@mui/icons-material';
-import { useRouter } from 'next/navigation';
 import type { JobResults } from '@/types/results';
-import type { FinalResult, SubjobResults } from '@/types/results';
-import type { ApprovalListItem } from '@/types/api';
+import type { FinalResult } from '@/types/results';
 import { JobHeader } from './job-header';
 import { JobStepsList } from './job-steps-list';
 import { FinalResultViewer } from './final-result-viewer';
-import { PerformanceMetrics } from './performance-metrics';
 import { QualityWarningsDisplay } from './quality-warnings-display';
-import { PlatformQualityScores } from './platform-quality-scores';
-import JobHierarchyTree from './job-hierarchy-tree';
-import { SubjobVisualizer } from './subjob-visualizer';
-import { PipelineFlowViewer } from '@/components/pipeline/pipeline-flow-viewer';
-import { MultiPlatformResults } from '@/components/pipeline/multi-platform-results';
-import { ContentVariations } from '@/components/pipeline/content-variations';
-import { PostPreviewEditor } from '@/components/pipeline/post-preview-editor';
-import { api, apiClient } from '@/lib/api';
+import { InlineApprovalPanel } from './inline-approval-panel';
+import { apiClient } from '@/lib/api';
 import { showSuccessToast, showErrorToast } from '@/lib/toast-utils';
-import { getApprovalRoute } from '@/lib/approval-routing';
-import { getJobRoute } from '@/lib/job-routing';
 import { AccordionSection } from '@/components/shared/AccordionSection';
 import { JsonDisplay } from '@/components/shared/JsonDisplay';
 import { CopyButton } from '@/components/shared/CopyButton';
@@ -46,42 +34,26 @@ import { CopyButton } from '@/components/shared/CopyButton';
 interface JobDetailsPanelProps {
   selectedJob: JobResults;
   finalResult: FinalResult | null;
-  subjobApprovals: Record<string, ApprovalListItem[]>;
-  subjobResults: SubjobResults;
-  approvalsData?: {
-    data?: {
-      total?: number;
-      pending?: number;
-      approvals?: ApprovalListItem[];
-    };
-  };
   loadingFinalResult: boolean;
   onNavigateToParent?: (parentJobId: string) => void;
   onNavigateToSubjob?: (subjobId: string) => void;
   onViewStepIO: (stepName: string) => void;
-  onCompare: () => void;
   onResumePipeline?: (jobId: string) => void;
   isResuming?: boolean;
-  onFinalResultUpdate?: (result: FinalResult) => void;
+  onDecisionMade?: () => void;
 }
 
 export function JobDetailsPanel({
   selectedJob,
   finalResult,
-  subjobApprovals,
-  subjobResults,
-  approvalsData,
   loadingFinalResult,
   onNavigateToParent,
   onNavigateToSubjob,
   onViewStepIO,
-  onCompare,
   onResumePipeline,
   isResuming = false,
-  onFinalResultUpdate,
+  onDecisionMade,
 }: JobDetailsPanelProps) {
-  const router = useRouter();
-
   const inputContent =
     selectedJob.metadata.input_content ||
     finalResult?.input_content ||
@@ -95,27 +67,29 @@ export function JobDetailsPanel({
     ((selectedJob.metadata as unknown as Record<string, unknown>).subjob_status as Record<string, unknown>)
       ?.failed !== 0;
 
+  const firstPendingApproval = selectedJob.pending_approvals?.[0];
+
+  const hasPendingApprovals =
+    selectedJob.metadata.status !== 'failed' &&
+    !hasFailedSubjobs &&
+    (selectedJob.metadata.status === 'waiting_for_approval' || !!firstPendingApproval);
+
   return (
     <Card>
       <CardContent>
         <JobHeader
           job={selectedJob}
-          approvalsData={approvalsData}
           onNavigateToParent={onNavigateToParent}
           onNavigateToSubjob={onNavigateToSubjob}
         />
 
         <Grid container spacing={2} sx={{ mt: 1 }}>
           <Grid size={{ xs: 6 }}>
-            <Typography variant="body2" color="text.secondary">
-              Content Type
-            </Typography>
+            <Typography variant="body2" color="text.secondary">Content Type</Typography>
             <Chip label={selectedJob.metadata.content_type} size="small" color="primary" />
           </Grid>
           <Grid size={{ xs: 6 }}>
-            <Typography variant="body2" color="text.secondary">
-              Status
-            </Typography>
+            <Typography variant="body2" color="text.secondary">Status</Typography>
             <Chip
               label={
                 hasFailedSubjobs && selectedJob.metadata.status === 'waiting_for_approval'
@@ -136,9 +110,7 @@ export function JobDetailsPanel({
           </Grid>
           {(selectedJob.metadata.triggered_by_user_id || selectedJob.metadata.triggered_by_username || selectedJob.metadata.triggered_by_email) && (
             <Grid size={{ xs: 12 }}>
-              <Typography variant="body2" color="text.secondary">
-                Triggered By
-              </Typography>
+              <Typography variant="body2" color="text.secondary">Triggered By</Typography>
               <Typography variant="body2">
                 {selectedJob.metadata.triggered_by_username || selectedJob.metadata.triggered_by_email || selectedJob.metadata.triggered_by_user_id}
               </Typography>
@@ -149,18 +121,18 @@ export function JobDetailsPanel({
         {/* Resume Pipeline button */}
         {!hasFailedSubjobs &&
           selectedJob.metadata.status === 'waiting_for_approval' &&
+          !firstPendingApproval &&
           onResumePipeline && (
-            <Grid size={{ xs: 12 }} sx={{ mt: 2 }}>
+            <Box sx={{ mt: 2 }}>
               <Button
                 variant="contained"
                 color="primary"
                 onClick={() => onResumePipeline(selectedJob.job_id)}
                 disabled={isResuming}
-                sx={{ mt: 2 }}
               >
                 {isResuming ? 'Resuming...' : 'Resume Pipeline'}
               </Button>
-            </Grid>
+            </Box>
           )}
 
         {/* Failed Optional Steps */}
@@ -209,162 +181,26 @@ export function JobDetailsPanel({
                   )
                 })}
               </List>
-              <Alert severity="info" sx={{ mt: 2 }}>
-                These steps failed but did not stop the pipeline. The pipeline completed with partial results.
-              </Alert>
             </AccordionSection>
           </Box>
         )}
 
         {/* Quality Warnings */}
         {selectedJob.quality_warnings && selectedJob.quality_warnings.length > 0 && (
-          <Box sx={{ mb: 3 }}>
+          <Box sx={{ mb: 3, mt: 3 }}>
             <AccordionSection title="Quality Warnings" defaultExpanded={true}>
               <QualityWarningsDisplay jobResults={selectedJob} />
             </AccordionSection>
           </Box>
         )}
 
-        {/* Performance Metrics */}
-        {selectedJob.performance_metrics && (
-          <Box sx={{ mb: 3 }}>
-            <AccordionSection title="Performance Metrics" defaultExpanded={true}>
-              <PerformanceMetrics jobResults={selectedJob} />
-            </AccordionSection>
-          </Box>
+        {/* Inline Approval Panel */}
+        {hasPendingApprovals && firstPendingApproval && onDecisionMade && (
+          <InlineApprovalPanel
+            approval={firstPendingApproval}
+            onDecisionMade={onDecisionMade}
+          />
         )}
-
-        {/* Platform Quality Scores */}
-        {selectedJob.metadata.platform && (
-          <Box sx={{ mb: 3 }}>
-            <AccordionSection title="Platform Quality Scores" defaultExpanded={true}>
-              <PlatformQualityScores
-                platform={selectedJob.metadata.platform}
-                qualityScores={selectedJob.metadata.platform_quality_scores}
-                stepResults={finalResult?.step_results as Record<string, unknown>}
-              />
-            </AccordionSection>
-          </Box>
-        )}
-
-        {/* Job Hierarchy Tree */}
-        <Box sx={{ mb: 3 }}>
-          <AccordionSection title="Job Hierarchy" defaultExpanded={false}>
-            <JobHierarchyTree
-              jobId={selectedJob.job_id}
-              selectedJobId={selectedJob.job_id}
-              onJobClick={onNavigateToSubjob || (() => {})}
-            />
-          </AccordionSection>
-        </Box>
-
-        {/* Subjob Visualizer */}
-        {selectedJob.subjobs && selectedJob.subjobs.length > 0 && !selectedJob.parent_job_id && (
-          <Box sx={{ mb: 3 }}>
-            <AccordionSection title="Subjobs" defaultExpanded={true}>
-              <SubjobVisualizer
-                jobResults={selectedJob}
-                approvalTimestamp={selectedJob.metadata.approved_at}
-                onSubjobClick={onNavigateToSubjob || (() => {})}
-                subjobApprovals={subjobApprovals}
-                subjobResults={subjobResults}
-              />
-            </AccordionSection>
-          </Box>
-        )}
-
-        {/* Pending Approvals Section */}
-        {selectedJob.metadata.status !== 'failed' &&
-          !hasFailedSubjobs &&
-          ((approvalsData?.data && approvalsData.data.pending !== undefined && approvalsData.data.pending > 0) ||
-            selectedJob.metadata.status === 'waiting_for_approval') && (
-            <>
-              <Divider sx={{ my: 3 }} />
-              <Typography variant="h6" gutterBottom sx={{ mb: 2 }}>
-                Pending Approvals
-              </Typography>
-              <Alert severity="warning" sx={{ mb: 3 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                  <Box>
-                    <Typography variant="subtitle2" gutterBottom>
-                      {selectedJob.metadata.status === 'waiting_for_approval'
-                        ? 'Job Waiting for Approval'
-                        : 'Pending Approvals'}
-                    </Typography>
-                    <Typography variant="body2">
-                      {selectedJob.metadata.status === 'waiting_for_approval'
-                        ? `This job is paused and waiting for approval. ${approvalsData?.data?.pending || 0} approval${(approvalsData?.data?.pending || 0) !== 1 ? 's' : ''} need${(approvalsData?.data?.pending || 0) !== 1 ? '' : 's'} review.`
-                        : `${approvalsData?.data?.pending || 0} approval${(approvalsData?.data?.pending || 0) !== 1 ? 's' : ''} waiting for review`}
-                    </Typography>
-                  </Box>
-                  <Button
-                    variant="contained"
-                    color="warning"
-                    size="small"
-                    onClick={() => router.push('/approvals')}
-                  >
-                    Go to Approvals Page
-                  </Button>
-                </Box>
-
-                {approvalsData?.data?.approvals && approvalsData.data.approvals.length > 0 && (
-                  <Box sx={{ mt: 2 }}>
-                    <Typography variant="subtitle2" gutterBottom sx={{ mb: 1 }}>
-                      Approvals for this job:
-                    </Typography>
-                    <List dense>
-                      {approvalsData.data.approvals
-                        .filter((a) => a.status === 'pending')
-                        .map((approval) => (
-                          <ListItem
-                            key={approval.id}
-                            sx={{
-                              border: 1,
-                              borderColor: 'warning.main',
-                              borderRadius: 1,
-                              mb: 1,
-                              bgcolor: 'warning.50',
-                            }}
-                            secondaryAction={
-                              <Box sx={{ display: 'flex', gap: 1 }}>
-                                <Button
-                                  size="small"
-                                  variant="outlined"
-                                  onClick={() => router.push(getJobRoute(approval.pipeline_step, approval.job_id))}
-                                >
-                                  View Job
-                                </Button>
-                                <Button
-                                  size="small"
-                                  variant="outlined"
-                                  color="warning"
-                                  onClick={() => router.push(getApprovalRoute(approval.pipeline_step, approval.id))}
-                                >
-                                  Review
-                                </Button>
-                              </Box>
-                            }
-                          >
-                            <ListItemText
-                              primary={
-                                <Typography variant="body2" fontWeight="bold">
-                                  {(approval.agent_name || 'Unknown Step').replace(/_/g, ' ').toUpperCase()}
-                                </Typography>
-                              }
-                              secondary={
-                                <Typography variant="caption" color="text.secondary">
-                                  {approval.step_name || 'No step name'}
-                                </Typography>
-                              }
-                            />
-                          </ListItem>
-                        ))}
-                    </List>
-                  </Box>
-                )}
-              </Alert>
-            </>
-          )}
 
         <Divider sx={{ my: 3 }} />
 
@@ -419,9 +255,7 @@ export function JobDetailsPanel({
                 </Typography>
               </Box>
               {!inputContent ? (
-                <Typography variant="body2" color="text.secondary">
-                  No input content available
-                </Typography>
+                <Typography variant="body2" color="text.secondary">No input content available</Typography>
               ) : typeof inputContent === 'string' ? (
                 <Box sx={{ position: 'relative', border: 1, borderColor: 'divider', borderRadius: 1, p: 2, bgcolor: 'background.paper', maxHeight: '400px', overflow: 'auto' }}>
                   <Box component="pre" sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: '0.875rem', m: 0 }}>
@@ -448,131 +282,20 @@ export function JobDetailsPanel({
           <JobStepsList steps={selectedJob.steps} jobId={selectedJob.job_id} onViewStepIO={onViewStepIO} />
         )}
 
-        {/* Pipeline Flow Section */}
-        {selectedJob && !selectedJob.parent_job_id && (
-          <Box sx={{ mb: 3 }}>
-            <AccordionSection title="Pipeline Flow" defaultExpanded={false}>
-              <PipelineFlowViewer jobId={selectedJob.job_id} />
-            </AccordionSection>
-          </Box>
-        )}
-
-        {/* Multi-Platform Results Section */}
-        {finalResult?.results_by_platform && (
-          <Box sx={{ mb: 3 }}>
-            <AccordionSection title={`Multi-Platform Results`} defaultExpanded={true}>
-              <MultiPlatformResults
-                results={
-                  finalResult as {
-                    platforms: string[]
-                    results_by_platform: Record<
-                      string,
-                      {
-                        platform: string
-                        step_results: Record<string, unknown>
-                        final_content: string
-                        quality_warnings: string[]
-                        platform_quality_scores?: Record<string, number>
-                      }
-                    >
-                    shared_steps?: {
-                      seo_keywords?: unknown
-                      social_media_marketing_brief?: unknown
-                    }
-                  }
-                }
-              />
-            </AccordionSection>
-          </Box>
-        )}
-
-        {/* Content Variations Section */}
-        {finalResult?.variations && Array.isArray(finalResult.variations) && finalResult.variations.length > 0 && (
-          <Box sx={{ mb: 3 }}>
-            <AccordionSection
-              title={`Content Variations (${finalResult.variations.length} versions)`}
-              defaultExpanded={true}
-            >
-              <ContentVariations
-                variations={
-                  finalResult.variations as unknown as Array<{
-                    variation_id: string
-                    content: string
-                    subject_line?: string
-                    hashtags?: string[]
-                    call_to_action?: string
-                    confidence_score?: number
-                    engagement_score?: number
-                    linkedin_score?: number
-                    hackernews_score?: number
-                    email_score?: number
-                    temperature_used?: number
-                  }>
-                }
-                platform={selectedJob.metadata.platform || 'linkedin'}
-              />
-            </AccordionSection>
-          </Box>
-        )}
-
-        {/* Post Preview & Editor Section */}
-        {finalResult?.final_content &&
-          !finalResult?.results_by_platform &&
-          selectedJob.metadata.output_content_type === 'social_media_post' && (
-            <Box sx={{ mb: 3 }}>
-              <AccordionSection title="Post Preview & Editor" defaultExpanded={true}>
-                <PostPreviewEditor
-                  content={finalResult.final_content}
-                  platform={selectedJob.metadata.platform || 'linkedin'}
-                  emailType={selectedJob.metadata.email_type}
-                  subjectLine={finalResult.subject_line}
-                  onSave={async (updatedContent, updatedSubjectLine) => {
-                    try {
-                      const response = await api.updateSocialMediaPost({
-                        job_id: selectedJob.job_id,
-                        content: updatedContent,
-                        platform: selectedJob.metadata.platform || 'linkedin',
-                        email_type: selectedJob.metadata.email_type,
-                        subject_line: updatedSubjectLine,
-                      })
-
-                      if (response.data.success) {
-                        const updatedResult: FinalResult = {
-                          ...finalResult,
-                          final_content: updatedContent,
-                          ...(updatedSubjectLine && { subject_line: updatedSubjectLine }),
-                        }
-                        onFinalResultUpdate?.(updatedResult)
-                        showSuccessToast('Post Updated', 'Post content has been saved successfully')
-                      } else {
-                        showErrorToast('Save Failed', response.data.message || 'Failed to save post')
-                      }
-                    } catch (error) {
-                      console.error('Failed to save post:', error)
-                      showErrorToast('Save Failed', error instanceof Error ? error.message : 'Failed to save post')
-                    }
-                  }}
-                />
-              </AccordionSection>
-            </Box>
-          )}
-
         {/* Final Result Section */}
         {finalResult?.final_content && !finalResult?.results_by_platform && (
           <FinalResultViewer
             finalResult={finalResult}
             contentType={selectedJob.metadata.content_type}
             jobId={selectedJob.job_id}
-            onCompare={onCompare}
+            onCompare={() => {}}
           />
         )}
 
         {loadingFinalResult && (
           <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
             <CircularProgress size={24} />
-            <Typography variant="body2" color="text.secondary">
-              Loading final result...
-            </Typography>
+            <Typography variant="body2" color="text.secondary">Loading final result...</Typography>
           </Box>
         )}
       </CardContent>

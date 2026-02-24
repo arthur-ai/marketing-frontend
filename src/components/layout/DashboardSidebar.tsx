@@ -35,8 +35,7 @@ const menuItems = [
   { title: 'Dashboard', icon: <DashboardIcon />, path: '/' },
   { title: 'Content', icon: <ArticleIcon />, path: '/content' },
   { title: 'Pipeline', icon: <AccountTreeIcon />, path: '/pipeline' },
-  { title: 'Results', icon: <FolderIcon />, path: '/results' },
-  { title: 'Approvals', icon: <VerifiedUserIcon />, path: '/approvals' },
+  { title: 'Jobs', icon: <FolderIcon />, path: '/results' },
   { title: 'Upload', icon: <UploadFileIcon />, path: '/upload' },
   { title: 'Analytics', icon: <BarChartIcon />, path: '/analytics' },
   { title: 'Internal Docs', icon: <DescriptionIcon />, path: '/internal-docs' },
@@ -56,7 +55,7 @@ export function DashboardSidebar({
   const pathname = usePathname()
   const router = useRouter()
   // Only enable polling on results, pipeline, and approvals pages
-  const shouldPoll = pathname === '/results' || pathname === '/pipeline' || pathname === '/approvals'
+  const shouldPoll = pathname === '/results' || pathname === '/pipeline'
   const { data: pendingData } = usePendingApprovals(undefined, shouldPoll)
   const pendingCount = pendingData?.data?.pending || 0
   const { data: health } = useHealth()
@@ -136,7 +135,7 @@ export function DashboardSidebar({
                       color: isActive ? 'primary.main' : 'text.secondary',
                     }}
                   >
-                    {item.path === '/approvals' && pendingCount > 0 ? (
+                    {item.path === '/results' && pendingCount > 0 ? (
                       <Badge badgeContent={pendingCount} color="error">
                         {item.icon}
                       </Badge>

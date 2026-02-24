@@ -32,10 +32,6 @@ interface JobListPanelProps {
   setFilterType: (type: string) => void;
   filterStatus: string;
   setFilterStatus: (status: string) => void;
-  dateFrom: string;
-  setDateFrom: (date: string) => void;
-  dateTo: string;
-  setDateTo: (date: string) => void;
   contentTypes: string[];
   onSelectJob: (jobId: string) => void;
 }
@@ -50,10 +46,6 @@ export function JobListPanel({
   setFilterType,
   filterStatus,
   setFilterStatus,
-  dateFrom,
-  setDateFrom,
-  dateTo,
-  setDateTo,
   contentTypes,
   onSelectJob,
 }: JobListPanelProps) {
@@ -101,26 +93,6 @@ export function JobListPanel({
             </FormControl>
           </Box>
 
-          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
-            <TextField
-              size="small"
-              type="date"
-              label="From Date"
-              value={dateFrom}
-              onChange={(e) => setDateFrom(e.target.value)}
-              InputLabelProps={{ shrink: true }}
-              sx={{ flex: 1, minWidth: 150 }}
-            />
-            <TextField
-              size="small"
-              type="date"
-              label="To Date"
-              value={dateTo}
-              onChange={(e) => setDateTo(e.target.value)}
-              InputLabelProps={{ shrink: true }}
-              sx={{ flex: 1, minWidth: 150 }}
-            />
-          </Box>
         </Box>
 
         <List sx={{ maxHeight: 'calc(100vh - 400px)', overflow: 'auto' }}>
@@ -181,6 +153,14 @@ export function JobListPanel({
                     !(job.subjob_status?.failed && job.subjob_status.failed > 0) && (
                       <Chip label="Waiting for Approval" size="small" color="warning" />
                     )}
+                  {job.pending_approval_count && job.pending_approval_count > 0 ? (
+                    <Chip
+                      label={`${job.pending_approval_count} approval${job.pending_approval_count !== 1 ? 's' : ''} pending`}
+                      size="small"
+                      color="warning"
+                      sx={{ fontSize: '0.7rem', height: 20 }}
+                    />
+                  ) : null}
                   {job.subjob_count && job.subjob_count > 0 && (
                     <Tooltip
                       title={
