@@ -1,7 +1,7 @@
 // API Response Types based on your backend models
 
 // Job Management Types
-export type JobStatus = 'pending' | 'queued' | 'processing' | 'completed' | 'failed' | 'cancelled'
+export type JobStatus = 'pending' | 'queued' | 'processing' | 'completed' | 'failed' | 'cancelled' | 'waiting_for_approval'
 
 export interface PipelineStepInfo {
   step_name: string
