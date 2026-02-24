@@ -6,8 +6,7 @@ import { authClient } from '@/lib/auth-client'
 import Box from '@mui/material/Box'
 import {DashboardSidebar} from '@/components/layout/DashboardSidebar'
 import { DashboardAppBar } from '@/components/layout/DashboardAppBar'
-import { PendingApprovalsBanner } from '@/components/approvals/pending-approvals-banner'
-import { RealTimeJobMonitor } from '@/components/jobs/RealTimeJobMonitor'
+import { GlobalNotificationWatcher } from '@/components/approvals/pending-approvals-banner'
 import { ClientOnly } from '@/components/providers/ClientOnly'
 
 const DRAWER_WIDTH = 280
@@ -21,9 +20,6 @@ function DashboardLayoutContent({
   const pathname = usePathname()
   const router = useRouter()
   const { data: session, isPending } = authClient.useSession()
-  
-  // Hide banner on approvals page (page itself shows approvals)
-  const showBanner = pathname !== '/approvals'
 
   // Redirect to login if session is invalid or expired
   useEffect(() => {
@@ -96,11 +92,9 @@ function DashboardLayoutContent({
           mt: '64px',
         }}
       >
-        {showBanner && <PendingApprovalsBanner />}
+        <GlobalNotificationWatcher />
         {children}
       </Box>
-      {/* Real-time job monitor - fixed bottom-right */}
-      <RealTimeJobMonitor />
     </Box>
   )
 }

@@ -54,9 +54,8 @@ export function DashboardSidebar({
 }: DashboardSidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
-  // Only enable polling on results, pipeline, and approvals pages
-  const shouldPoll = pathname === '/results' || pathname === '/pipeline'
-  const { data: pendingData } = usePendingApprovals(undefined, shouldPoll)
+  // Always enabled — React Query deduplicates with GlobalNotificationWatcher's poll
+  const { data: pendingData } = usePendingApprovals(undefined, true)
   const pendingCount = pendingData?.data?.pending || 0
   const { data: health } = useHealth()
   // Get version from health endpoint - it will be undefined until health check completes
