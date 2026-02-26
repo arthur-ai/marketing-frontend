@@ -46,7 +46,7 @@ export function DashboardAppBar({ onMenuClick, drawerWidth }: DashboardAppBarPro
           Marketing Pipeline
         </Typography>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <UserProfile />
+          <UserProfile showRoles={false} />
         </Box>
       </Toolbar>
     </AppBar>
