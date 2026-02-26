@@ -16,8 +16,10 @@ import { AccordionSection } from '@/components/shared/AccordionSection'
 import { JsonDisplay } from '@/components/shared/JsonDisplay'
 import { ConfidenceScore } from '@/components/shared/ConfidenceScore'
 import { ApprovalStatusAlert } from '@/components/shared/ApprovalStatusAlert'
+import { useAuth } from '@/hooks/useAuth'
 
 export default function SEOKeywordsApprovalPage() {
+  const { user } = useAuth()
   const params = useParams()
   const router = useRouter()
   const approvalId = params.approvalId as string
@@ -172,7 +174,7 @@ export default function SEOKeywordsApprovalPage() {
           lsi: selectedKeywords.lsi,
           long_tail: selectedKeywords.long_tail,
         },
-        reviewed_by: 'current_user',
+        reviewed_by: user?.email ?? user?.id ?? 'unknown',
       }
 
       await decideApprovalMutation.mutateAsync({
@@ -219,7 +221,7 @@ export default function SEOKeywordsApprovalPage() {
       const decisionRequest: ApprovalDecisionRequest = {
         decision: 'rerun',
         comment: comment,
-        reviewed_by: 'current_user',
+        reviewed_by: user?.email ?? user?.id ?? 'unknown',
       }
 
       await decideApprovalMutation.mutateAsync({

@@ -16,12 +16,14 @@ import { LoadingErrorState } from '@/components/shared/LoadingErrorState'
 import { AccordionSection } from '@/components/shared/AccordionSection'
 import { ConfidenceScore } from '@/components/shared/ConfidenceScore'
 import { ApprovalStatusAlert } from '@/components/shared/ApprovalStatusAlert'
+import { useAuth } from '@/hooks/useAuth'
 
 const STEP_NAME = 'blog_post_preprocessing_approval'
 const STEP_DISPLAY = 'Blog Post Preprocessing'
 const STEP_COLOR = 'info' as const
 
 export default function BlogPostPreprocessingApprovalPage() {
+  const { user } = useAuth()
   const params = useParams()
   const router = useRouter()
   const approvalId = params.approvalId as string
@@ -79,7 +81,7 @@ export default function BlogPostPreprocessingApprovalPage() {
         decision: actualDecision,
         comment: comment || undefined,
         modified_output: modifiedOutputData,
-        reviewed_by: 'current_user',
+        reviewed_by: user?.email ?? user?.id ?? 'unknown',
       }
 
       await decideApprovalMutation.mutateAsync({

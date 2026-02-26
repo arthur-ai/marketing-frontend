@@ -12,14 +12,6 @@ import {
   Alert,
   Stack,
   TextField,
-  Checkbox,
-  FormGroup,
-  FormControlLabel,
-  Radio,
-  RadioGroup,
-  FormControl,
-  FormLabel,
-  Divider,
 } from '@mui/material'
 import {
   CheckCircle,
@@ -40,16 +32,11 @@ import { LoadingErrorState } from '@/components/shared/LoadingErrorState'
 import { AccordionSection } from '@/components/shared/AccordionSection'
 import { ConfidenceScore } from '@/components/shared/ConfidenceScore'
 import { ApprovalStatusAlert } from '@/components/shared/ApprovalStatusAlert'
-
-interface SelectedKeywords {
-  main_keyword: string  // Required: Single main keyword
-  primary: string[]
-  secondary: string[]
-  lsi: string[]
-  long_tail: string[]
-}
+import { useAuth } from '@/hooks/useAuth'
+import { SEOKeywordsSelection, SelectedKeywords } from '@/components/approvals/seo/SEOKeywordsSelection'
 
 export default function ApprovalDetailPage() {
+  const { user } = useAuth()
   const params = useParams()
   const router = useRouter()
   const approvalId = params.approvalId as string
@@ -223,7 +210,7 @@ export default function ApprovalDetailPage() {
           lsi: selectedKeywords.lsi,
           long_tail: selectedKeywords.long_tail
         },
-        reviewed_by: 'current_user',
+        reviewed_by: user?.email ?? user?.id ?? 'unknown',
       }
 
       await decideApprovalMutation.mutateAsync({
@@ -283,7 +270,7 @@ export default function ApprovalDetailPage() {
         decision: actualDecision,
         comment: comment || undefined,
         modified_output: modifiedOutputData,
-        reviewed_by: 'current_user',
+        reviewed_by: user?.email ?? user?.id ?? 'unknown',
       }
 
       await decideApprovalMutation.mutateAsync({
@@ -437,368 +424,15 @@ export default function ApprovalDetailPage() {
 
       {/* Keyword Selection UI for seo_keywords step */}
       {isKeywordSelectionStep && approval.output_data && (
-        <Card sx={{ mb: 3 }}>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>
-              Select Keywords to Keep
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              <strong>Required:</strong> Select ONE main keyword that will be the primary focus. Then select any additional supporting keywords.
-            </Typography>
-            
-            {/* Keyword Category Explanations */}
-            <Alert severity="info" sx={{ mb: 3 }}>
-              <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
-                Keyword Categories Explained
-              </Typography>
-              <Box component="ul" sx={{ mt: 1, mb: 0, pl: 2 }}>
-                <li>
-                  <Typography variant="body2" component="span" fontWeight="bold">Primary Keywords:</Typography>
-                  <Typography variant="body2" component="span"> Used in title, headings, and main content focus. These are your core SEO targets.</Typography>
-                </li>
-                <li>
-                  <Typography variant="body2" component="span" fontWeight="bold">Secondary Keywords:</Typography>
-                  <Typography variant="body2" component="span"> Supporting content, natural variations. Used throughout the article to provide context and depth.</Typography>
-                </li>
-                <li>
-                  <Typography variant="body2" component="span" fontWeight="bold">LSI Keywords:</Typography>
-                  <Typography variant="body2" component="span"> Semantic depth, related concepts. Help search engines understand topic context and improve relevance.</Typography>
-                </li>
-                <li>
-                  <Typography variant="body2" component="span" fontWeight="bold">Long-tail Keywords:</Typography>
-                  <Typography variant="body2" component="span"> Specific sections, FAQ-style content. Used in detailed explanations and answer specific user queries.</Typography>
-                </li>
-              </Box>
-              <Typography variant="caption" display="block" sx={{ mt: 1.5, fontStyle: 'italic' }}>
-                <strong>Downstream Usage:</strong> All selected keywords will be used in the article generation step to create comprehensive, SEO-optimized content. The main keyword will be emphasized in the title and headings, while other categories will be naturally integrated throughout the content.
-              </Typography>
-            </Alert>
-
-            {(() => {
-              const output = approval.output_data as any
-              const primaryKeywords = output.primary_keywords || []
-              const secondaryKeywords = output.secondary_keywords || []
-              const lsiKeywords = output.lsi_keywords || []
-              const longTailKeywords = output.long_tail_keywords || []
-
-              return (
-                <Stack spacing={3}>
-                  {/* Main Keyword Selection (Required) */}
-                  {primaryKeywords.length > 0 && (
-                    <Box>
-                      <Alert severity="info" sx={{ mb: 2 }}>
-                        <Typography variant="body2" fontWeight="bold">
-                          Select Main Keyword (Required)
-                        </Typography>
-                        <Typography variant="caption" display="block" sx={{ mt: 0.5 }}>
-                          Choose the single most important keyword that will be the primary focus for this content.
-                        </Typography>
-                      </Alert>
-                      <FormControl component="fieldset" required fullWidth>
-                        <FormLabel component="legend" sx={{ mb: 1, fontWeight: 'bold' }}>
-                          Main Keyword
-                        </FormLabel>
-                        <RadioGroup
-                          value={selectedKeywords.main_keyword}
-                          onChange={(e) => handleMainKeywordChange(e.target.value)}
-                        >
-                          {primaryKeywords.map((keyword: string) => {
-                            const keywordDensity = output.keyword_density?.[keyword]
-                            const isAISuggested = output.main_keyword === keyword
-                            return (
-                              <FormControlLabel
-                                key={keyword}
-                                value={keyword}
-                                control={<Radio />}
-                                label={
-                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                    <Typography variant="body1">{keyword}</Typography>
-                                    {isAISuggested && (
-                                      <Chip
-                                        label="AI Suggested"
-                                        size="small"
-                                        color="primary"
-                                        sx={{ height: 20 }}
-                                      />
-                                    )}
-                                    {keywordDensity !== null && keywordDensity !== undefined && (
-                                      <Chip
-                                        label={`${keywordDensity.toFixed(1)}% density`}
-                                        size="small"
-                                        variant="outlined"
-                                        sx={{ height: 20 }}
-                                      />
-                                    )}
-                                  </Box>
-                                }
-                              />
-                            )
-                          })}
-                        </RadioGroup>
-                      </FormControl>
-                      {!selectedKeywords.main_keyword && (
-                        <Typography variant="caption" color="error" sx={{ mt: 1, display: 'block' }}>
-                          Please select a main keyword to continue.
-                        </Typography>
-                      )}
-                    </Box>
-                  )}
-
-                  {/* Supporting Primary Keywords */}
-                  {primaryKeywords.length > 0 && (
-                    <Box>
-                      <Divider sx={{ my: 2 }} />
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                        <Typography variant="subtitle1" fontWeight="bold">
-                          Additional Primary Keywords (Optional)
-                        </Typography>
-                        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                          <Chip 
-                            label={`${selectedKeywords.primary.length} of ${primaryKeywords.length}`}
-                            size="small"
-                            color="primary"
-                          />
-                          <Button size="small" onClick={() => handleSelectAll('primary')}>
-                            Select All
-                          </Button>
-                          <Button size="small" onClick={() => handleDeselectAll('primary')}>
-                            Deselect All
-                          </Button>
-                        </Box>
-                      </Box>
-                      <FormGroup>
-                        {primaryKeywords.map((keyword: string) => (
-                          <FormControlLabel
-                            key={keyword}
-                            control={
-                              <Checkbox
-                                checked={selectedKeywords.primary.includes(keyword)}
-                                onChange={() => handleKeywordToggle('primary', keyword)}
-                                disabled={keyword === selectedKeywords.main_keyword} // Main keyword is always selected
-                              />
-                            }
-                            label={keyword}
-                          />
-                        ))}
-                      </FormGroup>
-                    </Box>
-                  )}
-
-                  {/* Secondary Keywords */}
-                  {secondaryKeywords.length > 0 && (
-                    <Box>
-                      <Divider sx={{ my: 2 }} />
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                        <Typography variant="subtitle1" fontWeight="bold">
-                          Secondary Keywords
-                        </Typography>
-                        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                          <Chip 
-                            label={`${selectedKeywords.secondary.length} of ${secondaryKeywords.length}`}
-                            size="small"
-                            color="secondary"
-                          />
-                          <Button size="small" onClick={() => handleSelectAll('secondary')}>
-                            Select All
-                          </Button>
-                          <Button size="small" onClick={() => handleDeselectAll('secondary')}>
-                            Deselect All
-                          </Button>
-                        </Box>
-                      </Box>
-                      <Alert severity="info" sx={{ mb: 2 }}>
-                        <Typography variant="caption">
-                          <strong>Usage:</strong> Supporting content, natural variations. Used throughout the article to provide context and depth.
-                        </Typography>
-                      </Alert>
-                      <FormGroup>
-                        {secondaryKeywords.map((keyword: string) => (
-                          <FormControlLabel
-                            key={keyword}
-                            control={
-                              <Checkbox
-                                checked={selectedKeywords.secondary.includes(keyword)}
-                                onChange={() => handleKeywordToggle('secondary', keyword)}
-                                disabled={keyword === selectedKeywords.main_keyword}
-                              />
-                            }
-                            label={
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
-                                <Typography variant="body2">{keyword}</Typography>
-                                {keyword === selectedKeywords.main_keyword && (
-                                  <Chip label="Main" size="small" color="primary" sx={{ height: 20 }} />
-                                )}
-                                {keyword !== selectedKeywords.main_keyword && (
-                                  <Button
-                                    size="small"
-                                    variant="outlined"
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      handlePromoteToMain(keyword, 'secondary')
-                                    }}
-                                    sx={{ ml: 'auto', height: 24, fontSize: '0.7rem' }}
-                                  >
-                                    Promote to Main
-                                  </Button>
-                                )}
-                              </Box>
-                            }
-                          />
-                        ))}
-                      </FormGroup>
-                    </Box>
-                  )}
-
-                  {/* LSI Keywords */}
-                  {lsiKeywords.length > 0 && (
-                    <Box>
-                      <Divider sx={{ my: 2 }} />
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                        <Typography variant="subtitle1" fontWeight="bold">
-                          LSI Keywords
-                        </Typography>
-                        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                          <Chip 
-                            label={`${selectedKeywords.lsi.length} of ${lsiKeywords.length}`}
-                            size="small"
-                            color="info"
-                          />
-                          <Button size="small" onClick={() => handleSelectAll('lsi')}>
-                            Select All
-                          </Button>
-                          <Button size="small" onClick={() => handleDeselectAll('lsi')}>
-                            Deselect All
-                          </Button>
-                        </Box>
-                      </Box>
-                      <Alert severity="info" sx={{ mb: 2 }}>
-                        <Typography variant="caption">
-                          <strong>Usage:</strong> Semantic depth, related concepts. Help search engines understand topic context and improve relevance.
-                        </Typography>
-                      </Alert>
-                      <FormGroup>
-                        {lsiKeywords.map((keyword: string) => (
-                          <FormControlLabel
-                            key={keyword}
-                            control={
-                              <Checkbox
-                                checked={selectedKeywords.lsi.includes(keyword)}
-                                onChange={() => handleKeywordToggle('lsi', keyword)}
-                                disabled={keyword === selectedKeywords.main_keyword}
-                              />
-                            }
-                            label={
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
-                                <Typography variant="body2">{keyword}</Typography>
-                                {keyword === selectedKeywords.main_keyword && (
-                                  <Chip label="Main" size="small" color="primary" sx={{ height: 20 }} />
-                                )}
-                                {keyword !== selectedKeywords.main_keyword && (
-                                  <Button
-                                    size="small"
-                                    variant="outlined"
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      handlePromoteToMain(keyword, 'lsi')
-                                    }}
-                                    sx={{ ml: 'auto', height: 24, fontSize: '0.7rem' }}
-                                  >
-                                    Promote to Main
-                                  </Button>
-                                )}
-                              </Box>
-                            }
-                          />
-                        ))}
-                      </FormGroup>
-                    </Box>
-                  )}
-
-                  {/* Long-tail Keywords */}
-                  {longTailKeywords.length > 0 && (
-                    <Box>
-                      <Divider sx={{ my: 2 }} />
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                        <Typography variant="subtitle1" fontWeight="bold">
-                          Long-tail Keywords
-                        </Typography>
-                        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                          <Chip 
-                            label={`${selectedKeywords.long_tail.length} of ${longTailKeywords.length}`}
-                            size="small"
-                            color="success"
-                          />
-                          <Button size="small" onClick={() => handleSelectAll('long_tail')}>
-                            Select All
-                          </Button>
-                          <Button size="small" onClick={() => handleDeselectAll('long_tail')}>
-                            Deselect All
-                          </Button>
-                        </Box>
-                      </Box>
-                      <Alert severity="info" sx={{ mb: 2 }}>
-                        <Typography variant="caption">
-                          <strong>Usage:</strong> Specific sections, FAQ-style content. Used in detailed explanations and answer specific user queries.
-                        </Typography>
-                      </Alert>
-                      <FormGroup>
-                        {longTailKeywords.map((keyword: string) => (
-                          <FormControlLabel
-                            key={keyword}
-                            control={
-                              <Checkbox
-                                checked={selectedKeywords.long_tail.includes(keyword)}
-                                onChange={() => handleKeywordToggle('long_tail', keyword)}
-                                disabled={keyword === selectedKeywords.main_keyword}
-                              />
-                            }
-                            label={
-                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
-                                <Typography variant="body2">{keyword}</Typography>
-                                {keyword === selectedKeywords.main_keyword && (
-                                  <Chip label="Main" size="small" color="primary" sx={{ height: 20 }} />
-                                )}
-                                {keyword !== selectedKeywords.main_keyword && (
-                                  <Button
-                                    size="small"
-                                    variant="outlined"
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      handlePromoteToMain(keyword, 'long_tail')
-                                    }}
-                                    sx={{ ml: 'auto', height: 24, fontSize: '0.7rem' }}
-                                  >
-                                    Promote to Main
-                                  </Button>
-                                )}
-                              </Box>
-                            }
-                          />
-                        ))}
-                      </FormGroup>
-                    </Box>
-                  )}
-
-                  {/* Summary */}
-                  <Box sx={{ mt: 2, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
-                    <Typography variant="body2" gutterBottom>
-                      <strong>Main Keyword:</strong> {selectedKeywords.main_keyword || 'Not selected'}
-                    </Typography>
-                    <Typography variant="body2">
-                      <strong>Total Supporting Keywords Selected:</strong>{' '}
-                      {selectedKeywords.primary.length + selectedKeywords.secondary.length + selectedKeywords.lsi.length + selectedKeywords.long_tail.length} keyword(s)
-                    </Typography>
-                    {!selectedKeywords.main_keyword && (
-                      <Typography variant="caption" color="error" display="block" sx={{ mt: 1 }}>
-                        Error: Main keyword is required. Please select a main keyword above.
-                      </Typography>
-                    )}
-                  </Box>
-                </Stack>
-              )
-            })()}
-          </CardContent>
-        </Card>
+        <SEOKeywordsSelection
+          outputData={approval.output_data}
+          selectedKeywords={selectedKeywords}
+          onMainKeywordChange={handleMainKeywordChange}
+          onKeywordToggle={handleKeywordToggle}
+          onSelectAll={handleSelectAll}
+          onDeselectAll={handleDeselectAll}
+          onPromoteToMain={handlePromoteToMain}
+        />
       )}
 
       {/* Comment Section */}

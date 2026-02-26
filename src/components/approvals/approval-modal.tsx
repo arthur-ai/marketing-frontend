@@ -42,6 +42,7 @@ import { useDecideApproval, useRetryStep } from '@/hooks/useApi'
 import { showSuccessToast, showErrorToast } from '@/lib/toast-utils'
 import { formatApprovalOutput } from '@/lib/approval-formatter'
 import { StepEditor } from './StepEditor'
+import { useAuth } from '@/hooks/useAuth'
 
 
 interface ApprovalModalProps {
@@ -108,6 +109,7 @@ export function ApprovalModal({ approval, isOpen, onClose, onRetry }: ApprovalMo
     : 'Loading Approval'
 
   const handleMainKeywordChange = (keyword: string) => {
+  const { user } = useAuth()
     setSelectedKeywords(prev => ({
       ...prev,
       main_keyword: keyword,
@@ -194,7 +196,7 @@ export function ApprovalModal({ approval, isOpen, onClose, onRetry }: ApprovalMo
           secondary: selectedKeywords.secondary,
           lsi: selectedKeywords.lsi
         },
-        reviewed_by: 'current_user',
+        reviewed_by: user?.email ?? user?.id ?? 'unknown',
       }
 
       await decideApprovalMutation.mutateAsync({
@@ -252,7 +254,7 @@ export function ApprovalModal({ approval, isOpen, onClose, onRetry }: ApprovalMo
         decision: actualDecision,
         comment: comment || undefined,
         modified_output: modifiedOutputData,
-        reviewed_by: 'current_user', // Replace with actual user ID
+        reviewed_by: user?.email ?? user?.id ?? 'unknown', // Replace with actual user ID
       }
 
       await decideApprovalMutation.mutateAsync({

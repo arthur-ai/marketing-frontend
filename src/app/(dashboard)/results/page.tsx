@@ -126,12 +126,9 @@ export default function ResultsPage() {
     setComparisonModalOpen(true);
   }, []);
 
-  // Handle approval decision — refresh job details and auto-resume pipeline on approve
+  // Handle approval decision — auto-resume pipeline on approve, then refresh UI
   const handleDecisionMade = useCallback(
     async (decision: string) => {
-      if (selectedJob) {
-        fetchJobDetails(selectedJob.job_id);
-      }
       if (decision === 'approve' && selectedJob) {
         try {
           const result = await resumeJobMutation.mutateAsync(selectedJob.job_id);
@@ -139,16 +136,19 @@ export default function ResultsPage() {
             'Approved & Resumed',
             `Pipeline resumed from step ${result.data.resuming_from_step}.`
           );
-          refetchJobs();
         } catch (error) {
           showErrorToast(
             'Resume Failed',
             error instanceof Error ? error.message : 'Failed to resume pipeline'
           );
         }
-      } else {
-        refetchJobs();
       }
+      // Refresh job details and list AFTER the mutation completes (not before),
+      // so the UI reflects post-resume state.
+      if (selectedJob) {
+        fetchJobDetails(selectedJob.job_id);
+      }
+      refetchJobs();
     },
     [selectedJob, fetchJobDetails, resumeJobMutation, refetchJobs]
   );

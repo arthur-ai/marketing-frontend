@@ -14,8 +14,10 @@ import { LoadingErrorState } from '@/components/shared/LoadingErrorState'
 import { AccordionSection } from '@/components/shared/AccordionSection'
 import { ConfidenceScore } from '@/components/shared/ConfidenceScore'
 import { ApprovalStatusAlert } from '@/components/shared/ApprovalStatusAlert'
+import { useAuth } from '@/hooks/useAuth'
 
 export default function MarketingBriefApprovalPage() {
+  const { user } = useAuth()
   const params = useParams()
   const router = useRouter()
   const approvalId = params.approvalId as string
@@ -71,7 +73,7 @@ export default function MarketingBriefApprovalPage() {
         decision: actualDecision,
         comment: comment || undefined,
         modified_output: modifiedOutputData,
-        reviewed_by: 'current_user',
+        reviewed_by: user?.email ?? user?.id ?? 'unknown',
       }
 
       await decideApprovalMutation.mutateAsync({

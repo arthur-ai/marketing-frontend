@@ -10,13 +10,6 @@ import {
   Alert,
   Stack,
   TextField,
-  Checkbox,
-  FormGroup,
-  FormControlLabel,
-  Radio,
-  RadioGroup,
-  FormControl,
-  FormLabel,
   Divider,
 } from '@mui/material'
 import { CheckCircle, Cancel, Edit, Save } from '@mui/icons-material'
@@ -31,14 +24,8 @@ import { MarkdownSection } from '@/components/approvals/sections/shared/Markdown
 import { SEOAnalysisMetrics } from '@/components/approvals/sections/seo/SEOAnalysisMetrics'
 import { AccordionSection } from '@/components/shared/AccordionSection'
 import { ConfidenceScore } from '@/components/shared/ConfidenceScore'
-
-interface SelectedKeywords {
-  main_keyword: string
-  primary: string[]
-  secondary: string[]
-  lsi: string[]
-  long_tail: string[]
-}
+import { useAuth } from '@/hooks/useAuth'
+import { SEOKeywordsSelection, SelectedKeywords } from '@/components/approvals/seo/SEOKeywordsSelection'
 
 interface InlineApprovalPanelProps {
   approval: PendingApprovalSummary
@@ -46,6 +33,7 @@ interface InlineApprovalPanelProps {
 }
 
 export function InlineApprovalPanel({ approval, onDecisionMade }: InlineApprovalPanelProps) {
+  const { user } = useAuth()
   const decideApprovalMutation = useDecideApproval()
   const cancelJobMutation = useCancelJob()
 
@@ -170,7 +158,7 @@ export function InlineApprovalPanel({ approval, onDecisionMade }: InlineApproval
           lsi: selectedKeywords.lsi,
           long_tail: selectedKeywords.long_tail,
         },
-        reviewed_by: 'current_user',
+        reviewed_by: user?.email ?? user?.id ?? 'unknown',
       }
       await decideApprovalMutation.mutateAsync({ approvalId: approval.id, decision: decisionRequest })
       showSuccessToast('Keywords Selected', `Selected ${totalSelected} keyword(s) successfully`)
@@ -209,7 +197,7 @@ export function InlineApprovalPanel({ approval, onDecisionMade }: InlineApproval
         decision: actualDecision,
         comment: comment || undefined,
         modified_output: modifiedOutputData,
-        reviewed_by: 'current_user',
+        reviewed_by: user?.email ?? user?.id ?? 'unknown',
       }
       await decideApprovalMutation.mutateAsync({ approvalId: approval.id, decision: decisionRequest })
       const actionText = actualDecision === 'rerun' ? 'rerun' : `${actualDecision}d`
@@ -316,127 +304,15 @@ export function InlineApprovalPanel({ approval, onDecisionMade }: InlineApproval
 
       {/* SEO Keyword Selection */}
       {isKeywordSelectionStep && approval.output_data && (
-        <Card sx={{ mb: 2 }}>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>Select Keywords to Keep</Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              <strong>Required:</strong> Select ONE main keyword that will be the primary focus. Then select any additional supporting keywords.
-            </Typography>
-
-            {(() => {
-              const output = approval.output_data as any
-              const primaryKeywords = output.primary_keywords || []
-              const secondaryKeywords = output.secondary_keywords || []
-              const lsiKeywords = output.lsi_keywords || []
-              const longTailKeywords = output.long_tail_keywords || []
-
-              return (
-                <Stack spacing={3}>
-                  {primaryKeywords.length > 0 && (
-                    <Box>
-                      <FormControl component="fieldset" required fullWidth>
-                        <FormLabel component="legend" sx={{ mb: 1, fontWeight: 'bold' }}>Main Keyword (Required)</FormLabel>
-                        <RadioGroup
-                          value={selectedKeywords.main_keyword}
-                          onChange={(e) => handleMainKeywordChange(e.target.value)}
-                        >
-                          {primaryKeywords.map((keyword: string) => {
-                            const keywordDensity = output.keyword_density?.[keyword]
-                            const isAISuggested = output.main_keyword === keyword
-                            return (
-                              <FormControlLabel
-                                key={keyword}
-                                value={keyword}
-                                control={<Radio />}
-                                label={
-                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                    <Typography variant="body2">{keyword}</Typography>
-                                    {isAISuggested && <Chip label="AI Suggested" size="small" color="primary" sx={{ height: 20 }} />}
-                                    {keywordDensity != null && (
-                                      <Chip label={`${keywordDensity.toFixed(1)}% density`} size="small" variant="outlined" sx={{ height: 20 }} />
-                                    )}
-                                  </Box>
-                                }
-                              />
-                            )
-                          })}
-                        </RadioGroup>
-                      </FormControl>
-                      {!selectedKeywords.main_keyword && (
-                        <Typography variant="caption" color="error" sx={{ mt: 1, display: 'block' }}>
-                          Please select a main keyword to continue.
-                        </Typography>
-                      )}
-                    </Box>
-                  )}
-
-                  {[
-                    { type: 'primary' as const, keywords: primaryKeywords, label: 'Additional Primary Keywords' },
-                    { type: 'secondary' as const, keywords: secondaryKeywords, label: 'Secondary Keywords' },
-                    { type: 'lsi' as const, keywords: lsiKeywords, label: 'LSI Keywords' },
-                    { type: 'long_tail' as const, keywords: longTailKeywords, label: 'Long-tail Keywords' },
-                  ].map(({ type, keywords, label }) =>
-                    keywords.length > 0 ? (
-                      <Box key={type}>
-                        <Divider sx={{ mb: 2 }} />
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                          <Typography variant="subtitle2" fontWeight="bold">{label}</Typography>
-                          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                            <Chip label={`${selectedKeywords[type].length}/${keywords.length}`} size="small" />
-                            <Button size="small" onClick={() => handleSelectAll(type)}>All</Button>
-                            <Button size="small" onClick={() => handleDeselectAll(type)}>None</Button>
-                          </Box>
-                        </Box>
-                        <FormGroup>
-                          {keywords.map((keyword: string) => (
-                            <FormControlLabel
-                              key={keyword}
-                              control={
-                                <Checkbox
-                                  checked={selectedKeywords[type].includes(keyword)}
-                                  onChange={() => handleKeywordToggle(type, keyword)}
-                                  disabled={keyword === selectedKeywords.main_keyword}
-                                />
-                              }
-                              label={
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                  <Typography variant="body2">{keyword}</Typography>
-                                  {keyword === selectedKeywords.main_keyword && (
-                                    <Chip label="Main" size="small" color="primary" sx={{ height: 20 }} />
-                                  )}
-                                  {keyword !== selectedKeywords.main_keyword && type !== 'primary' && (
-                                    <Button
-                                      size="small"
-                                      variant="outlined"
-                                      onClick={(e) => { e.stopPropagation(); handlePromoteToMain(keyword, type) }}
-                                      sx={{ height: 22, fontSize: '0.65rem' }}
-                                    >
-                                      Promote to Main
-                                    </Button>
-                                  )}
-                                </Box>
-                              }
-                            />
-                          ))}
-                        </FormGroup>
-                      </Box>
-                    ) : null
-                  )}
-
-                  <Box sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
-                    <Typography variant="body2">
-                      <strong>Main Keyword:</strong> {selectedKeywords.main_keyword || 'Not selected'}
-                    </Typography>
-                    <Typography variant="body2">
-                      <strong>Supporting Keywords:</strong>{' '}
-                      {selectedKeywords.primary.length + selectedKeywords.secondary.length + selectedKeywords.lsi.length + selectedKeywords.long_tail.length}
-                    </Typography>
-                  </Box>
-                </Stack>
-              )
-            })()}
-          </CardContent>
-        </Card>
+        <SEOKeywordsSelection
+          outputData={approval.output_data}
+          selectedKeywords={selectedKeywords}
+          onMainKeywordChange={handleMainKeywordChange}
+          onKeywordToggle={handleKeywordToggle}
+          onSelectAll={handleSelectAll}
+          onDeselectAll={handleDeselectAll}
+          onPromoteToMain={handlePromoteToMain}
+        />
       )}
 
       {/* Comment */}

@@ -33,10 +33,15 @@ export function useSubjobData({
         }
       },
       enabled: !!subjobId && enabled,
-      refetchInterval: 5000,
+      refetchInterval: (data: { data?: { approvals?: Array<{ status: string }> } } | undefined) => {
+        // Stop polling once there are no pending approvals for this subjob
+        const approvals = data?.data?.approvals ?? []
+        const hasPending = approvals.some((a) => a.status === 'pending')
+        return hasPending ? 5000 : false
+      },
     })),
   });
-  
+
   // Fetch results for all subjobs in parallel
   const subjobResultsQueries = useQueries({
     queries: subjobIds.map((subjobId) => ({
@@ -61,7 +66,10 @@ export function useSubjobData({
         }
       },
       enabled: !!subjobId && enabled,
-      refetchInterval: 10000,
+      refetchInterval: (data: unknown) => {
+        // Stop polling once the subjob has a result (terminal state)
+        return data != null ? false : 10000
+      },
     })),
   });
   

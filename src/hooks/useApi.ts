@@ -150,7 +150,14 @@ export function useJobApprovals(jobId: string, status?: string) {
     queryKey: ['approvals', 'job', jobId, status],
     queryFn: () => api.getJobApprovals(jobId, status),
     enabled: !!jobId,
-    refetchInterval: 5000,
+    refetchInterval: (data) => {
+      // Stop polling once there are no pending approvals
+      const approvals = data?.data?.approvals ?? []
+      const hasPending = approvals.some(
+        (a: { status: string }) => a.status === 'pending'
+      )
+      return hasPending ? 5000 : false
+    },
   })
 }
 
@@ -224,9 +231,10 @@ export function useJobStatus(jobId: string, enabled = true) {
     queryFn: () => api.getJobStatus(jobId),
     enabled: !!jobId && enabled,
     refetchInterval: (data) => {
-      // Stop polling once job is complete, failed, or cancelled
+      // Stop polling for all terminal states — including waiting_for_approval
+      // (the job is blocked on human input; no point polling the status endpoint)
       const status = data?.data?.status as JobStatus
-      if (!status || ['completed', 'failed', 'cancelled'].includes(status)) {
+      if (!status || ['completed', 'failed', 'cancelled', 'waiting_for_approval'].includes(status)) {
         return false
       }
       // Poll every 2 seconds while processing
