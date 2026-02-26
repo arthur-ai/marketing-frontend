@@ -36,6 +36,11 @@ export default function GenericJobPage() {
   const job = jobData?.data?.job
   const approvals = approvalsData?.data?.approvals || []
 
+  const isTerminal = job?.status === 'completed' || job?.status === 'failed' || job?.status === 'cancelled'
+  const isWaitingForApproval = job?.status === 'waiting_for_approval'
+  // Prefer a pending approval; fall back to most recent
+  const pendingApproval = approvals.find((a: any) => a.status === 'pending') ?? (approvals.length > 0 ? approvals[0] : null)
+
   // Map of pipeline steps to their display names
   const stepDisplayMap: Record<string, string> = {
     seo_keywords: 'SEO Keywords',
@@ -132,17 +137,17 @@ export default function GenericJobPage() {
                 <strong>Created:</strong> {new Date(job.created_at).toLocaleString()}
               </Typography>
             )}
-            {job.completed_at && (
+            {isTerminal && job.completed_at && (
               <Typography variant="body2" gutterBottom>
                 <strong>Completed:</strong> {new Date(job.completed_at).toLocaleString()}
               </Typography>
             )}
-            {job.progress !== undefined && (
+            {!isWaitingForApproval && job.progress !== undefined && (
               <Typography variant="body2" gutterBottom>
                 <strong>Progress:</strong> {job.progress}%
               </Typography>
             )}
-            {job.current_step && (
+            {!isWaitingForApproval && job.current_step && (
               <Typography variant="body2" gutterBottom>
                 <strong>Current Step:</strong> {job.current_step}
               </Typography>
@@ -157,7 +162,7 @@ export default function GenericJobPage() {
       </Card>
 
       {/* Available Steps */}
-      {availableSteps.length > 0 ? (
+      {availableSteps.length > 0 && (
         <Card>
           <CardContent>
             <Typography variant="h6" gutterBottom>
@@ -181,17 +186,13 @@ export default function GenericJobPage() {
             </List>
           </CardContent>
         </Card>
-      ) : (
-        <Alert severity="info">
-          No step-specific content available for this job. The job may still be processing or no approvals have been created yet.
-        </Alert>
       )}
 
-      {/* Inline Approval Panel */}
-      {approvals.length > 0 && (
+      {/* Inline Approval Panel — show pending approval if available */}
+      {pendingApproval && (
         <Box sx={{ mt: 3 }}>
           <InlineApprovalPanel
-            approval={approvals[0]}
+            approval={pendingApproval}
             onDecisionMade={() => refetchApprovals()}
           />
         </Box>
