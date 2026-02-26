@@ -37,6 +37,7 @@ const menuItems = [
   { title: 'Content', icon: <ArticleIcon />, path: '/content' },
   { title: 'Pipeline', icon: <AccountTreeIcon />, path: '/pipeline' },
   { title: 'Jobs', icon: <FolderIcon />, path: '/results' },
+  { title: 'Approvals', icon: <VerifiedUserIcon />, path: '/approvals' },
   { title: 'Upload', icon: <UploadFileIcon />, path: '/upload' },
   { title: 'Analytics', icon: <BarChartIcon />, path: '/analytics' },
   { title: 'Internal Docs', icon: <DescriptionIcon />, path: '/internal-docs' },
@@ -141,7 +142,7 @@ export function DashboardSidebar({
                       color: isActive ? 'primary.main' : 'text.secondary',
                     }}
                   >
-                    {item.path === '/results' && pendingCount > 0 ? (
+                    {item.path === '/approvals' && pendingCount > 0 ? (
                       <Badge badgeContent={pendingCount} color="error">
                         {item.icon}
                       </Badge>
