@@ -24,6 +24,7 @@ import DescriptionIcon from '@mui/icons-material/Description'
 import PaletteIcon from '@mui/icons-material/Palette'
 import Badge from '@mui/material/Badge'
 import { usePendingApprovals, useHealth } from '@/hooks/useApi'
+import { useAuth } from '@/hooks/useAuth'
 
 interface DashboardSidebarProps {
   drawerWidth: number
@@ -54,12 +55,18 @@ export function DashboardSidebar({
 }: DashboardSidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
+  const { hasRole } = useAuth()
+  const isAdmin = hasRole('admin')
   // Always enabled — React Query deduplicates with GlobalNotificationWatcher's poll
   const { data: pendingData } = usePendingApprovals(undefined, true)
   const pendingCount = pendingData?.data?.pending || 0
   const { data: health } = useHealth()
   // Get version from health endpoint - it will be undefined until health check completes
   const version = health?.data?.version
+
+  const visibleMenuItems = menuItems.filter(
+    (item) => item.path !== '/analytics' || isAdmin
+  )
 
   const drawer = (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -111,7 +118,7 @@ export function DashboardSidebar({
       {/* Main Menu */}
       <Box sx={{ flexGrow: 1, overflowY: 'auto', py: 2 }}>
         <List sx={{ px: 2 }}>
-          {menuItems.map((item) => {
+          {visibleMenuItems.map((item) => {
             const isActive = pathname === item.path || (item.path !== '/' && pathname.startsWith(item.path))
             
             return (

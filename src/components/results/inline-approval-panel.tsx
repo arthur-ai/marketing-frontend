@@ -165,6 +165,7 @@ export function InlineApprovalPanel({ approval, onDecisionMade }: InlineApproval
       onDecisionMade('modify')
     } catch (error) {
       showErrorToast('Selection failed', error instanceof Error ? error.message : 'Failed to submit keyword selection')
+      onDecisionMade('fail')
     }
   }
 
@@ -205,6 +206,7 @@ export function InlineApprovalPanel({ approval, onDecisionMade }: InlineApproval
       onDecisionMade(actualDecision)
     } catch (error) {
       showErrorToast('Decision failed', error instanceof Error ? error.message : 'Failed to submit decision')
+      onDecisionMade('fail')
     }
   }
 

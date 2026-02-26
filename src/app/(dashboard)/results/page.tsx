@@ -144,7 +144,8 @@ export default function ResultsPage() {
         }
       }
       // Refresh job details and list AFTER the mutation completes (not before),
-      // so the UI reflects post-resume state.
+      // so the UI reflects post-resume state. Also refresh on 'fail' so the job
+      // list shows the updated status from the backend.
       if (selectedJob) {
         fetchJobDetails(selectedJob.job_id);
       }
