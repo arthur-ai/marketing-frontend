@@ -878,3 +878,155 @@ export interface DesignKitConfig {
   updated_at: string
   is_active: boolean
 }
+
+// ============================================================
+// Competitor Research Types
+// ============================================================
+
+export type CompetitorResearchStatus = 'pending' | 'processing' | 'completed' | 'failed'
+
+export interface ContentStructureAnalysis {
+  word_count?: number | null
+  heading_count?: number | null
+  paragraph_count?: number | null
+  has_images?: boolean | null
+  has_video?: boolean | null
+  has_lists?: boolean | null
+  has_code_blocks?: boolean | null
+  content_format?: string | null
+  estimated_read_time_minutes?: number | null
+}
+
+export interface SEOSignals {
+  primary_keyword?: string | null
+  keyword_in_title?: boolean | null
+  keyword_in_first_paragraph?: boolean | null
+  meta_description_quality?: string | null
+  internal_links_count?: number | null
+  external_links_count?: number | null
+  schema_markup_detected?: boolean | null
+  url_structure_quality?: string | null
+}
+
+export interface EngagementSignals {
+  call_to_action_present?: boolean | null
+  call_to_action_quality?: string | null
+  emotional_hooks?: string[]
+  social_proof_present?: boolean | null
+  personalization_level?: string | null
+}
+
+export interface SocialMediaSignals {
+  platform?: string | null
+  hashtag_count?: number | null
+  hashtags?: string[]
+  hook_strength?: string | null
+  hook_text?: string | null
+  media_type?: string | null
+  post_length_category?: string | null
+  engagement_format?: string | null
+}
+
+export interface ContentStrengthFactor {
+  factor: string
+  description: string
+  impact: 'high' | 'medium' | 'low'
+}
+
+export interface ContentWeaknessFactor {
+  factor: string
+  description: string
+  opportunity: string
+}
+
+export interface CompetitorContentAnalysis {
+  url?: string | null
+  title?: string | null
+  content_type: 'blog' | 'social_media' | 'unknown'
+  platform?: string | null
+  analyzed_at: string
+  structure?: ContentStructureAnalysis | null
+  seo_signals?: SEOSignals | null
+  engagement_signals?: EngagementSignals | null
+  social_signals?: SocialMediaSignals | null
+  overall_quality_score?: number | null
+  performance_tier?: 'top' | 'above_average' | 'average' | 'below_average' | null
+  strength_factors: ContentStrengthFactor[]
+  weakness_factors: ContentWeaknessFactor[]
+  key_topics_covered: string[]
+  tone_and_voice?: string | null
+  target_audience?: string | null
+  unique_angle?: string | null
+  actionable_insights: string[]
+  content_snippet?: string | null
+}
+
+export interface CompetitorResearchSummary {
+  top_content_patterns: string[]
+  winning_content_formats: string[]
+  common_topics: string[]
+  content_gaps: string[]
+  seo_opportunities: string[]
+  social_media_tactics: string[]
+  recommended_content_strategy?: string | null
+  quick_wins: string[]
+}
+
+export interface CompetitorResearchRequest {
+  competitor_urls?: string[]
+  competitor_content?: Array<{
+    title?: string
+    content?: string
+    url?: string
+    platform?: string
+    content_type?: string
+  }>
+  content_type?: 'blog' | 'social_media' | 'both'
+  your_niche?: string
+  your_content_goals?: string
+  focus_platforms?: string[]
+}
+
+export interface CompetitorResearchListItem {
+  job_id: string
+  status: CompetitorResearchStatus
+  content_type: string
+  competitor_count: number
+  your_niche?: string | null
+  created_at: string
+  completed_at?: string | null
+}
+
+export interface CrawledUrlContent {
+  id: number
+  research_job_id: string
+  url: string
+  title?: string | null
+  full_content?: string | null
+  meta_description?: string | null
+  word_count?: number | null
+  fetched_at: string
+}
+
+export interface CompetitorResearchJobRecord {
+  job_id: string
+  user_id?: string | null
+  status: CompetitorResearchStatus
+  content_type: string
+  your_niche?: string | null
+  your_content_goals?: string | null
+  request_data?: CompetitorResearchRequest | null
+  result_data?: {
+    job_id: string
+    status: CompetitorResearchStatus
+    analyses: CompetitorContentAnalysis[]
+    summary?: CompetitorResearchSummary | null
+    created_at: string
+    completed_at?: string | null
+    error?: string | null
+  } | null
+  competitor_count: number
+  error?: string | null
+  created_at: string
+  completed_at?: string | null
+}

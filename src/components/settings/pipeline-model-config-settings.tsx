@@ -19,7 +19,9 @@ import {
 import {
   AutoAwesome as SparklesIcon,
   AttachMoney as DollarSignIcon,
+  Info as InfoIcon,
 } from '@mui/icons-material'
+import AlertTitle from '@mui/material/AlertTitle'
 import type { PipelineConfig, PipelineStepConfig } from '@/types/api'
 
 interface PipelineModelConfigSettingsProps {
@@ -96,6 +98,14 @@ export function PipelineModelConfigSettings({
 
   return (
     <Box sx={{ space: 3 }}>
+      {/* Deprecation banner */}
+      <Alert severity="info" icon={<InfoIcon />} sx={{ mb: 3 }}>
+        <AlertTitle>Managed by Arthur</AlertTitle>
+        Model and provider selection is now configured per-prompt in Arthur. These settings serve as
+        fallback only when Arthur is unavailable or no model is specified.
+        Configure providers in the <strong>Providers</strong> tab.
+      </Alert>
+
       {/* Header */}
       <Box sx={{ mb: 3 }}>
         <Typography variant="h6" gutterBottom>

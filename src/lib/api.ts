@@ -616,9 +616,22 @@ export const api = {
     apiClient.post('/v1/social-media/update', request),
   
   // Pipeline Settings
-  getPipelineSettings: (): Promise<AxiosResponse<import('@/types/api').PipelineSettings>> => 
+  getPipelineSettings: (): Promise<AxiosResponse<import('@/types/api').PipelineSettings>> =>
     apiClient.get('/v1/settings/pipeline'),
-  
-  savePipelineSettings: (settings: import('@/types/api').PipelineSettings): Promise<AxiosResponse<import('@/types/api').PipelineSettings>> => 
+
+  savePipelineSettings: (settings: import('@/types/api').PipelineSettings): Promise<AxiosResponse<import('@/types/api').PipelineSettings>> =>
     apiClient.post('/v1/settings/pipeline', settings),
+
+  // Competitor Research
+  submitCompetitorResearch: (request: import('@/types/api').CompetitorResearchRequest): Promise<AxiosResponse<{ job_id: string; status: string; message: string }>> =>
+    apiClient.post('/v1/competitor-research', request),
+
+  listCompetitorResearchJobs: (limit = 20, offset = 0): Promise<AxiosResponse<import('@/types/api').CompetitorResearchListItem[]>> =>
+    apiClient.get('/v1/competitor-research', { params: { limit, offset } }),
+
+  getCompetitorResearchResult: (jobId: string): Promise<AxiosResponse<import('@/types/api').CompetitorResearchJobRecord>> =>
+    apiClient.get(`/v1/competitor-research/${jobId}`),
+
+  getCrawledUrlContent: (jobId: string): Promise<AxiosResponse<import('@/types/api').CrawledUrlContent[]>> =>
+    apiClient.get(`/v1/competitor-research/${jobId}/crawled-content`),
 }

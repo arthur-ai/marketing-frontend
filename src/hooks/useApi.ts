@@ -481,3 +481,42 @@ export function useActivateDesignKitVersion() {
     },
   })
 }
+
+// Competitor Research
+export function useCompetitorResearchJobs(limit = 20) {
+  return useQuery({
+    queryKey: ['competitor-research'],
+    queryFn: () => api.listCompetitorResearchJobs(limit),
+    staleTime: 30 * 1000, // 30s
+  })
+}
+
+export function useCompetitorResearchResult(jobId: string | null, polling = false) {
+  return useQuery({
+    queryKey: ['competitor-research', jobId],
+    queryFn: () => api.getCompetitorResearchResult(jobId!),
+    enabled: !!jobId,
+    refetchInterval: polling ? 3000 : false,
+    staleTime: 5000,
+  })
+}
+
+export function useCrawledUrlContent(jobId: string | null, enabled = false) {
+  return useQuery({
+    queryKey: ['competitor-research', jobId, 'crawled-content'],
+    queryFn: () => api.getCrawledUrlContent(jobId!),
+    enabled: !!jobId && enabled,
+    staleTime: Infinity, // crawled content never changes
+  })
+}
+
+export function useSubmitCompetitorResearch() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (request: import('@/types/api').CompetitorResearchRequest) =>
+      api.submitCompetitorResearch(request),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['competitor-research'] })
+    },
+  })
+}

@@ -61,6 +61,24 @@ export function OrchestratorControls({ selectedContent, onContentSelect }: Orche
   const [manualTitle, setManualTitle] = useState('')
   const [manualContent, setManualContent] = useState('')
   const [manualInputData, setManualInputData] = useState<{ title: string; content: string; contentType: 'blog_post' | 'transcript' | 'release_notes' } | null>(null)
+
+  // Pre-populate from competitor research "Use in Pipeline" action
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const raw = sessionStorage.getItem('pipeline_prefill')
+    if (!raw) return
+    sessionStorage.removeItem('pipeline_prefill')
+    try {
+      const prefill = JSON.parse(raw) as { title: string; content: string; source_url?: string }
+      if (prefill.title && prefill.content) {
+        setManualTitle(prefill.title)
+        setManualContent(prefill.content)
+        setManualInputData({ title: prefill.title, content: prefill.content, contentType: 'blog_post' })
+      }
+    } catch {
+      // ignore malformed data
+    }
+  }, [])
   const [contentType, setContentType] = useState<'blog_post' | 'transcript' | 'release_notes'>('blog_post')
   const [outputContentType, setOutputContentType] = useState<'blog_post' | 'press_release' | 'case_study' | 'social_media_post'>('blog_post')
   const [socialMediaPlatform, setSocialMediaPlatform] = useState<'linkedin' | 'hackernews' | 'email' | ''>('')

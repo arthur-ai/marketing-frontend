@@ -22,6 +22,7 @@ import FolderIcon from '@mui/icons-material/Folder'
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser'
 import DescriptionIcon from '@mui/icons-material/Description'
 import PaletteIcon from '@mui/icons-material/Palette'
+import TravelExploreIcon from '@mui/icons-material/TravelExplore'
 import Badge from '@mui/material/Badge'
 import { usePendingApprovals, useHealth } from '@/hooks/useApi'
 import { useAuth } from '@/hooks/useAuth'
@@ -42,6 +43,7 @@ const menuItems = [
   { title: 'Analytics', icon: <BarChartIcon />, path: '/analytics' },
   { title: 'Internal Docs', icon: <DescriptionIcon />, path: '/internal-docs' },
   { title: 'Design Kit', icon: <PaletteIcon />, path: '/design-kit' },
+  { title: 'Competitor Research', icon: <TravelExploreIcon />, path: '/competitor-research' },
   { title: 'Settings', icon: <SettingsIcon />, path: '/settings' },
 ]
 
