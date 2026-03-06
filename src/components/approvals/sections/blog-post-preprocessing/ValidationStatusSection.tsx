@@ -14,7 +14,6 @@ import {
 import {
   CheckCircle,
   Cancel,
-  AlertCircle,
 } from '@mui/icons-material'
 
 interface ValidationStatusSectionProps {
@@ -146,7 +145,9 @@ export function ValidationStatusSection({ data }: ValidationStatusSectionProps) 
                 </Typography>
                 <Stack spacing={1} sx={{ mt: 1 }}>
                   {Object.entries(quality_metrics).map(([metric, value]) => {
-                    const percentage = value <= 1 ? value * 100 : value
+                    const num = typeof value === 'number' ? value : parseFloat(value as string)
+                    if (isNaN(num)) return null
+                    const percentage = num <= 1 ? num * 100 : num
                     return (
                       <Box key={metric}>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
