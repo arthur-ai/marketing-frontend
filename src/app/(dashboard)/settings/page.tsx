@@ -22,7 +22,6 @@ import {
 } from '@mui/icons-material'
 import { PipelineModelConfigSettings } from '@/components/settings/pipeline-model-config-settings'
 import { OptionalStepsSettings } from '@/components/settings/optional-steps-settings'
-import { DefaultSettings } from '@/components/settings/default-settings'
 import { RetryStrategySettings } from '@/components/settings/retry-strategy-settings'
 import type { RetryStrategyConfig } from '@/types/api'
 import { SEOKeywordsEngineSettings } from '@/components/settings/seo-keywords-engine-settings'
@@ -311,7 +310,6 @@ export default function SettingsPage() {
             <Tab label="Providers" />
             <Tab label="Model Configuration" />
             <Tab label="Optional Steps" />
-            <Tab label="Default Settings" />
             <Tab label="Retry Strategy" />
             <Tab label="SEO Keywords Engine" />
             <Tab label="Approval Settings" />
@@ -339,20 +337,13 @@ export default function SettingsPage() {
           </TabPanel>
 
           <TabPanel value={activeTab} index={3}>
-            <DefaultSettings
-              config={pipelineConfig}
-              onChange={handleConfigChange}
-            />
-          </TabPanel>
-
-          <TabPanel value={activeTab} index={4}>
             <RetryStrategySettings
               config={retryStrategy}
               onChange={handleRetryStrategyChange}
             />
           </TabPanel>
 
-          <TabPanel value={activeTab} index={5}>
+          <TabPanel value={activeTab} index={4}>
             <SEOKeywordsEngineSettings
               config={pipelineConfig.seo_keywords_engine_config}
               onChange={(config) => {
@@ -365,7 +356,7 @@ export default function SettingsPage() {
             />
           </TabPanel>
 
-          <TabPanel value={activeTab} index={6}>
+          <TabPanel value={activeTab} index={5}>
             <ApprovalSettings
               onChange={(hasChanges) => {
                 setHasApprovalChanges(hasChanges)
@@ -381,7 +372,7 @@ export default function SettingsPage() {
             />
           </TabPanel>
 
-          <TabPanel value={activeTab} index={7}>
+          <TabPanel value={activeTab} index={6}>
             <ConfigVersioning
               config={pipelineConfig}
               onRollback={(config) => {
