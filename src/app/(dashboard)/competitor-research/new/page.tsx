@@ -29,7 +29,18 @@ import TravelExploreIcon from '@mui/icons-material/TravelExplore'
 import { useSubmitCompetitorResearch } from '@/hooks/useApi'
 import type { CompetitorResearchRequest } from '@/types/api'
 
-const PLATFORM_OPTIONS = ['linkedin', 'twitter', 'instagram', 'facebook']
+const PLATFORM_OPTIONS = ['linkedin', 'twitter', 'instagram', 'facebook', 'hackernews']
+
+const GOAL_OPTIONS = [
+  'Increase organic traffic',
+  'Build thought leadership',
+  'Drive sign-ups / demos',
+  'Generate leads',
+  'Educate the market',
+  'Competitive positioning',
+]
+
+const DEFAULT_NICHE = 'AI observability, MLOps, enterprise AI'
 
 export default function NewCompetitorResearchPage() {
   const router = useRouter()
@@ -37,11 +48,17 @@ export default function NewCompetitorResearchPage() {
 
   // Form state
   const [contentType, setContentType] = useState<'blog' | 'social_media' | 'both'>('both')
-  const [niche, setNiche] = useState('')
-  const [goals, setGoals] = useState('')
+  const [niche, setNiche] = useState(DEFAULT_NICHE)
+  const [selectedGoals, setSelectedGoals] = useState<string[]>([])
   const [urls, setUrls] = useState<string[]>([''])
   const [focusPlatforms, setFocusPlatforms] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
+
+  const toggleGoal = (goal: string) => {
+    setSelectedGoals((prev) =>
+      prev.includes(goal) ? prev.filter((g) => g !== goal) : [...prev, goal]
+    )
+  }
 
   const togglePlatform = (platform: string) => {
     setFocusPlatforms((prev) =>
@@ -67,7 +84,7 @@ export default function NewCompetitorResearchPage() {
       competitor_urls: validUrls,
       content_type: contentType,
       your_niche: niche.trim() || undefined,
-      your_content_goals: goals.trim() || undefined,
+      your_content_goals: selectedGoals.length > 0 ? selectedGoals.join(', ') : undefined,
       focus_platforms: focusPlatforms.length > 0 ? focusPlatforms : undefined,
     }
 
@@ -111,22 +128,30 @@ export default function NewCompetitorResearchPage() {
             <Stack spacing={2}>
               <TextField
                 label="Your niche / industry"
-                placeholder="e.g. B2B SaaS, e-commerce, fintech, healthcare"
                 value={niche}
                 onChange={(e) => setNiche(e.target.value)}
                 fullWidth
                 size="small"
+                helperText="Pre-filled for Arthur AI — edit if needed"
               />
-              <TextField
-                label="Your content goals"
-                placeholder="e.g. increase organic traffic, build thought leadership, drive sign-ups"
-                value={goals}
-                onChange={(e) => setGoals(e.target.value)}
-                fullWidth
-                size="small"
-                multiline
-                rows={2}
-              />
+              <Box>
+                <Typography variant="body2" color="text.secondary" gutterBottom>
+                  Your content goals (optional)
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                  {GOAL_OPTIONS.map((goal) => (
+                    <Chip
+                      key={goal}
+                      label={goal}
+                      onClick={() => toggleGoal(goal)}
+                      color={selectedGoals.includes(goal) ? 'primary' : 'default'}
+                      variant={selectedGoals.includes(goal) ? 'filled' : 'outlined'}
+                      size="small"
+                      clickable
+                    />
+                  ))}
+                </Box>
+              </Box>
             </Stack>
           </CardContent>
         </Card>

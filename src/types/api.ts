@@ -803,6 +803,15 @@ export interface StepExecutionResponse {
   message: string
 }
 
+export interface ContentTypeConfig {
+  section_order?: string[]
+  word_count_range?: { min: number; max: number }
+  paragraph_length_range?: { min: number; max: number }
+  heading_depth?: string
+  include_tldr?: boolean
+  include_summary?: boolean
+}
+
 export interface DesignKitConfig {
   // Visual Design
   visual_components?: Array<Record<string, string>>
@@ -869,9 +878,24 @@ export interface DesignKitConfig {
   conclusion_frames: string[]
   common_faqs: Array<{ question: string; answer: string }>
   
+  // SEO (extended)
+  on_page_seo_requirements?: string[]
+
+  // Brand Intelligence
+  about_the_brand?: string
+  ideal_customer_profile?: string
+  brand_point_of_view?: string
+  competitive_differentiation_angle?: string
+  author_persona?: string
+  competitors?: string[]
+  success_metrics?: string[]
+  writing_samples?: string[]
+
   // Content Type Variations
-  content_type_configs?: Record<string, Record<string, any>>
-  
+  blog_config?: ContentTypeConfig
+  press_config?: ContentTypeConfig
+  case_config?: ContentTypeConfig
+
   // Metadata
   version: string
   created_at: string

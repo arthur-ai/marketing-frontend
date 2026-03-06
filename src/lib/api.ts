@@ -590,26 +590,26 @@ export const api = {
   },
   
   // Design Kit Configuration
-  getDesignKitConfig: (refresh?: boolean): Promise<AxiosResponse<any>> => 
-    apiClient.get('/v1/design-kit/config', { params: { refresh: refresh || false } }),
-  
-  getDesignKitConfigByVersion: (version: string): Promise<AxiosResponse<any>> => 
-    apiClient.get(`/v1/design-kit/config/${version}`),
-  
-  getDesignKitConfigByContentType: (contentType: string): Promise<AxiosResponse<any>> => 
-    apiClient.get(`/v1/design-kit/config/${contentType}/type`),
-  
-  createOrUpdateDesignKitConfig: (config: any, setActive = true): Promise<AxiosResponse<any>> => 
-    apiClient.post('/v1/design-kit/config', { config, set_active: setActive }),
-  
-  generateDesignKitConfig: (useInternalDocs = true): Promise<AxiosResponse<any>> => 
-    apiClient.post('/v1/design-kit/generate', { use_internal_docs: useInternalDocs }),
-  
-  listDesignKitVersions: (): Promise<AxiosResponse<string[]>> => 
-    apiClient.get('/v1/design-kit/versions'),
-  
-  activateDesignKitVersion: (version: string): Promise<AxiosResponse<{ message: string }>> => 
-    apiClient.post(`/v1/design-kit/activate/${version}`),
+  getDesignKitConfig: (refresh?: boolean): Promise<AxiosResponse<any>> =>
+    apiClient.get('/v1/brand-kit/config', { params: { refresh: refresh || false } }),
+
+  getDesignKitConfigByVersion: (version: string): Promise<AxiosResponse<any>> =>
+    apiClient.get(`/v1/brand-kit/config/${version}`),
+
+  getDesignKitConfigByContentType: (contentType: string): Promise<AxiosResponse<any>> =>
+    apiClient.get(`/v1/brand-kit/config/${contentType}/type`),
+
+  createOrUpdateDesignKitConfig: (config: any, setActive = true): Promise<AxiosResponse<any>> =>
+    apiClient.post('/v1/brand-kit/config', { config, set_active: setActive }),
+
+  generateDesignKitConfig: (useInternalDocs = true): Promise<AxiosResponse<any>> =>
+    apiClient.post('/v1/brand-kit/generate', { use_internal_docs: useInternalDocs }),
+
+  listDesignKitVersions: (): Promise<AxiosResponse<string[]>> =>
+    apiClient.get('/v1/brand-kit/versions'),
+
+  activateDesignKitVersion: (version: string): Promise<AxiosResponse<{ message: string }>> =>
+    apiClient.post(`/v1/brand-kit/activate/${version}`),
   
   // Social Media
   updateSocialMediaPost: (request: { job_id: string; content: string; platform: string; email_type?: string; subject_line?: string }): Promise<AxiosResponse<{ success: boolean; message: string; updated_content?: string }>> => 

@@ -42,7 +42,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useDesignKitConfig, useDesignKitVersions, useCreateOrUpdateDesignKitConfig, useGenerateDesignKitConfig, useActivateDesignKitVersion, useJobStatus } from '@/hooks/useApi'
 import { showSuccessToast, showErrorToast } from '@/lib/toast-utils'
 import { api } from '@/lib/api'
-import type { DesignKitConfig } from '@/types/api'
+import type { DesignKitConfig, ContentTypeConfig } from '@/types/api'
 
 interface TabPanelProps {
   children?: React.ReactNode
@@ -148,6 +148,18 @@ export default function DesignKitPage() {
       proof_statements: [],
       conclusion_frames: [],
       common_faqs: [],
+      on_page_seo_requirements: [],
+      about_the_brand: '',
+      ideal_customer_profile: '',
+      brand_point_of_view: '',
+      competitive_differentiation_angle: '',
+      author_persona: '',
+      competitors: [],
+      success_metrics: [],
+      writing_samples: [],
+      blog_config: {},
+      press_config: {},
+      case_config: {},
       version: '1.0.0',
       is_active: true,
     })
@@ -350,6 +362,8 @@ export default function DesignKitPage() {
                 <Tab label="Attribution" />
                 <Tab label="Quant/Targets" />
                 <Tab label="Reusable Snippets" />
+                <Tab label="Brand Intelligence" />
+                <Tab label="Content Type Overrides" />
               </Tabs>
             </Box>
 
@@ -824,6 +838,36 @@ export default function DesignKitPage() {
                   ) : (
                     <Typography variant="body1" sx={{ py: 1 }}>
                       {displayConfig.external_citation_style || 'Not set'}
+                    </Typography>
+                  )}
+                </Box>
+                <Box>
+                  <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
+                    On-Page SEO Requirements
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                    Key SEO requirements (e.g., keyword in first 100 words, H1 contains keyword)
+                  </Typography>
+                  {isEditing || isCreating ? (
+                    <TextField
+                      fullWidth
+                      size="small"
+                      placeholder="comma-separated requirements"
+                      value={(displayConfig.on_page_seo_requirements || []).join(', ')}
+                      onChange={(e) => {
+                        if (editConfig) {
+                          setEditConfig({
+                            ...editConfig,
+                            on_page_seo_requirements: e.target.value.split(',').map(s => s.trim()).filter(s => s),
+                          })
+                        }
+                      }}
+                    />
+                  ) : (
+                    <Typography variant="body1" sx={{ py: 1 }}>
+                      {(displayConfig.on_page_seo_requirements || []).length > 0
+                        ? (displayConfig.on_page_seo_requirements || []).join(', ')
+                        : 'Not set'}
                     </Typography>
                   )}
                 </Box>
@@ -1521,6 +1565,429 @@ export default function DesignKitPage() {
                     </Button>
                   )}
                 </Box>
+              </Stack>
+            </TabPanel>
+
+            {/* Brand Intelligence Tab */}
+            <TabPanel value={tabValue} index={8}>
+              <Stack spacing={3}>
+                <Box>
+                  <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
+                    About the Brand
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                    Short description of the brand, its mission, and what it does
+                  </Typography>
+                  {isEditing || isCreating ? (
+                    <TextField
+                      fullWidth
+                      multiline
+                      rows={3}
+                      size="small"
+                      placeholder="e.g., Arthur is an AI observability platform that helps teams monitor model performance and data drift in production."
+                      value={displayConfig.about_the_brand || ''}
+                      onChange={(e) => {
+                        if (editConfig) {
+                          setEditConfig({ ...editConfig, about_the_brand: e.target.value })
+                        }
+                      }}
+                    />
+                  ) : (
+                    <Typography variant="body1" sx={{ py: 1, whiteSpace: 'pre-wrap' }}>
+                      {displayConfig.about_the_brand || 'Not set'}
+                    </Typography>
+                  )}
+                </Box>
+                <Box>
+                  <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
+                    Ideal Customer Profile (ICP)
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                    Target audience: demographics, roles, pain points, and goals
+                  </Typography>
+                  {isEditing || isCreating ? (
+                    <TextField
+                      fullWidth
+                      multiline
+                      rows={3}
+                      size="small"
+                      placeholder="e.g., Senior ML engineers and data scientists at mid-to-large enterprises who manage models in production and struggle with reliability and drift."
+                      value={displayConfig.ideal_customer_profile || ''}
+                      onChange={(e) => {
+                        if (editConfig) {
+                          setEditConfig({ ...editConfig, ideal_customer_profile: e.target.value })
+                        }
+                      }}
+                    />
+                  ) : (
+                    <Typography variant="body1" sx={{ py: 1, whiteSpace: 'pre-wrap' }}>
+                      {displayConfig.ideal_customer_profile || 'Not set'}
+                    </Typography>
+                  )}
+                </Box>
+                <Box>
+                  <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
+                    Brand Point of View
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                    The brand's overarching perspective or mission statement
+                  </Typography>
+                  {isEditing || isCreating ? (
+                    <TextField
+                      fullWidth
+                      multiline
+                      rows={2}
+                      size="small"
+                      placeholder="e.g., AI systems must be transparent and trustworthy — production visibility is not optional."
+                      value={displayConfig.brand_point_of_view || ''}
+                      onChange={(e) => {
+                        if (editConfig) {
+                          setEditConfig({ ...editConfig, brand_point_of_view: e.target.value })
+                        }
+                      }}
+                    />
+                  ) : (
+                    <Typography variant="body1" sx={{ py: 1, whiteSpace: 'pre-wrap' }}>
+                      {displayConfig.brand_point_of_view || 'Not set'}
+                    </Typography>
+                  )}
+                </Box>
+                <Box>
+                  <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
+                    Competitive Differentiation Angle
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                    How the brand differentiates itself from competitors
+                  </Typography>
+                  {isEditing || isCreating ? (
+                    <TextField
+                      fullWidth
+                      multiline
+                      rows={2}
+                      size="small"
+                      placeholder="e.g., Unlike generic monitoring tools, Arthur is purpose-built for ML models with bias detection, explainability, and drift alerts."
+                      value={displayConfig.competitive_differentiation_angle || ''}
+                      onChange={(e) => {
+                        if (editConfig) {
+                          setEditConfig({ ...editConfig, competitive_differentiation_angle: e.target.value })
+                        }
+                      }}
+                    />
+                  ) : (
+                    <Typography variant="body1" sx={{ py: 1, whiteSpace: 'pre-wrap' }}>
+                      {displayConfig.competitive_differentiation_angle || 'Not set'}
+                    </Typography>
+                  )}
+                </Box>
+                <Box>
+                  <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
+                    Author Persona
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                    Description of the author's tone, expertise, and background
+                  </Typography>
+                  {isEditing || isCreating ? (
+                    <TextField
+                      fullWidth
+                      multiline
+                      rows={2}
+                      size="small"
+                      placeholder="e.g., Practitioner-focused ML engineer who writes from experience deploying models at scale. Direct, no-fluff tone."
+                      value={displayConfig.author_persona || ''}
+                      onChange={(e) => {
+                        if (editConfig) {
+                          setEditConfig({ ...editConfig, author_persona: e.target.value })
+                        }
+                      }}
+                    />
+                  ) : (
+                    <Typography variant="body1" sx={{ py: 1, whiteSpace: 'pre-wrap' }}>
+                      {displayConfig.author_persona || 'Not set'}
+                    </Typography>
+                  )}
+                </Box>
+                <Box>
+                  <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
+                    Competitors
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                    Key competitor names or URLs
+                  </Typography>
+                  {isEditing || isCreating ? (
+                    <TextField
+                      fullWidth
+                      size="small"
+                      placeholder="comma-separated: Competitor A, Competitor B"
+                      value={(displayConfig.competitors || []).join(', ')}
+                      onChange={(e) => {
+                        if (editConfig) {
+                          setEditConfig({
+                            ...editConfig,
+                            competitors: e.target.value.split(',').map(s => s.trim()).filter(s => s),
+                          })
+                        }
+                      }}
+                    />
+                  ) : (
+                    <Typography variant="body1" sx={{ py: 1 }}>
+                      {(displayConfig.competitors || []).length > 0
+                        ? (displayConfig.competitors || []).join(', ')
+                        : 'Not set'}
+                    </Typography>
+                  )}
+                </Box>
+                <Box>
+                  <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
+                    Success Metrics
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                    KPIs for content (e.g., organic traffic, conversion rate, time on page)
+                  </Typography>
+                  {isEditing || isCreating ? (
+                    <TextField
+                      fullWidth
+                      size="small"
+                      placeholder="comma-separated: organic traffic, conversion rate"
+                      value={(displayConfig.success_metrics || []).join(', ')}
+                      onChange={(e) => {
+                        if (editConfig) {
+                          setEditConfig({
+                            ...editConfig,
+                            success_metrics: e.target.value.split(',').map(s => s.trim()).filter(s => s),
+                          })
+                        }
+                      }}
+                    />
+                  ) : (
+                    <Typography variant="body1" sx={{ py: 1 }}>
+                      {(displayConfig.success_metrics || []).length > 0
+                        ? (displayConfig.success_metrics || []).join(', ')
+                        : 'Not set'}
+                    </Typography>
+                  )}
+                </Box>
+                <Box>
+                  <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
+                    Writing Samples
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                    URLs of reference content that defines the brand voice
+                  </Typography>
+                  {isEditing || isCreating ? (
+                    <TextField
+                      fullWidth
+                      size="small"
+                      placeholder="comma-separated URLs"
+                      value={(displayConfig.writing_samples || []).join(', ')}
+                      onChange={(e) => {
+                        if (editConfig) {
+                          setEditConfig({
+                            ...editConfig,
+                            writing_samples: e.target.value.split(',').map(s => s.trim()).filter(s => s),
+                          })
+                        }
+                      }}
+                    />
+                  ) : (
+                    <Typography variant="body1" sx={{ py: 1 }}>
+                      {(displayConfig.writing_samples || []).length > 0
+                        ? (displayConfig.writing_samples || []).join(', ')
+                        : 'Not set'}
+                    </Typography>
+                  )}
+                </Box>
+              </Stack>
+            </TabPanel>
+
+            {/* Content Type Overrides Tab */}
+            <TabPanel value={tabValue} index={9}>
+              <Stack spacing={4}>
+                {(['blog', 'press', 'case'] as const).map((type) => {
+                  const configKey = `${type}_config` as 'blog_config' | 'press_config' | 'case_config'
+                  const label = type === 'blog' ? 'Blog Post' : type === 'press' ? 'Press Release' : 'Case Study'
+                  const typeConfig: ContentTypeConfig = (displayConfig[configKey] as ContentTypeConfig) || {}
+                  return (
+                    <Box key={type}>
+                      <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                        {label}
+                      </Typography>
+                      <Divider sx={{ mb: 2 }} />
+                      <Stack spacing={2}>
+                        <Box>
+                          <Typography variant="subtitle2" gutterBottom>Section Order Override</Typography>
+                          {isEditing || isCreating ? (
+                            <TextField
+                              fullWidth
+                              size="small"
+                              placeholder="comma-separated: intro, problem, solution, cta"
+                              value={(typeConfig.section_order || []).join(', ')}
+                              onChange={(e) => {
+                                if (editConfig) {
+                                  setEditConfig({
+                                    ...editConfig,
+                                    [configKey]: {
+                                      ...(editConfig[configKey] || {}),
+                                      section_order: e.target.value.split(',').map(s => s.trim()).filter(s => s),
+                                    },
+                                  })
+                                }
+                              }}
+                            />
+                          ) : (
+                            <Typography variant="body2" sx={{ py: 0.5 }}>
+                              {(typeConfig.section_order || []).length > 0 ? typeConfig.section_order!.join(', ') : 'Inherits global'}
+                            </Typography>
+                          )}
+                        </Box>
+                        <Box>
+                          <Typography variant="subtitle2" gutterBottom>Word Count Range Override</Typography>
+                          {isEditing || isCreating ? (
+                            <Box sx={{ display: 'flex', gap: 2 }}>
+                              <TextField
+                                label="Min"
+                                type="number"
+                                size="small"
+                                value={typeConfig.word_count_range?.min ?? ''}
+                                placeholder="Inherit"
+                                onChange={(e) => {
+                                  if (editConfig) {
+                                    setEditConfig({
+                                      ...editConfig,
+                                      [configKey]: {
+                                        ...(editConfig[configKey] || {}),
+                                        word_count_range: {
+                                          ...((editConfig[configKey] as ContentTypeConfig)?.word_count_range || { min: 0, max: 0 }),
+                                          min: parseInt(e.target.value) || 0,
+                                        },
+                                      },
+                                    })
+                                  }
+                                }}
+                              />
+                              <TextField
+                                label="Max"
+                                type="number"
+                                size="small"
+                                value={typeConfig.word_count_range?.max ?? ''}
+                                placeholder="Inherit"
+                                onChange={(e) => {
+                                  if (editConfig) {
+                                    setEditConfig({
+                                      ...editConfig,
+                                      [configKey]: {
+                                        ...(editConfig[configKey] || {}),
+                                        word_count_range: {
+                                          ...((editConfig[configKey] as ContentTypeConfig)?.word_count_range || { min: 0, max: 0 }),
+                                          max: parseInt(e.target.value) || 0,
+                                        },
+                                      },
+                                    })
+                                  }
+                                }}
+                              />
+                            </Box>
+                          ) : (
+                            <Typography variant="body2" sx={{ py: 0.5 }}>
+                              {typeConfig.word_count_range
+                                ? `${typeConfig.word_count_range.min} - ${typeConfig.word_count_range.max}`
+                                : 'Inherits global'}
+                            </Typography>
+                          )}
+                        </Box>
+                        <Box>
+                          <Typography variant="subtitle2" gutterBottom>Heading Depth Override</Typography>
+                          {isEditing || isCreating ? (
+                            <FormControl size="small" sx={{ minWidth: 160 }}>
+                              <InputLabel>Heading Depth</InputLabel>
+                              <Select
+                                value={typeConfig.heading_depth || ''}
+                                onChange={(e) => {
+                                  if (editConfig) {
+                                    setEditConfig({
+                                      ...editConfig,
+                                      [configKey]: {
+                                        ...(editConfig[configKey] || {}),
+                                        heading_depth: e.target.value || undefined,
+                                      },
+                                    })
+                                  }
+                                }}
+                                label="Heading Depth"
+                              >
+                                <MenuItem value="">Inherit global</MenuItem>
+                                <MenuItem value="H2">H2</MenuItem>
+                                <MenuItem value="H3">H3</MenuItem>
+                                <MenuItem value="H4">H4</MenuItem>
+                              </Select>
+                            </FormControl>
+                          ) : (
+                            <Typography variant="body2" sx={{ py: 0.5 }}>
+                              {typeConfig.heading_depth || 'Inherits global'}
+                            </Typography>
+                          )}
+                        </Box>
+                        <Box sx={{ display: 'flex', gap: 3 }}>
+                          <Box>
+                            <Typography variant="subtitle2" gutterBottom>Include TL;DR</Typography>
+                            {isEditing || isCreating ? (
+                              <FormControlLabel
+                                control={
+                                  <Switch
+                                    checked={typeConfig.include_tldr ?? false}
+                                    onChange={(e) => {
+                                      if (editConfig) {
+                                        setEditConfig({
+                                          ...editConfig,
+                                          [configKey]: {
+                                            ...(editConfig[configKey] || {}),
+                                            include_tldr: e.target.checked,
+                                          },
+                                        })
+                                      }
+                                    }}
+                                  />
+                                }
+                                label="Override"
+                              />
+                            ) : (
+                              <Typography variant="body2" sx={{ py: 0.5 }}>
+                                {typeConfig.include_tldr == null ? 'Inherits global' : typeConfig.include_tldr ? 'Yes' : 'No'}
+                              </Typography>
+                            )}
+                          </Box>
+                          <Box>
+                            <Typography variant="subtitle2" gutterBottom>Include Summary</Typography>
+                            {isEditing || isCreating ? (
+                              <FormControlLabel
+                                control={
+                                  <Switch
+                                    checked={typeConfig.include_summary ?? false}
+                                    onChange={(e) => {
+                                      if (editConfig) {
+                                        setEditConfig({
+                                          ...editConfig,
+                                          [configKey]: {
+                                            ...(editConfig[configKey] || {}),
+                                            include_summary: e.target.checked,
+                                          },
+                                        })
+                                      }
+                                    }}
+                                  />
+                                }
+                                label="Override"
+                              />
+                            ) : (
+                              <Typography variant="body2" sx={{ py: 0.5 }}>
+                                {typeConfig.include_summary == null ? 'Inherits global' : typeConfig.include_summary ? 'Yes' : 'No'}
+                              </Typography>
+                            )}
+                          </Box>
+                        </Box>
+                      </Stack>
+                    </Box>
+                  )
+                })}
               </Stack>
             </TabPanel>
 
