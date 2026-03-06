@@ -11,6 +11,7 @@ import {
   MenuItem,
   Grid,
   Alert,
+  AlertTitle,
 } from '@mui/material'
 import { Info as InfoIcon } from '@mui/icons-material'
 import type { PipelineConfig } from '@/types/api'
@@ -40,6 +41,13 @@ export function DefaultSettings({ config, onChange }: DefaultSettingsProps) {
         Configure default settings that apply to all pipeline steps unless overridden in the Model
         Configuration tab.
       </Typography>
+
+      <Alert severity="warning" icon={<InfoIcon />} sx={{ mb: 2 }}>
+        <AlertTitle>Managed by Arthur</AlertTitle>
+        Model and provider selection is now configured per-prompt in Arthur. These settings serve as
+        fallback only when Arthur is unavailable or no model is specified.
+        Configure providers in the <strong>Providers</strong> tab.
+      </Alert>
 
       <Alert severity="info" icon={<InfoIcon />} sx={{ mb: 3 }}>
         These defaults are used when no step-specific configuration is provided. You can override
