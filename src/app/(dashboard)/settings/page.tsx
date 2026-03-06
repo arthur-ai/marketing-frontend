@@ -20,7 +20,6 @@ import {
   RestartAlt as ResetIcon,
   Settings as SettingsIcon,
 } from '@mui/icons-material'
-import { PipelineModelConfigSettings } from '@/components/settings/pipeline-model-config-settings'
 import { OptionalStepsSettings } from '@/components/settings/optional-steps-settings'
 import { RetryStrategySettings } from '@/components/settings/retry-strategy-settings'
 import type { RetryStrategyConfig } from '@/types/api'
@@ -144,11 +143,6 @@ export default function SettingsPage() {
     
     loadSettings()
   }, [])
-
-  const handleConfigChange = (newConfig: PipelineConfig) => {
-    setPipelineConfig(newConfig)
-    setHasChanges(true)
-  }
 
   const handleOptionalStepsChange = (newSteps: Set<string>) => {
     setOptionalSteps(newSteps)
@@ -308,7 +302,6 @@ export default function SettingsPage() {
         <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
           <Tabs value={activeTab} onChange={handleTabChange} aria-label="settings tabs">
             <Tab label="Providers" />
-            <Tab label="Model Configuration" />
             <Tab label="Optional Steps" />
             <Tab label="Retry Strategy" />
             <Tab label="SEO Keywords Engine" />
@@ -323,27 +316,20 @@ export default function SettingsPage() {
           </TabPanel>
 
           <TabPanel value={activeTab} index={1}>
-            <PipelineModelConfigSettings
-              config={pipelineConfig}
-              onChange={handleConfigChange}
-            />
-          </TabPanel>
-
-          <TabPanel value={activeTab} index={2}>
             <OptionalStepsSettings
               optionalSteps={optionalSteps}
               onChange={handleOptionalStepsChange}
             />
           </TabPanel>
 
-          <TabPanel value={activeTab} index={3}>
+          <TabPanel value={activeTab} index={2}>
             <RetryStrategySettings
               config={retryStrategy}
               onChange={handleRetryStrategyChange}
             />
           </TabPanel>
 
-          <TabPanel value={activeTab} index={4}>
+          <TabPanel value={activeTab} index={3}>
             <SEOKeywordsEngineSettings
               config={pipelineConfig.seo_keywords_engine_config}
               onChange={(config) => {
@@ -356,7 +342,7 @@ export default function SettingsPage() {
             />
           </TabPanel>
 
-          <TabPanel value={activeTab} index={5}>
+          <TabPanel value={activeTab} index={4}>
             <ApprovalSettings
               onChange={(hasChanges) => {
                 setHasApprovalChanges(hasChanges)
@@ -372,7 +358,7 @@ export default function SettingsPage() {
             />
           </TabPanel>
 
-          <TabPanel value={activeTab} index={6}>
+          <TabPanel value={activeTab} index={5}>
             <ConfigVersioning
               config={pipelineConfig}
               onRollback={(config) => {
