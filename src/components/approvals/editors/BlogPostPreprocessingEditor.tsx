@@ -72,13 +72,13 @@ export function BlogPostPreprocessingEditor({
             <Stack spacing={3}>
               <ParsingInfoSection data={data} />
               <ValidationStatusSection data={data} />
-              <BlogPostDetailsSection 
-                data={data} 
+              <BlogPostDetailsSection
+                data={data}
                 isEditing={isEditing}
                 onUpdate={updateField}
               />
-              <ContentAnalysisSection data={data} />
-              <SentimentAnalysisSection data={data} />
+              <ContentAnalysisSection data={data} isEditing={isEditing} onUpdate={updateField} />
+              <SentimentAnalysisSection data={data} isEditing={isEditing} onUpdate={updateField} />
               <ParsingWarningsSection data={data} />
             </Stack>
           </CardContent>
@@ -107,13 +107,13 @@ export function BlogPostPreprocessingEditor({
           <Stack spacing={3}>
             <ParsingInfoSection data={data} />
             <ValidationStatusSection data={data} />
-            <BlogPostDetailsSection 
-              data={data} 
+            <BlogPostDetailsSection
+              data={data}
               isEditing={isEditing}
               onUpdate={updateField}
             />
-            <ContentAnalysisSection data={data} />
-            <SentimentAnalysisSection data={data} />
+            <ContentAnalysisSection data={data} isEditing={isEditing} onUpdate={updateField} />
+            <SentimentAnalysisSection data={data} isEditing={isEditing} onUpdate={updateField} />
             <ParsingWarningsSection data={data} />
           </Stack>
         </CardContent>

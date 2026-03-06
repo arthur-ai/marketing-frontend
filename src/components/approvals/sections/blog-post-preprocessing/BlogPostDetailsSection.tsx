@@ -320,7 +320,7 @@ export function BlogPostDetailsSection({
           )}
 
           {/* Snippet */}
-          {snippet && (
+          {(snippet || isEditing) && (
             <>
               <Divider />
               <Box>
@@ -330,30 +330,31 @@ export function BlogPostDetailsSection({
                     Snippet
                   </Typography>
                 </Box>
-                <Box
-                  sx={{
-                    p: 2,
-                    bgcolor: 'grey.50',
-                    borderRadius: 1,
-                    border: '1px solid',
-                    borderColor: 'grey.300',
-                  }}
-                >
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      whiteSpace: 'pre-wrap',
-                    }}
+                {isEditing ? (
+                  <TextField
+                    size="small"
+                    fullWidth
+                    multiline
+                    rows={3}
+                    value={snippet || ''}
+                    onChange={(e) => onUpdate?.('snippet', e.target.value)}
+                    placeholder="Enter snippet..."
+                  />
+                ) : (
+                  <Box
+                    sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1, border: '1px solid', borderColor: 'grey.300' }}
                   >
-                    {snippet}
-                  </Typography>
-                </Box>
+                    <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
+                      {snippet}
+                    </Typography>
+                  </Box>
+                )}
               </Box>
             </>
           )}
 
           {/* Content Summary */}
-          {content_summary && (
+          {(content_summary || isEditing) && (
             <>
               <Divider />
               <Box>
@@ -363,26 +364,29 @@ export function BlogPostDetailsSection({
                     Content Preview
                   </Typography>
                 </Box>
-                <Box
-                  sx={{
-                    p: 2,
-                    bgcolor: 'grey.50',
-                    borderRadius: 1,
-                    border: '1px solid',
-                    borderColor: 'grey.300',
-                  }}
-                >
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      whiteSpace: 'pre-wrap',
-                      fontFamily: 'monospace',
-                      fontSize: '0.875rem',
-                    }}
+                {isEditing ? (
+                  <TextField
+                    size="small"
+                    fullWidth
+                    multiline
+                    rows={5}
+                    value={content_summary || ''}
+                    onChange={(e) => onUpdate?.('content_summary', e.target.value)}
+                    placeholder="Enter content preview..."
+                    inputProps={{ style: { fontFamily: 'monospace', fontSize: '0.875rem' } }}
+                  />
+                ) : (
+                  <Box
+                    sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1, border: '1px solid', borderColor: 'grey.300' }}
                   >
-                    {content_summary}
-                  </Typography>
-                </Box>
+                    <Typography
+                      variant="body2"
+                      sx={{ whiteSpace: 'pre-wrap', fontFamily: 'monospace', fontSize: '0.875rem' }}
+                    >
+                      {content_summary}
+                    </Typography>
+                  </Box>
+                )}
               </Box>
             </>
           )}

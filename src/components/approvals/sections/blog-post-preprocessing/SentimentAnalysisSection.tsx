@@ -9,6 +9,12 @@ import {
   Chip,
   Divider,
   LinearProgress,
+  TextField,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Slider,
 } from '@mui/material'
 import {
   SentimentSatisfied,
@@ -16,6 +22,8 @@ import {
   SentimentDissatisfied,
   Psychology,
 } from '@mui/icons-material'
+
+const SENTIMENT_OPTIONS = ['positive', 'neutral', 'negative', 'mixed']
 
 interface SentimentAnalysisSectionProps {
   data: {
@@ -25,9 +33,11 @@ interface SentimentAnalysisSectionProps {
     emotional_tone?: string
     sentiment_by_section?: Record<string, any>
   }
+  isEditing?: boolean
+  onUpdate?: (field: string, value: any) => void
 }
 
-export function SentimentAnalysisSection({ data }: SentimentAnalysisSectionProps) {
+export function SentimentAnalysisSection({ data, isEditing = false, onUpdate }: SentimentAnalysisSectionProps) {
   const {
     overall_sentiment,
     sentiment_score,
@@ -36,13 +46,13 @@ export function SentimentAnalysisSection({ data }: SentimentAnalysisSectionProps
     sentiment_by_section,
   } = data
 
-  const hasData = overall_sentiment || 
-    sentiment_score !== undefined || 
-    sentiment_confidence !== undefined || 
-    emotional_tone || 
+  const hasData = overall_sentiment ||
+    sentiment_score !== undefined ||
+    sentiment_confidence !== undefined ||
+    emotional_tone ||
     (sentiment_by_section && Object.keys(sentiment_by_section).length > 0)
 
-  if (!hasData) {
+  if (!hasData && !isEditing) {
     return null
   }
 
@@ -81,25 +91,45 @@ export function SentimentAnalysisSection({ data }: SentimentAnalysisSectionProps
 
         <Stack spacing={2}>
           {/* Overall Sentiment */}
-          {overall_sentiment && (
+          {(overall_sentiment || isEditing) && (
             <Box>
               <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
                 Overall Sentiment
               </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                {getSentimentIcon(overall_sentiment)}
-                <Chip
-                  label={overall_sentiment}
-                  size="small"
-                  color={getSentimentColor(overall_sentiment)}
-                  variant="filled"
-                />
-              </Box>
+              {isEditing ? (
+                <FormControl size="small" fullWidth>
+                  <InputLabel>Sentiment</InputLabel>
+                  <Select
+                    value={overall_sentiment || ''}
+                    label="Sentiment"
+                    onChange={(e) => onUpdate?.('overall_sentiment', e.target.value)}
+                  >
+                    {SENTIMENT_OPTIONS.map((opt) => (
+                      <MenuItem key={opt} value={opt}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          {getSentimentIcon(opt)}
+                          <span style={{ textTransform: 'capitalize' }}>{opt}</span>
+                        </Box>
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              ) : (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  {getSentimentIcon(overall_sentiment)}
+                  <Chip
+                    label={overall_sentiment}
+                    size="small"
+                    color={getSentimentColor(overall_sentiment)}
+                    variant="filled"
+                  />
+                </Box>
+              )}
             </Box>
           )}
 
           {/* Sentiment Score */}
-          {sentiment_score !== undefined && sentiment_score !== null && (
+          {(sentiment_score !== undefined && sentiment_score !== null) && (
             <>
               {overall_sentiment && <Divider />}
               <Box>
@@ -111,25 +141,36 @@ export function SentimentAnalysisSection({ data }: SentimentAnalysisSectionProps
                     {sentiment_score >= 0 ? '+' : ''}{sentiment_score.toFixed(2)}
                   </Typography>
                 </Box>
-                <LinearProgress
-                  variant="determinate"
-                  value={((sentiment_score + 1) / 2) * 100} // Convert -1 to 1 range to 0-100
-                  color={getSentimentScoreColor(sentiment_score)}
-                  sx={{ height: 8, borderRadius: 1 }}
-                />
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
-                  <Typography variant="caption" color="text.secondary">
-                    Very Negative
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Very Positive
-                  </Typography>
-                </Box>
+                {isEditing ? (
+                  <Slider
+                    value={sentiment_score}
+                    min={-1}
+                    max={1}
+                    step={0.01}
+                    onChange={(_, val) => onUpdate?.('sentiment_score', val)}
+                    color={getSentimentScoreColor(sentiment_score) as any}
+                    size="small"
+                    marks={[{ value: -1, label: '-1' }, { value: 0, label: '0' }, { value: 1, label: '+1' }]}
+                  />
+                ) : (
+                  <>
+                    <LinearProgress
+                      variant="determinate"
+                      value={((sentiment_score + 1) / 2) * 100}
+                      color={getSentimentScoreColor(sentiment_score)}
+                      sx={{ height: 8, borderRadius: 1 }}
+                    />
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
+                      <Typography variant="caption" color="text.secondary">Very Negative</Typography>
+                      <Typography variant="caption" color="text.secondary">Very Positive</Typography>
+                    </Box>
+                  </>
+                )}
               </Box>
             </>
           )}
 
-          {/* Sentiment Confidence */}
+          {/* Sentiment Confidence (read-only) */}
           {sentiment_confidence !== undefined && sentiment_confidence !== null && (
             <>
               {(overall_sentiment || sentiment_score !== undefined) && <Divider />}
@@ -153,24 +194,29 @@ export function SentimentAnalysisSection({ data }: SentimentAnalysisSectionProps
           )}
 
           {/* Emotional Tone */}
-          {emotional_tone && (
+          {(emotional_tone || isEditing) && (
             <>
               {(overall_sentiment || sentiment_score !== undefined || sentiment_confidence !== undefined) && <Divider />}
               <Box>
                 <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
                   Emotional Tone
                 </Typography>
-                <Chip
-                  label={emotional_tone}
-                  size="small"
-                  color="secondary"
-                  variant="outlined"
-                />
+                {isEditing ? (
+                  <TextField
+                    size="small"
+                    fullWidth
+                    value={emotional_tone || ''}
+                    onChange={(e) => onUpdate?.('emotional_tone', e.target.value)}
+                    placeholder="e.g. enthusiastic, informative, urgent"
+                  />
+                ) : (
+                  <Chip label={emotional_tone} size="small" color="secondary" variant="outlined" />
+                )}
               </Box>
             </>
           )}
 
-          {/* Sentiment by Section */}
+          {/* Sentiment by Section (read-only) */}
           {sentiment_by_section && Object.keys(sentiment_by_section).length > 0 && (
             <>
               {(overall_sentiment || sentiment_score !== undefined || sentiment_confidence !== undefined || emotional_tone) && <Divider />}
@@ -182,13 +228,7 @@ export function SentimentAnalysisSection({ data }: SentimentAnalysisSectionProps
                   {Object.entries(sentiment_by_section).map(([section, sentimentData]: [string, any]) => (
                     <Box
                       key={section}
-                      sx={{
-                        p: 1.5,
-                        bgcolor: 'grey.50',
-                        borderRadius: 1,
-                        border: '1px solid',
-                        borderColor: 'grey.300',
-                      }}
+                      sx={{ p: 1.5, bgcolor: 'grey.50', borderRadius: 1, border: '1px solid', borderColor: 'grey.300' }}
                     >
                       <Typography variant="body2" fontWeight="bold" gutterBottom>
                         {section}
@@ -220,4 +260,3 @@ export function SentimentAnalysisSection({ data }: SentimentAnalysisSectionProps
     </Card>
   )
 }
-
