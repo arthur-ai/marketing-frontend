@@ -24,7 +24,7 @@ export function PrimaryKeywordsMetadata({ metadata }: PrimaryKeywordsMetadataPro
               {meta.keyword}
             </Typography>
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' }, gap: 1.5 }}>
-              {meta.search_volume !== undefined && (
+              {meta.search_volume != null && (
                 <Box>
                   <Typography variant="caption" color="text.secondary" display="block">
                     Search Volume
@@ -34,7 +34,7 @@ export function PrimaryKeywordsMetadata({ metadata }: PrimaryKeywordsMetadataPro
                   </Typography>
                 </Box>
               )}
-              {meta.difficulty_score !== undefined && (
+              {meta.difficulty_score != null && (
                 <Box>
                   <Typography variant="caption" color="text.secondary" display="block">
                     Difficulty
@@ -44,7 +44,7 @@ export function PrimaryKeywordsMetadata({ metadata }: PrimaryKeywordsMetadataPro
                   </Typography>
                 </Box>
               )}
-              {meta.cpc_estimate !== undefined && (
+              {meta.cpc_estimate != null && (
                 <Box>
                   <Typography variant="caption" color="text.secondary" display="block">
                     CPC Estimate
@@ -54,7 +54,7 @@ export function PrimaryKeywordsMetadata({ metadata }: PrimaryKeywordsMetadataPro
                   </Typography>
                 </Box>
               )}
-              {meta.relevance_score !== undefined && (
+              {meta.relevance_score != null && (
                 <Box>
                   <Typography variant="caption" color="text.secondary" display="block">
                     Relevance
@@ -71,7 +71,7 @@ export function PrimaryKeywordsMetadata({ metadata }: PrimaryKeywordsMetadataPro
                   </Typography>
                   <Typography variant="body2" sx={{ fontWeight: 500, color: meta.trend_direction === 'rising' ? 'success.main' : meta.trend_direction === 'declining' ? 'error.main' : 'text.secondary' }}>
                     {meta.trend_direction}
-                    {meta.trend_percentage !== undefined && ` (${meta.trend_percentage > 0 ? '+' : ''}${meta.trend_percentage.toFixed(1)}%)`}
+                    {meta.trend_percentage != null && ` (${meta.trend_percentage > 0 ? '+' : ''}${meta.trend_percentage.toFixed(1)}%)`}
                   </Typography>
                 </Box>
               )}

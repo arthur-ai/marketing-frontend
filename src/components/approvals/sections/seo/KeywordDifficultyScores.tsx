@@ -17,7 +17,7 @@ export function KeywordDifficultyScores({ difficultyScores }: KeywordDifficultyS
         Keyword Difficulty Scores
       </Typography>
       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-        {Object.entries(difficultyScores).map(([keyword, score]) => (
+        {Object.entries(difficultyScores).filter(([, score]) => score != null).map(([keyword, score]) => (
           <Chip
             key={keyword}
             label={`${keyword}: ${score.toFixed(0)}`}
