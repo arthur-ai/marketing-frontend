@@ -39,10 +39,10 @@ import {
   Delete,
 } from '@mui/icons-material'
 import { useQueryClient } from '@tanstack/react-query'
-import { useDesignKitConfig, useDesignKitVersions, useCreateOrUpdateDesignKitConfig, useGenerateDesignKitConfig, useActivateDesignKitVersion, useJobStatus } from '@/hooks/useApi'
+import { useBrandKitConfig, useBrandKitVersions, useCreateOrUpdateBrandKitConfig, useGenerateBrandKitConfig, useActivateBrandKitVersion, useJobStatus } from '@/hooks/useApi'
 import { showSuccessToast, showErrorToast } from '@/lib/toast-utils'
 import { api } from '@/lib/api'
-import type { DesignKitConfig, ContentTypeConfig } from '@/types/api'
+import type { BrandKitConfig, ContentTypeConfig } from '@/types/api'
 
 interface TabPanelProps {
   children?: React.ReactNode
@@ -59,24 +59,24 @@ function TabPanel(props: TabPanelProps) {
   )
 }
 
-export default function DesignKitPage() {
-  const { data: configData, isLoading, error, refetch } = useDesignKitConfig()
-  const { data: versionsData } = useDesignKitVersions()
-  const createOrUpdateMutation = useCreateOrUpdateDesignKitConfig()
-  const generateMutation = useGenerateDesignKitConfig()
-  const activateMutation = useActivateDesignKitVersion()
+export default function BrandKitPage() {
+  const { data: configData, isLoading, error, refetch } = useBrandKitConfig()
+  const { data: versionsData } = useBrandKitVersions()
+  const createOrUpdateMutation = useCreateOrUpdateBrandKitConfig()
+  const generateMutation = useGenerateBrandKitConfig()
+  const activateMutation = useActivateBrandKitVersion()
   const queryClient = useQueryClient()
   
   const [isEditing, setIsEditing] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
   const [tabValue, setTabValue] = useState(0)
-  const [editConfig, setEditConfig] = useState<Partial<DesignKitConfig> | null>(null)
+  const [editConfig, setEditConfig] = useState<Partial<BrandKitConfig> | null>(null)
   const [refreshJobId, setRefreshJobId] = useState<string | null>(null)
   
   // Poll for refresh job completion
   const { data: refreshJobStatus } = useJobStatus(refreshJobId || '', !!refreshJobId)
 
-  const config = configData?.data as DesignKitConfig | undefined
+  const config = configData?.data as BrandKitConfig | undefined
   const versions = versionsData?.data || []
 
   // Handle refresh job completion
@@ -90,7 +90,7 @@ export default function DesignKitPage() {
       refetch().catch(() => {}) // Refetch the updated config
       showSuccessToast(
         'Configuration refreshed',
-        'Design kit configuration has been regenerated using AI. Review and edit as needed.'
+        'Brand kit configuration has been regenerated using AI. Review and edit as needed.'
       )
     } else if (status === 'failed') {
       setRefreshJobId(null) // Stop polling
@@ -176,7 +176,7 @@ export default function DesignKitPage() {
       await generateMutation.mutateAsync(true)
       showSuccessToast(
         'Configuration generated', 
-        'Design kit configuration has been generated from content analysis. Review and edit as needed.'
+        'Brand kit configuration has been generated from content analysis. Review and edit as needed.'
       )
       // Refetch to show the newly generated config
       refetch()
@@ -190,7 +190,7 @@ export default function DesignKitPage() {
     // This uses AI to generate a new comprehensive config
     try {
       // Call the API with refresh=true to regenerate using AI
-      const response = await api.getDesignKitConfig(true)
+      const response = await api.getBrandKitConfig(true)
       
       // Check if response includes job_id (refresh mode)
       if (response.data?.job_id) {
@@ -198,14 +198,14 @@ export default function DesignKitPage() {
         setRefreshJobId(response.data.job_id)
         showSuccessToast(
           'Refresh started',
-          'Design kit configuration is being regenerated using AI. This may take a moment...'
+          'Brand kit configuration is being regenerated using AI. This may take a moment...'
         )
       } else {
         // Direct response (shouldn't happen with refresh=true, but handle gracefully)
-        queryClient.setQueryData(['design-kit', 'config'], response.data)
+        queryClient.setQueryData(['brand-kit', 'config'], response.data)
         showSuccessToast(
           'Configuration refreshed',
-          'Design kit configuration has been regenerated using AI. Review and edit as needed.'
+          'Brand kit configuration has been regenerated using AI. Review and edit as needed.'
         )
       }
     } catch (error) {
@@ -221,7 +221,7 @@ export default function DesignKitPage() {
         config: editConfig,
         setActive: true,
       })
-      showSuccessToast('Configuration saved', 'Design kit configuration has been saved successfully')
+      showSuccessToast('Configuration saved', 'Brand kit configuration has been saved successfully')
       setIsEditing(false)
       setIsCreating(false)
       setEditConfig(null)
@@ -241,7 +241,7 @@ export default function DesignKitPage() {
     return (
       <Container maxWidth="lg" sx={{ py: 4, textAlign: 'center' }}>
         <CircularProgress />
-        <Typography sx={{ mt: 2 }}>Loading design kit configuration...</Typography>
+        <Typography sx={{ mt: 2 }}>Loading brand kit configuration...</Typography>
       </Container>
     )
   }
@@ -256,7 +256,7 @@ export default function DesignKitPage() {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
             <Palette sx={{ fontSize: 32, color: 'primary.main' }} />
             <Typography variant="h4" sx={{ fontWeight: 700 }}>
-              Design Kit Configuration
+              Brand Kit Configuration
             </Typography>
           </Box>
           <Typography variant="body1" color="text.secondary">
@@ -312,7 +312,7 @@ export default function DesignKitPage() {
 
       {!config && !isCreating && (
         <Alert severity="warning" sx={{ mb: 3 }}>
-          No design kit configuration found. Create one manually or generate from analysis. 
+          No brand kit configuration found. Create one manually or generate from analysis. 
           Pipelines will run without it but will show a warning.
         </Alert>
       )}

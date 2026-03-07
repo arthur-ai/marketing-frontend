@@ -585,7 +585,7 @@ export default function InternalDocsPage() {
 
       {!config && !isCreating && activeTab === 0 && (
         <Alert severity="info" sx={{ mb: 3 }}>
-          No internal docs configuration found. Create one to get started. This configuration is used by the Design Kit to generate interlinking information.
+          No internal docs configuration found. Create one to get started. This configuration is used by the Brand Kit to generate interlinking information.
         </Alert>
       )}
 

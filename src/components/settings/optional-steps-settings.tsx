@@ -15,7 +15,7 @@ const PIPELINE_STEPS = [
   { name: 'seo_optimization', label: 'SEO Optimization', description: 'SEO recommendations and optimizations', impact: 'medium' },
   { name: 'suggested_links', label: 'Suggested Links', description: 'Suggest internal links to add to the article', impact: 'low' },
   { name: 'content_formatting', label: 'Content Formatting', description: 'Final content formatting and structure', impact: 'medium' },
-  { name: 'design_kit', label: 'Design Kit', description: 'Design and visual recommendations', impact: 'low' },
+  { name: 'design_kit', label: 'Brand Kit', description: 'Design and visual recommendations', impact: 'low' },
 ]
 
 export function OptionalStepsSettings({ optionalSteps, onChange }: OptionalStepsSettingsProps) {

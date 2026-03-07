@@ -30,7 +30,7 @@ const PIPELINE_STEPS = [
   { name: 'seo_optimization', label: 'SEO Optimization', complexity: 'Medium', recommended: 'gpt-5-mini' },
   { name: 'suggested_links', label: 'Suggested Links', complexity: 'Simple', recommended: 'gpt-5-nano' },
   { name: 'content_formatting', label: 'Content Formatting', complexity: 'Simple', recommended: 'gpt-5-nano' },
-  { name: 'design_kit', label: 'Design Kit', complexity: 'Simple', recommended: 'gpt-5-nano' },
+  { name: 'design_kit', label: 'Brand Kit', complexity: 'Simple', recommended: 'gpt-5-nano' },
 ]
 
 export function PipelineModelConfig({ config, onChange, onReset }: PipelineModelConfigProps) {

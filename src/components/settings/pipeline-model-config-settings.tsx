@@ -46,7 +46,7 @@ const PIPELINE_STEPS = [
   { name: 'seo_optimization', label: 'SEO Optimization', complexity: 'Medium', recommended: 'gpt-5-mini' },
   { name: 'suggested_links', label: 'Suggested Links', complexity: 'Simple', recommended: 'gpt-5-nano' },
   { name: 'content_formatting', label: 'Content Formatting', complexity: 'Simple', recommended: 'gpt-5-nano' },
-  { name: 'design_kit', label: 'Design Kit', complexity: 'Simple', recommended: 'gpt-5-nano' },
+  { name: 'design_kit', label: 'Brand Kit', complexity: 'Simple', recommended: 'gpt-5-nano' },
   // Social Media Pipeline Steps
   { name: 'social_media_marketing_brief', label: 'Social Media Marketing Brief', complexity: 'Medium', recommended: 'gpt-5-mini' },
   { name: 'social_media_angle_hook', label: 'Social Media Angle & Hook', complexity: 'Medium', recommended: 'gpt-5-mini' },

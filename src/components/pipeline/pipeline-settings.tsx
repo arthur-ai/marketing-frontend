@@ -82,7 +82,7 @@ const AVAILABLE_STEPS = [
   },
   {
     id: 'design_kit',
-    name: 'Design Kit',
+    name: 'Brand Kit',
     description: 'Design and visual recommendations',
     color: 'secondary',
     impact: 'low'

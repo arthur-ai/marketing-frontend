@@ -771,7 +771,7 @@ export interface InternalDocsConfig {
   is_active: boolean
 }
 
-// Design Kit Configuration
+// Brand Kit Configuration
 // Step Execution Types
 export interface StepInfo {
   step_name: string
@@ -812,7 +812,7 @@ export interface ContentTypeConfig {
   include_summary?: boolean
 }
 
-export interface DesignKitConfig {
+export interface BrandKitConfig {
   // Visual Design
   visual_components?: Array<Record<string, string>>
   color_scheme?: Record<string, string>

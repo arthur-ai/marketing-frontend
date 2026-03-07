@@ -133,7 +133,7 @@ import type {
   RecentActivity,
   TrendData,
   InternalDocsConfig,
-  DesignKitConfig,
+  BrandKitConfig,
   StepListResponse,
   StepRequirementsResponse,
   StepExecutionRequest,
@@ -589,26 +589,26 @@ export const api = {
     })
   },
   
-  // Design Kit Configuration
-  getDesignKitConfig: (refresh?: boolean): Promise<AxiosResponse<any>> =>
+  // Brand Kit Configuration
+  getBrandKitConfig: (refresh?: boolean): Promise<AxiosResponse<any>> =>
     apiClient.get('/v1/brand-kit/config', { params: { refresh: refresh || false } }),
 
-  getDesignKitConfigByVersion: (version: string): Promise<AxiosResponse<any>> =>
+  getBrandKitConfigByVersion: (version: string): Promise<AxiosResponse<any>> =>
     apiClient.get(`/v1/brand-kit/config/${version}`),
 
-  getDesignKitConfigByContentType: (contentType: string): Promise<AxiosResponse<any>> =>
+  getBrandKitConfigByContentType: (contentType: string): Promise<AxiosResponse<any>> =>
     apiClient.get(`/v1/brand-kit/config/${contentType}/type`),
 
-  createOrUpdateDesignKitConfig: (config: any, setActive = true): Promise<AxiosResponse<any>> =>
+  createOrUpdateBrandKitConfig: (config: any, setActive = true): Promise<AxiosResponse<any>> =>
     apiClient.post('/v1/brand-kit/config', { config, set_active: setActive }),
 
-  generateDesignKitConfig: (useInternalDocs = true): Promise<AxiosResponse<any>> =>
+  generateBrandKitConfig: (useInternalDocs = true): Promise<AxiosResponse<any>> =>
     apiClient.post('/v1/brand-kit/generate', { use_internal_docs: useInternalDocs }),
 
-  listDesignKitVersions: (): Promise<AxiosResponse<string[]>> =>
+  listBrandKitVersions: (): Promise<AxiosResponse<string[]>> =>
     apiClient.get('/v1/brand-kit/versions'),
 
-  activateDesignKitVersion: (version: string): Promise<AxiosResponse<{ message: string }>> =>
+  activateBrandKitVersion: (version: string): Promise<AxiosResponse<{ message: string }>> =>
     apiClient.post(`/v1/brand-kit/activate/${version}`),
   
   // Social Media

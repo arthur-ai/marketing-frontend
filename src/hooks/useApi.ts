@@ -415,69 +415,69 @@ export function useActivateInternalDocsVersion() {
   })
 }
 
-// Design Kit Configuration Hooks
-export function useDesignKitConfig() {
+// Brand Kit Configuration Hooks
+export function useBrandKitConfig() {
   return useQuery({
-    queryKey: ['design-kit', 'config'],
-    queryFn: () => api.getDesignKitConfig(),
+    queryKey: ['brand-kit', 'config'],
+    queryFn: () => api.getBrandKitConfig(),
     staleTime: 5 * 60 * 1000, // 5 minutes
   })
 }
 
-export function useDesignKitConfigByVersion(version: string) {
+export function useBrandKitConfigByVersion(version: string) {
   return useQuery({
-    queryKey: ['design-kit', 'config', version],
-    queryFn: () => api.getDesignKitConfigByVersion(version),
+    queryKey: ['brand-kit', 'config', version],
+    queryFn: () => api.getBrandKitConfigByVersion(version),
     enabled: !!version,
   })
 }
 
-export function useDesignKitConfigByContentType(contentType: string) {
+export function useBrandKitConfigByContentType(contentType: string) {
   return useQuery({
-    queryKey: ['design-kit', 'config', contentType, 'type'],
-    queryFn: () => api.getDesignKitConfigByContentType(contentType),
+    queryKey: ['brand-kit', 'config', contentType, 'type'],
+    queryFn: () => api.getBrandKitConfigByContentType(contentType),
     enabled: !!contentType,
   })
 }
 
-export function useDesignKitVersions() {
+export function useBrandKitVersions() {
   return useQuery({
-    queryKey: ['design-kit', 'versions'],
-    queryFn: () => api.listDesignKitVersions(),
+    queryKey: ['brand-kit', 'versions'],
+    queryFn: () => api.listBrandKitVersions(),
     staleTime: 5 * 60 * 1000,
   })
 }
 
-export function useCreateOrUpdateDesignKitConfig() {
+export function useCreateOrUpdateBrandKitConfig() {
   const queryClient = useQueryClient()
-  
+
   return useMutation({
-    mutationFn: ({ config, setActive }: { config: any; setActive?: boolean }) => 
-      api.createOrUpdateDesignKitConfig(config, setActive),
+    mutationFn: ({ config, setActive }: { config: any; setActive?: boolean }) =>
+      api.createOrUpdateBrandKitConfig(config, setActive),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['design-kit'] })
+      queryClient.invalidateQueries({ queryKey: ['brand-kit'] })
     },
   })
 }
 
-export function useGenerateDesignKitConfig() {
+export function useGenerateBrandKitConfig() {
   const queryClient = useQueryClient()
-  
+
   return useMutation({
-    mutationFn: (useInternalDocs = true) => api.generateDesignKitConfig(useInternalDocs),
+    mutationFn: (useInternalDocs = true) => api.generateBrandKitConfig(useInternalDocs),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['design-kit'] })
+      queryClient.invalidateQueries({ queryKey: ['brand-kit'] })
     },
   })
 }
 
-export function useActivateDesignKitVersion() {
+export function useActivateBrandKitVersion() {
   const queryClient = useQueryClient()
-  
+
   return useMutation({
-    mutationFn: (version: string) => api.activateDesignKitVersion(version),
+    mutationFn: (version: string) => api.activateBrandKitVersion(version),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['design-kit'] })
+      queryClient.invalidateQueries({ queryKey: ['brand-kit'] })
     },
   })
 }

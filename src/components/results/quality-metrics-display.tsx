@@ -96,11 +96,11 @@ export function QualityMetricsDisplay({ stepResults, qualityMetrics }: QualityMe
       })
     }
 
-    // Design Kit
+    // Brand Kit
     if (stepResults.design_kit) {
       metrics.push({
         step: 'design_kit',
-        label: 'Design Kit',
+        label: 'Brand Kit',
         confidence: stepResults.design_kit.confidence_score,
         quality: stepResults.design_kit.design_quality_score,
         icon: <Palette className="h-4 w-4" />,

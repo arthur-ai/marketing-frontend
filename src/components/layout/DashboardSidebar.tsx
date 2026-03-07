@@ -42,7 +42,7 @@ const menuItems = [
   { title: 'Upload', icon: <UploadFileIcon />, path: '/upload' },
   { title: 'Analytics', icon: <BarChartIcon />, path: '/analytics' },
   { title: 'Internal Docs', icon: <DescriptionIcon />, path: '/internal-docs' },
-  { title: 'Design Kit', icon: <PaletteIcon />, path: '/design-kit' },
+  { title: 'Brand Kit', icon: <PaletteIcon />, path: '/brand-kit' },
   { title: 'Competitor Research', icon: <TravelExploreIcon />, path: '/competitor-research' },
   { title: 'Settings', icon: <SettingsIcon />, path: '/settings' },
 ]
