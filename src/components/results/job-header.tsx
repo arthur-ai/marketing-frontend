@@ -95,6 +95,9 @@ export function JobHeader({
               >
                 View Job
               </Button>
+              {job.metadata.resume_job_id && !job.metadata.parent_job_id && (
+                <Chip label="Resumed" size="small" color="secondary" sx={{ height: 20, fontSize: '0.65rem' }} />
+              )}
             </Box>
             <Typography variant="caption" color="text.secondary">
               Job ID: {job.job_id.substring(0, 8)}...
