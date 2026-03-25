@@ -244,11 +244,12 @@ export function useJobStatus(jobId: string, enabled = true) {
   })
 }
 
-export function useJob(jobId: string) {
+export function useJob(jobId: string, refetchInterval: number | false = false) {
   return useQuery({
     queryKey: ['jobs', jobId],
     queryFn: () => api.getJob(jobId),
     enabled: !!jobId,
+    refetchInterval,
   })
 }
 
@@ -258,6 +259,15 @@ export function useJobResult(jobId: string, enabled = false) {
     queryFn: () => api.getJobResult(jobId),
     enabled: !!jobId && enabled,
     retry: false, // Don't retry if job isn't ready
+  })
+}
+
+export function useJobQuality(jobId: string, enabled = false) {
+  return useQuery({
+    queryKey: ['jobs', jobId, 'quality'],
+    queryFn: () => api.getJobQuality(jobId),
+    enabled: !!jobId && enabled,
+    retry: false,
   })
 }
 

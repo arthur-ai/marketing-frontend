@@ -15,13 +15,16 @@ import {
   ListItem,
   ListItemText,
   ListItemButton,
+  LinearProgress,
 } from '@mui/material'
 import {
   ArrowBack,
   ChevronRight,
+  CheckCircle,
+  Warning,
 } from '@mui/icons-material'
-import { useMemo } from 'react'
-import { useJob, useJobApprovals } from '@/hooks/useApi'
+import { useMemo, useEffect, useRef, useState } from 'react'
+import { useJob, useJobApprovals, useJobQuality } from '@/hooks/useApi'
 import { getJobRoute } from '@/lib/job-routing'
 import { InlineApprovalPanel } from '@/components/results/inline-approval-panel'
 
@@ -29,8 +32,18 @@ export default function GenericJobPage() {
   const params = useParams()
   const router = useRouter()
   const jobId = params.jobId as string
-  
-  const { data: jobData, isLoading: jobLoading, error: jobError } = useJob(jobId)
+
+  // SSE state
+  const [sseConnected, setSseConnected] = useState(false)
+  const [sseStep, setSseStep] = useState<string | undefined>(undefined)
+  const [ssePct, setSsePct] = useState<number | undefined>(undefined)
+  const eventSourceRef = useRef<EventSource | null>(null)
+
+  const { data: jobData, isLoading: jobLoading, error: jobError } = useJob(
+    jobId,
+    // Poll at 3s when SSE is not connected and job is still active
+    sseConnected ? false : 3000
+  )
   const { data: approvalsData, refetch: refetchApprovals } = useJobApprovals(jobId)
 
   const job = jobData?.data?.job
@@ -38,8 +51,69 @@ export default function GenericJobPage() {
 
   const isTerminal = job?.status === 'completed' || job?.status === 'failed' || job?.status === 'cancelled'
   const isWaitingForApproval = job?.status === 'waiting_for_approval'
-  // Prefer a pending approval; fall back to most recent
+  const isCompleted = job?.status === 'completed'
+
   const pendingApproval = approvals.find((a: any) => a.status === 'pending') ?? (approvals.length > 0 ? approvals[0] : null)
+
+  // Quality data — only fetch when job is completed
+  const { data: qualityData } = useJobQuality(jobId, isCompleted)
+  const quality = qualityData?.data
+
+  // SSE connection: open when job is active, close when terminal
+  useEffect(() => {
+    if (!jobId) return
+    if (isTerminal) {
+      // Clean up on terminal state
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close()
+        eventSourceRef.current = null
+        setSseConnected(false)
+      }
+      return
+    }
+
+    // Don't re-open if already connected
+    if (eventSourceRef.current) return
+
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
+    const es = new EventSource(`${apiBase}/v1/jobs/${jobId}/progress`)
+    eventSourceRef.current = es
+
+    es.onopen = () => setSseConnected(true)
+
+    es.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data)
+        if (data.type === 'progress') {
+          if (data.step) setSseStep(data.step)
+          if (data.pct !== undefined) setSsePct(data.pct)
+        } else if (data.type === 'done') {
+          setSsePct(100)
+          es.close()
+          eventSourceRef.current = null
+          setSseConnected(false)
+        } else if (data.type === 'error') {
+          es.close()
+          eventSourceRef.current = null
+          setSseConnected(false)
+        }
+      } catch {
+        // ignore parse errors
+      }
+    }
+
+    es.onerror = () => {
+      es.close()
+      eventSourceRef.current = null
+      setSseConnected(false)
+    }
+
+    return () => {
+      es.close()
+      eventSourceRef.current = null
+      setSseConnected(false)
+    }
+  }, [jobId, isTerminal])
 
   // Map of pipeline steps to their display names
   const stepDisplayMap: Record<string, string> = {
@@ -62,6 +136,9 @@ export default function GenericJobPage() {
     })
     return Array.from(steps)
   }, [approvals])
+
+  const displayProgress = sseConnected && ssePct !== undefined ? ssePct : (job?.progress || 0)
+  const displayStep = sseConnected && sseStep ? sseStep : job?.current_step
 
   if (jobLoading) {
     return (
@@ -112,9 +189,88 @@ export default function GenericJobPage() {
             <Typography variant="body2" color="text.secondary">
               Job ID: {jobId}
             </Typography>
+            {sseConnected && (
+              <Chip label="Live" color="info" size="small" />
+            )}
           </Box>
         </Box>
       </Box>
+
+      {/* Live progress bar — shown while processing */}
+      {!isTerminal && !isWaitingForApproval && (
+        <Card sx={{ mb: 3 }}>
+          <CardContent>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+              <Typography variant="body2" color="text.secondary">
+                {displayStep
+                  ? displayStep.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())
+                  : 'Processing…'}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {displayProgress}%
+              </Typography>
+            </Box>
+            <LinearProgress
+              variant="determinate"
+              value={displayProgress}
+              aria-label={displayStep ? `${displayStep}: ${displayProgress}%` : `Progress: ${displayProgress}%`}
+            />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Brand badge + quality checklist — shown after completion */}
+      {isCompleted && (
+        <Card sx={{ mb: 3, border: '1px solid', borderColor: 'success.light', bgcolor: 'success.50' }}>
+          <CardContent>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+              <CheckCircle color="success" />
+              <Typography variant="h6" color="success.main" sx={{ fontWeight: 700 }}>
+                Content Generated
+              </Typography>
+            </Box>
+
+            {quality ? (
+              <Box>
+                <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                  Quality Metrics
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap', mb: 2 }}>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">Word Count</Typography>
+                    <Typography variant="body2" fontWeight={600}>{quality.word_count?.toLocaleString() ?? '—'}</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">Reading Grade</Typography>
+                    <Typography variant="body2" fontWeight={600}>
+                      {quality.flesch_kincaid_grade != null ? `Grade ${quality.flesch_kincaid_grade.toFixed(1)}` : '—'}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">Keyword Match</Typography>
+                    <Typography variant="body2" fontWeight={600}>
+                      {quality.keyword_match_pct != null ? `${(quality.keyword_match_pct * 100).toFixed(0)}%` : '—'}
+                    </Typography>
+                  </Box>
+                </Box>
+                {quality.warnings && quality.warnings.length > 0 && (
+                  <Box>
+                    {quality.warnings.map((w: string, i: number) => (
+                      <Alert key={i} severity="warning" icon={<Warning />} sx={{ mb: 0.5, py: 0.25 }}>
+                        <Typography variant="caption">{w}</Typography>
+                      </Alert>
+                    ))}
+                  </Box>
+                )}
+              </Box>
+            ) : (
+              <Typography variant="body2" color="text.secondary">
+                Quality metrics loading…
+              </Typography>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Job Info */}
       <Card sx={{ mb: 3 }}>
@@ -200,4 +356,3 @@ export default function GenericJobPage() {
     </Container>
   )
 }
-

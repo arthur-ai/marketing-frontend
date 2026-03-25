@@ -5,6 +5,15 @@ import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Card from '@mui/material/Card'
 import CardContent from '@mui/material/CardContent'
+import Collapse from '@mui/material/Collapse'
+import Dialog from '@mui/material/Dialog'
+import DialogTitle from '@mui/material/DialogTitle'
+import DialogContent from '@mui/material/DialogContent'
+import DialogActions from '@mui/material/DialogActions'
+import IconButton from '@mui/material/IconButton'
+import Step from '@mui/material/Step'
+import StepLabel from '@mui/material/StepLabel'
+import Stepper from '@mui/material/Stepper'
 import Typography from '@mui/material/Typography'
 import Select from '@mui/material/Select'
 import MenuItem from '@mui/material/MenuItem'
@@ -18,7 +27,11 @@ import FormGroup from '@mui/material/FormGroup'
 import FormControlLabel from '@mui/material/FormControlLabel'
 import PlayArrowIcon from '@mui/icons-material/PlayArrow'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
+import CloseIcon from '@mui/icons-material/Close'
 import ErrorIcon from '@mui/icons-material/Error'
+import ExpandLessIcon from '@mui/icons-material/ExpandLess'
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+import LightbulbIcon from '@mui/icons-material/Lightbulb'
 import SearchIcon from '@mui/icons-material/Search'
 import BoltIcon from '@mui/icons-material/Bolt'
 import { 
@@ -61,6 +74,23 @@ export function OrchestratorControls({ selectedContent, onContentSelect }: Orche
   const [manualTitle, setManualTitle] = useState('')
   const [manualContent, setManualContent] = useState('')
   const [manualInputData, setManualInputData] = useState<{ title: string; content: string; contentType: 'blog_post' | 'transcript' | 'release_notes' } | null>(null)
+
+  // Onboarding state
+  const [showQuickStart, setShowQuickStart] = useState(true)
+  const [showModal, setShowModal] = useState(false)
+
+  // First-run modal: show once per browser (localStorage gate)
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (!localStorage.getItem('mktool_onboarding_seen')) {
+      setShowModal(true)
+    }
+  }, [])
+
+  const dismissModal = () => {
+    localStorage.setItem('mktool_onboarding_seen', '1')
+    setShowModal(false)
+  }
 
   // Pre-populate from competitor research "Use in Pipeline" action
   useEffect(() => {
@@ -490,6 +520,65 @@ export function OrchestratorControls({ selectedContent, onContentSelect }: Orche
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+      {/* Quick-start panel */}
+      <Card variant="outlined" sx={{ borderColor: 'primary.light', bgcolor: 'primary.50' }}>
+        <CardContent sx={{ pb: '8px !important', pt: 1.5, px: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <LightbulbIcon fontSize="small" color="primary" />
+              <Typography variant="subtitle2" color="primary.main" fontWeight={600}>
+                Get started in 3 steps
+              </Typography>
+            </Box>
+            <IconButton size="small" onClick={() => setShowQuickStart((v) => !v)} aria-label="toggle quick start">
+              {showQuickStart ? <ExpandLessIcon fontSize="small" /> : <ExpandMoreIcon fontSize="small" />}
+            </IconButton>
+          </Box>
+          <Collapse in={showQuickStart}>
+            <Stepper alternativeLabel sx={{ mt: 1.5, mb: 0.5 }}>
+              {['Paste your content', 'Choose output type', 'Click Process'].map((label) => (
+                <Step key={label} active>
+                  <StepLabel>{label}</StepLabel>
+                </Step>
+              ))}
+            </Stepper>
+          </Collapse>
+        </CardContent>
+      </Card>
+
+      {/* First-run onboarding modal */}
+      <Dialog open={showModal} onClose={dismissModal} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          Welcome to the Marketing Tool
+          <IconButton size="small" onClick={dismissModal} aria-label="close">
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Generate high-quality marketing content in three simple steps:
+          </Typography>
+          <Stepper orientation="vertical">
+            {[
+              { label: 'Paste your content', desc: 'Add a blog post, release notes, or transcript' },
+              { label: 'Choose output type', desc: 'Blog article, release summary, or social post' },
+              { label: 'Click Process', desc: 'We handle the rest — results appear below' },
+            ].map((step) => (
+              <Step key={step.label} active>
+                <StepLabel optional={<Typography variant="caption" color="text.secondary">{step.desc}</Typography>}>
+                  {step.label}
+                </StepLabel>
+              </Step>
+            ))}
+          </Stepper>
+        </DialogContent>
+        <DialogActions>
+          <Button variant="contained" onClick={dismissModal}>
+            Got it
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       {/* Unified Content Input */}
       <UnifiedContentInput
         onContentSelect={(content) => {

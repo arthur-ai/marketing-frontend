@@ -9,12 +9,15 @@ import type { Job, PipelineStepInfo } from '@/types/api'
 interface EnhancedProgressProps {
   job: Job
   stepInfo?: PipelineStepInfo[]
+  sseConnected?: boolean
+  sseStep?: string
+  ssePct?: number
 }
 
-export function EnhancedProgress({ job, stepInfo = [] }: EnhancedProgressProps) {
+export function EnhancedProgress({ job, stepInfo = [], sseConnected = false, sseStep, ssePct }: EnhancedProgressProps) {
   const progressData = useMemo(() => {
-    const currentStep = job.current_step
-    const progress = job.progress || 0
+    const currentStep = sseConnected && sseStep ? sseStep : job.current_step
+    const progress = sseConnected && ssePct !== undefined ? ssePct : (job.progress || 0)
     const status = job.status
 
     // Calculate ETA if we have step info
@@ -72,10 +75,21 @@ export function EnhancedProgress({ job, stepInfo = [] }: EnhancedProgressProps) 
           {/* Progress Bar */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium">Progress</span>
+              <span className="text-sm font-medium">
+                {sseConnected && sseStep
+                  ? `${sseStep.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())} — ${progressData.progress}%`
+                  : 'Progress'}
+              </span>
               <span className="text-sm text-gray-600">{progressData.progress}%</span>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
+            <div
+              className="w-full bg-gray-200 rounded-full h-2"
+              role="progressbar"
+              aria-valuenow={progressData.progress}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label={sseConnected && sseStep ? `${sseStep}: ${progressData.progress}%` : `Progress: ${progressData.progress}%`}
+            >
               <div
                 className="bg-blue-600 h-2 rounded-full transition-all duration-300"
                 style={{ width: `${progressData.progress}%` }}

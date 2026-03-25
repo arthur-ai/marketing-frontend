@@ -387,10 +387,13 @@ export const api = {
   getJobChain: (jobId: string): Promise<AxiosResponse<any>> => 
     apiClient.get(`/v1/jobs/${jobId}/chain`),
   
-  getJobTimeline: (jobId: string): Promise<AxiosResponse<any>> => 
+  getJobTimeline: (jobId: string): Promise<AxiosResponse<any>> =>
     apiClient.get(`/v1/results/jobs/${jobId}/timeline`),
-  
-  getPipelineFlow: (jobId: string): Promise<AxiosResponse<PipelineFlowResponse>> => 
+
+  getJobQuality: (jobId: string): Promise<AxiosResponse<any>> =>
+    apiClient.get(`/v1/jobs/${jobId}/quality`),
+
+  getPipelineFlow: (jobId: string): Promise<AxiosResponse<PipelineFlowResponse>> =>
     apiClient.get(`/v1/results/jobs/${jobId}/pipeline-flow`),
   
   // Pipeline Step Execution
