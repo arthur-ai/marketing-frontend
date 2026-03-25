@@ -662,7 +662,7 @@ export function ResultViewer({ result, stepApprovals, onViewApproval }: ResultVi
                                 ⏱️ {stepInfo.execution_time.toFixed(2)}s
                               </Typography>
                             )}
-                            {stepInfo.tokens_used !== undefined && (
+                            {stepInfo.tokens_used != null && (
                               <Typography variant="caption" color="text.secondary">
                                 🔢 {stepInfo.tokens_used.toLocaleString()} tokens
                               </Typography>

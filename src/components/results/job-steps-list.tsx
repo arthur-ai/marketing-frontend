@@ -103,7 +103,7 @@ export function JobStepsList({ steps, jobId, onViewStepIO }: JobStepsListProps) 
                           {step.execution_time.toFixed(2)}s
                         </Typography>
                       )}
-                      {step.tokens_used !== undefined && (
+                      {step.tokens_used != null && (
                         <Typography variant="caption" color="text.secondary">
                           {step.tokens_used.toLocaleString()} tokens
                         </Typography>
