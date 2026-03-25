@@ -1,10 +1,16 @@
-import { getSession } from 'next-auth/react'
 import { apiClient } from '@/lib/api'
+import { authClient } from '@/lib/auth-client'
 
-jest.mock('next-auth/react')
+jest.mock('@/lib/auth-client', () => ({
+  authClient: {
+    getSession: jest.fn(),
+    getAccessToken: jest.fn(),
+  },
+}))
 
 describe('API Client', () => {
-  const mockGetSession = getSession as jest.MockedFunction<typeof getSession>
+  const mockGetSession = authClient.getSession as jest.MockedFunction<typeof authClient.getSession>
+  const mockGetAccessToken = authClient.getAccessToken as jest.MockedFunction<typeof authClient.getAccessToken>
 
   beforeEach(() => {
     jest.clearAllMocks()
@@ -13,37 +19,40 @@ describe('API Client', () => {
     apiClient.interceptors.response.clear()
   })
 
-  it('includes access token in request headers when session exists', async () => {
+  it('includes access token in request headers when session and token exist', async () => {
     mockGetSession.mockResolvedValue({
-      user: { id: '123' },
-      accessToken: 'test-access-token',
+      data: { user: { id: '123' } },
+      error: null,
     } as any)
+    mockGetAccessToken.mockResolvedValue('test-access-token' as any)
 
-    // The interceptor should be set up in api.ts
-    // This test verifies the interceptor logic
     const config = {
-      headers: {},
+      headers: {} as Record<string, string>,
     }
 
-    // Simulate interceptor
-    const session = await getSession()
-    if (session && (session as any).accessToken) {
-      config.headers['Authorization'] = `Bearer ${(session as any).accessToken}`
+    // Simulate the interceptor logic from api.ts
+    const session = await authClient.getSession()
+    if (session?.data) {
+      const tokenResponse = await authClient.getAccessToken({ providerId: 'keycloak' })
+      const accessToken = typeof tokenResponse === 'string' ? tokenResponse : null
+      if (accessToken) {
+        config.headers['Authorization'] = `Bearer ${accessToken}`
+      }
     }
 
     expect(config.headers['Authorization']).toBe('Bearer test-access-token')
   })
 
   it('does not include token when session is null', async () => {
-    mockGetSession.mockResolvedValue(null)
+    mockGetSession.mockResolvedValue({ data: null, error: null } as any)
 
     const config = {
-      headers: {},
+      headers: {} as Record<string, string>,
     }
 
-    const session = await getSession()
-    if (session && (session as any).accessToken) {
-      config.headers['Authorization'] = `Bearer ${(session as any).accessToken}`
+    const session = await authClient.getSession()
+    if (session?.data) {
+      config.headers['Authorization'] = 'Bearer token'
     }
 
     expect(config.headers['Authorization']).toBeUndefined()

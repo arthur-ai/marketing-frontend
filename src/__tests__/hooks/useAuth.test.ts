@@ -1,46 +1,50 @@
-import { renderHook } from '@testing-library/react'
-import { useSession } from 'next-auth/react'
+import { renderHook, waitFor } from '@testing-library/react'
+import { authClient } from '@/lib/auth-client'
 import { useAuth } from '@/hooks/useAuth'
 
-jest.mock('next-auth/react')
+jest.mock('@/lib/auth-client', () => ({
+  authClient: {
+    useSession: jest.fn(),
+    getAccessToken: jest.fn().mockResolvedValue(null),
+  },
+}))
+
+// Create a JWT with realm_access.roles claim for testing role extraction
+function makeJWT(roles: string[]): string {
+  const payloadJson = JSON.stringify({ realm_access: { roles } })
+  const b64 = Buffer.from(payloadJson)
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=/g, '')
+  return `eyJhbGciOiJSUzI1NiJ9.${b64}.fakesignature`
+}
 
 describe('useAuth', () => {
-  const mockUseSession = useSession as jest.MockedFunction<typeof useSession>
+  const mockUseSession = authClient.useSession as jest.MockedFunction<typeof authClient.useSession>
+  const mockGetAccessToken = authClient.getAccessToken as jest.MockedFunction<typeof authClient.getAccessToken>
 
   beforeEach(() => {
     jest.clearAllMocks()
+    mockGetAccessToken.mockResolvedValue(null)
   })
 
-  it('returns user session when authenticated', () => {
-    const mockSession = {
-      user: {
-        id: '123',
-        name: 'Test User',
-        email: 'test@example.com',
-        roles: ['admin', 'user'],
-      },
-      accessToken: 'test-token',
-      expires: '2024-12-31',
-    }
-
+  it('returns isAuthenticated true when session exists', () => {
     mockUseSession.mockReturnValue({
-      data: mockSession,
-      status: 'authenticated',
-      update: jest.fn(),
+      data: { user: { id: '123', name: 'Test User', email: 'test@example.com' } } as any,
+      isPending: false,
     })
 
     const { result } = renderHook(() => useAuth())
 
     expect(result.current.isAuthenticated).toBe(true)
     expect(result.current.user?.id).toBe('123')
-    expect(result.current.user?.roles).toEqual(['admin', 'user'])
   })
 
-  it('returns null when not authenticated', () => {
+  it('returns isAuthenticated false when session is null', () => {
     mockUseSession.mockReturnValue({
       data: null,
-      status: 'unauthenticated',
-      update: jest.fn(),
+      isPending: false,
     })
 
     const { result } = renderHook(() => useAuth())
@@ -52,8 +56,7 @@ describe('useAuth', () => {
   it('handles loading state', () => {
     mockUseSession.mockReturnValue({
       data: null,
-      status: 'loading',
-      update: jest.fn(),
+      isPending: true,
     })
 
     const { result } = renderHook(() => useAuth())
@@ -62,64 +65,63 @@ describe('useAuth', () => {
     expect(result.current.isAuthenticated).toBe(false)
   })
 
-  it('hasRole returns true when user has role', () => {
-    const mockSession = {
-      user: {
-        id: '123',
-        roles: ['admin', 'user'],
-      },
-    }
-
+  it('loads roles from access token JWT', async () => {
     mockUseSession.mockReturnValue({
-      data: mockSession,
-      status: 'authenticated',
-      update: jest.fn(),
+      data: { user: { id: '123' } } as any,
+      isPending: false,
     })
+    mockGetAccessToken.mockResolvedValue(makeJWT(['admin', 'user']) as any)
 
     const { result } = renderHook(() => useAuth())
 
-    expect(result.current.hasRole('admin')).toBe(true)
+    await waitFor(() => {
+      expect(result.current.user?.roles).toEqual(['admin', 'user'])
+    })
+  })
+
+  it('hasRole returns true when user has role', async () => {
+    mockUseSession.mockReturnValue({
+      data: { user: { id: '123' } } as any,
+      isPending: false,
+    })
+    mockGetAccessToken.mockResolvedValue(makeJWT(['admin', 'user']) as any)
+
+    const { result } = renderHook(() => useAuth())
+
+    await waitFor(() => {
+      expect(result.current.hasRole('admin')).toBe(true)
+    })
     expect(result.current.hasRole('user')).toBe(true)
     expect(result.current.hasRole('guest')).toBe(false)
   })
 
-  it('hasAnyRole returns true when user has any role', () => {
-    const mockSession = {
-      user: {
-        id: '123',
-        roles: ['admin'],
-      },
-    }
-
+  it('hasAnyRole returns true when user has any role', async () => {
     mockUseSession.mockReturnValue({
-      data: mockSession,
-      status: 'authenticated',
-      update: jest.fn(),
+      data: { user: { id: '123' } } as any,
+      isPending: false,
     })
+    mockGetAccessToken.mockResolvedValue(makeJWT(['admin']) as any)
 
     const { result } = renderHook(() => useAuth())
 
-    expect(result.current.hasAnyRole(['admin', 'user'])).toBe(true)
+    await waitFor(() => {
+      expect(result.current.hasAnyRole(['admin', 'user'])).toBe(true)
+    })
     expect(result.current.hasAnyRole(['guest', 'viewer'])).toBe(false)
   })
 
-  it('hasAllRoles returns true when user has all roles', () => {
-    const mockSession = {
-      user: {
-        id: '123',
-        roles: ['admin', 'user', 'editor'],
-      },
-    }
-
+  it('hasAllRoles returns true when user has all roles', async () => {
     mockUseSession.mockReturnValue({
-      data: mockSession,
-      status: 'authenticated',
-      update: jest.fn(),
+      data: { user: { id: '123' } } as any,
+      isPending: false,
     })
+    mockGetAccessToken.mockResolvedValue(makeJWT(['admin', 'user', 'editor']) as any)
 
     const { result } = renderHook(() => useAuth())
 
-    expect(result.current.hasAllRoles(['admin', 'user'])).toBe(true)
+    await waitFor(() => {
+      expect(result.current.hasAllRoles(['admin', 'user'])).toBe(true)
+    })
     expect(result.current.hasAllRoles(['admin', 'guest'])).toBe(false)
   })
 })

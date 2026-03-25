@@ -1,18 +1,27 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { signOut } from 'next-auth/react'
 import { UserProfile } from '@/components/auth/UserProfile'
 import { useAuth } from '@/hooks/useAuth'
+import { authClient } from '@/lib/auth-client'
 
-jest.mock('next-auth/react')
 jest.mock('@/hooks/useAuth')
+jest.mock('@/lib/auth-client', () => ({
+  authClient: {
+    signOut: jest.fn().mockResolvedValue(undefined),
+  },
+}))
 
 describe('UserProfile', () => {
-  const mockSignOut = signOut as jest.MockedFunction<typeof signOut>
   const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>
 
   beforeEach(() => {
     jest.clearAllMocks()
+    ;(authClient.signOut as jest.Mock).mockResolvedValue(undefined)
+    // Reset window.location.href
+    Object.defineProperty(window, 'location', {
+      value: { href: '' },
+      writable: true,
+    })
   })
 
   it('renders nothing when user is not authenticated', () => {
@@ -70,7 +79,7 @@ describe('UserProfile', () => {
     expect(screen.getByText('admin, editor')).toBeInTheDocument()
   })
 
-  it('calls signOut when logout is clicked', async () => {
+  it('calls authClient.signOut when logout is clicked', async () => {
     const user = userEvent.setup()
     mockUseAuth.mockReturnValue({
       user: {
@@ -97,6 +106,7 @@ describe('UserProfile', () => {
     const logoutButton = screen.getByText('Logout')
     await user.click(logoutButton)
 
-    expect(mockSignOut).toHaveBeenCalledWith({ callbackUrl: '/login' })
+    expect(authClient.signOut).toHaveBeenCalled()
+    expect(window.location.href).toBe('/login')
   })
 })
