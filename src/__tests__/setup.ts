@@ -1,11 +1,16 @@
 import '@testing-library/jest-dom'
 
-// Mock next-auth
-jest.mock('next-auth/react', () => ({
-  useSession: jest.fn(),
-  signIn: jest.fn(),
-  signOut: jest.fn(),
-  getSession: jest.fn(),
+// Mock better-auth client (used by useAuth, LoginButton, UserProfile, api.ts)
+jest.mock('@/lib/auth-client', () => ({
+  authClient: {
+    useSession: jest.fn(() => ({ data: null, isPending: false })),
+    signIn: {
+      oauth2: jest.fn(),
+    },
+    signOut: jest.fn().mockResolvedValue(undefined),
+    getSession: jest.fn().mockResolvedValue({ data: null, error: null }),
+    getAccessToken: jest.fn().mockResolvedValue(null),
+  },
 }))
 
 // Mock next/navigation

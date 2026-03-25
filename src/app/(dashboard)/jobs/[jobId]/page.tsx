@@ -249,7 +249,7 @@ export default function GenericJobPage() {
                   <Box>
                     <Typography variant="caption" color="text.secondary">Keyword Match</Typography>
                     <Typography variant="body2" fontWeight={600}>
-                      {quality.keyword_match_pct != null ? `${(quality.keyword_match_pct * 100).toFixed(0)}%` : '—'}
+                      {quality.keyword_match_pct != null ? `${(quality.keyword_match_pct * 100).toFixed(1)}%` : '—'}
                     </Typography>
                   </Box>
                 </Box>

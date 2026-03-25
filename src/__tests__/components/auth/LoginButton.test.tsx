@@ -1,13 +1,17 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { signIn } from 'next-auth/react'
+import { authClient } from '@/lib/auth-client'
 import { LoginButton } from '@/components/auth/LoginButton'
 
-jest.mock('next-auth/react')
+jest.mock('@/lib/auth-client', () => ({
+  authClient: {
+    signIn: {
+      oauth2: jest.fn(),
+    },
+  },
+}))
 
 describe('LoginButton', () => {
-  const mockSignIn = signIn as jest.MockedFunction<typeof signIn>
-
   beforeEach(() => {
     jest.clearAllMocks()
   })
@@ -17,14 +21,17 @@ describe('LoginButton', () => {
     expect(screen.getByText('Sign In')).toBeInTheDocument()
   })
 
-  it('calls signIn when clicked', async () => {
+  it('calls signIn.oauth2 when clicked', async () => {
     const user = userEvent.setup()
     render(<LoginButton />)
 
     const button = screen.getByText('Sign In')
     await user.click(button)
 
-    expect(mockSignIn).toHaveBeenCalledWith('keycloak', { callbackUrl: '/' })
+    expect(authClient.signIn.oauth2).toHaveBeenCalledWith({
+      providerId: 'keycloak',
+      callbackURL: '/',
+    })
   })
 
   it('renders with custom variant', () => {
