@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { notFound } from 'next/navigation'
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
 import Grid from '@mui/material/Grid'
@@ -47,10 +48,14 @@ import {
 } from 'recharts'
 import { format } from 'date-fns'
 import { getSourceDisplayName } from '@/utils/contentFormatters'
+import { useAuth } from '@/hooks/useAuth'
 
 const COLORS = ['#2563eb', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#6366f1']
 
 export default function AnalyticsPage() {
+  const { hasRole } = useAuth()
+  if (!hasRole('admin')) notFound()
+
   const [trendDays, setTrendDays] = useState<number>(7)
   const [activeTab, setActiveTab] = useState<number>(0)
   const [selectedUserId, setSelectedUserId] = useState<string>('')

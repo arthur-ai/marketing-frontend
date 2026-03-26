@@ -7,14 +7,13 @@ import {
   Typography,
   Card,
   CardContent,
-  CardHeader,
   Tabs,
   Tab,
   Button,
-  Divider,
   Alert,
   CircularProgress,
 } from '@mui/material'
+import { useAuth } from '@/hooks/useAuth'
 import {
   Save as SaveIcon,
   RestartAlt as ResetIcon,
@@ -36,28 +35,27 @@ import type { PipelineConfig } from '@/types/api'
 
 interface TabPanelProps {
   children?: React.ReactNode
-  index: number
-  value: number
+  tabId: string
+  value: string
 }
 
-function TabPanel(props: TabPanelProps) {
-  const { children, value, index, ...other } = props
-
+function TabPanel({ children, value, tabId }: TabPanelProps) {
   return (
     <div
       role="tabpanel"
-      hidden={value !== index}
-      id={`settings-tabpanel-${index}`}
-      aria-labelledby={`settings-tab-${index}`}
-      {...other}
+      hidden={value !== tabId}
+      id={`settings-tabpanel-${tabId}`}
+      aria-labelledby={`settings-tab-${tabId}`}
     >
-      {value === index && <Box sx={{ pt: 3 }}>{children}</Box>}
+      {value === tabId && <Box sx={{ pt: 3 }}>{children}</Box>}
     </div>
   )
 }
 
 export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState(0)
+  const { hasRole } = useAuth()
+  const isAdmin = hasRole('admin')
+  const [activeTab, setActiveTab] = useState<string>('providers')
   const [pipelineConfig, setPipelineConfig] = useState<PipelineConfig>({
     default_model: 'gpt-5.1',
     default_temperature: 0.7,
@@ -236,7 +234,7 @@ export default function SettingsPage() {
     setHasChanges(true)
   }
 
-  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
+  const handleTabChange = (_event: React.SyntheticEvent, newValue: string) => {
     setActiveTab(newValue)
   }
 
@@ -301,41 +299,58 @@ export default function SettingsPage() {
       {/* Settings Tabs */}
       <Card>
         <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-          <Tabs value={activeTab} onChange={handleTabChange} aria-label="settings tabs">
-            <Tab label="Providers" />
-            <Tab label="Profound AI" />
-            <Tab label="Optional Steps" />
-            <Tab label="Retry Strategy" />
-            <Tab label="SEO Keywords Engine" />
-            <Tab label="Approval Settings" />
-            <Tab label="Version History" />
+          <Tabs
+            value={activeTab}
+            onChange={handleTabChange}
+            aria-label="settings tabs"
+            variant="scrollable"
+            scrollButtons="auto"
+          >
+            <Tab value="providers" label="Providers" id="settings-tab-providers" aria-controls="settings-tabpanel-providers" />
+            <Tab value="profound" label="Profound AI" id="settings-tab-profound" aria-controls="settings-tabpanel-profound" />
+            <Tab value="optional-steps" label="Optional Steps" id="settings-tab-optional-steps" aria-controls="settings-tabpanel-optional-steps" />
+            <Tab value="retry" label="Retry Strategy" id="settings-tab-retry" aria-controls="settings-tabpanel-retry" />
+            <Tab value="seo" label="SEO Keywords" id="settings-tab-seo" aria-controls="settings-tabpanel-seo" />
+            <Tab value="approvals" label="Approvals" id="settings-tab-approvals" aria-controls="settings-tabpanel-approvals" />
+            <Tab value="versions" label="Version History" id="settings-tab-versions" aria-controls="settings-tabpanel-versions" />
+            {/* Analytics — admin only, fixed slot, CSS-hidden + keyboard-skipped for non-admins */}
+            <Tab
+              value="analytics"
+              label="Analytics"
+              id="settings-tab-analytics"
+              aria-controls="settings-tabpanel-analytics"
+              tabIndex={isAdmin ? 0 : -1}
+              sx={{ display: isAdmin ? 'flex' : 'none' }}
+            />
+            <Tab value="competitor-research" label="Competitor Research" id="settings-tab-competitor-research" aria-controls="settings-tabpanel-competitor-research" />
+            <Tab value="internal-docs" label="Internal Docs" id="settings-tab-internal-docs" aria-controls="settings-tabpanel-internal-docs" />
           </Tabs>
         </Box>
 
         <CardContent>
-          <TabPanel value={activeTab} index={0}>
+          <TabPanel value={activeTab} tabId="providers">
             <ProviderSettings />
           </TabPanel>
 
-          <TabPanel value={activeTab} index={1}>
+          <TabPanel value={activeTab} tabId="profound">
             <ProfoundSettings />
           </TabPanel>
 
-          <TabPanel value={activeTab} index={2}>
+          <TabPanel value={activeTab} tabId="optional-steps">
             <OptionalStepsSettings
               optionalSteps={optionalSteps}
               onChange={handleOptionalStepsChange}
             />
           </TabPanel>
 
-          <TabPanel value={activeTab} index={3}>
+          <TabPanel value={activeTab} tabId="retry">
             <RetryStrategySettings
               config={retryStrategy}
               onChange={handleRetryStrategyChange}
             />
           </TabPanel>
 
-          <TabPanel value={activeTab} index={4}>
+          <TabPanel value={activeTab} tabId="seo">
             <SEOKeywordsEngineSettings
               config={pipelineConfig.seo_keywords_engine_config}
               onChange={(config) => {
@@ -348,23 +363,21 @@ export default function SettingsPage() {
             />
           </TabPanel>
 
-          <TabPanel value={activeTab} index={5}>
+          <TabPanel value={activeTab} tabId="approvals">
             <ApprovalSettings
               onChange={(hasChanges) => {
                 setHasApprovalChanges(hasChanges)
               }}
               onSave={() => {
-                // Approval settings are saved via their own API
                 setHasApprovalChanges(false)
               }}
               onReset={() => {
-                // Reset handled by ApprovalSettings component
                 setHasApprovalChanges(false)
               }}
             />
           </TabPanel>
 
-          <TabPanel value={activeTab} index={6}>
+          <TabPanel value={activeTab} tabId="versions">
             <ConfigVersioning
               config={pipelineConfig}
               onRollback={(config) => {
@@ -373,6 +386,40 @@ export default function SettingsPage() {
                 showSuccessToast('Configuration rolled back successfully')
               }}
             />
+          </TabPanel>
+
+          {/* Analytics — admin only */}
+          <TabPanel value={activeTab} tabId="analytics">
+            {isAdmin ? (
+              <Box>
+                <Typography variant="h6" sx={{ mb: 2 }}>Analytics</Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Pipeline analytics and performance metrics. Charts and usage data will appear here.
+                </Typography>
+              </Box>
+            ) : (
+              <Typography variant="body2" color="text.secondary">
+                Analytics is only available to administrators.
+              </Typography>
+            )}
+          </TabPanel>
+
+          <TabPanel value={activeTab} tabId="competitor-research">
+            <Box>
+              <Typography variant="h6" sx={{ mb: 2 }}>Competitor Research</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Tools and resources for tracking competitor content strategies.
+              </Typography>
+            </Box>
+          </TabPanel>
+
+          <TabPanel value={activeTab} tabId="internal-docs">
+            <Box>
+              <Typography variant="h6" sx={{ mb: 2 }}>Internal Docs</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Internal documentation, playbooks, and reference materials for your team.
+              </Typography>
+            </Box>
           </TabPanel>
         </CardContent>
       </Card>

@@ -2,286 +2,388 @@
 
 import Box from '@mui/material/Box'
 import Typography from '@mui/material/Typography'
-import Grid from '@mui/material/Grid'
-import Card from '@mui/material/Card'
-import CardContent from '@mui/material/CardContent'
-import Paper from '@mui/material/Paper'
+import Skeleton from '@mui/material/Skeleton'
 import Button from '@mui/material/Button'
 import Chip from '@mui/material/Chip'
-import LinearProgress from '@mui/material/LinearProgress'
-import CircularProgress from '@mui/material/CircularProgress'
-import TrendingUpIcon from '@mui/icons-material/TrendingUp'
-import ArticleIcon from '@mui/icons-material/Article'
-import AccountTreeIcon from '@mui/icons-material/AccountTree'
-import CloudUploadIcon from '@mui/icons-material/CloudUpload'
-import AssessmentIcon from '@mui/icons-material/Assessment'
-import RocketLaunchIcon from '@mui/icons-material/RocketLaunch'
 import { useRouter } from 'next/navigation'
-import { useDashboardStats, useRecentActivity } from '@/hooks/useApi'
-import { formatDistanceToNow } from 'date-fns'
+import { useDashboardStats, useRecentActivity, usePendingApprovals } from '@/hooks/useApi'
 import { ClientOnly } from '@/components/providers/ClientOnly'
+import { formatDistanceToNow } from 'date-fns'
+import { getChipStyle } from '@/utils/jobStatus'
 
-function DashboardContent() {
+function JobRowSkeleton({ last }: { last: boolean }) {
+  return (
+    <Box
+      sx={{
+        px: 3,
+        py: 1.75,
+        borderBottom: last ? 'none' : '1px solid #2A251F',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 2,
+      }}
+    >
+      <Box sx={{ flex: 1 }}>
+        <Skeleton
+          variant="text"
+          width="52%"
+          height={18}
+          sx={{ bgcolor: '#2A251F', borderRadius: '3px', mb: 0.5 }}
+        />
+        <Skeleton
+          variant="text"
+          width="32%"
+          height={14}
+          sx={{ bgcolor: '#2A251F', borderRadius: '3px' }}
+        />
+      </Box>
+      <Skeleton
+        variant="rectangular"
+        width={58}
+        height={20}
+        sx={{ bgcolor: '#2A251F', borderRadius: '3px', flexShrink: 0 }}
+      />
+    </Box>
+  )
+}
+
+function CommandCenterContent() {
   const router = useRouter()
-  const { data: statsData, isLoading: statsLoading } = useDashboardStats()
-  const { data: activityData, isLoading: activityLoading } = useRecentActivity(7)
+  const { data: statsData } = useDashboardStats()
+  const { data: activityData, isLoading: activityLoading, isError: activityError, refetch } = useRecentActivity(7)
+  const { data: pendingData } = usePendingApprovals(undefined, true)
 
-  const dashboardStats = statsData?.data
-  const recentActivities = activityData?.data?.activities || []
-
-  const stats = [
-    {
-      label: 'Total Content',
-      value: dashboardStats?.total_content?.toString() || '0',
-      change: dashboardStats?.content_change_percent 
-        ? `${dashboardStats.content_change_percent > 0 ? '+' : ''}${dashboardStats.content_change_percent.toFixed(0)}%`
-        : 'N/A',
-      changePositive: (dashboardStats?.content_change_percent || 0) >= 0,
-      icon: <ArticleIcon />,
-      color: 'primary',
-    },
-    {
-      label: 'Pipeline Runs',
-      value: dashboardStats?.total_jobs?.toString() || '0',
-      change: dashboardStats?.jobs_change_percent 
-        ? `${dashboardStats.jobs_change_percent > 0 ? '+' : ''}${dashboardStats.jobs_change_percent.toFixed(0)}%`
-        : 'N/A',
-      changePositive: (dashboardStats?.jobs_change_percent || 0) >= 0,
-      icon: <AccountTreeIcon />,
-      color: 'success',
-    },
-    {
-      label: 'Processing',
-      value: dashboardStats?.jobs_processing?.toString() || '0',
-      change: `${dashboardStats?.jobs_processing || 0} active`,
-      changePositive: true,
-      icon: <AssessmentIcon />,
-      color: 'warning',
-    },
-    {
-      label: 'Success Rate',
-      value: dashboardStats ? `${Math.round(dashboardStats.success_rate * 100)}%` : '0%',
-      change: dashboardStats?.success_rate_change_percent 
-        ? `${dashboardStats.success_rate_change_percent > 0 ? '+' : ''}${dashboardStats.success_rate_change_percent.toFixed(0)}%`
-        : 'N/A',
-      changePositive: (dashboardStats?.success_rate_change_percent || 0) >= 0,
-      icon: <TrendingUpIcon />,
-      color: 'info',
-    },
-  ]
-
-  const quickActions = [
-    {
-      title: 'Upload Content',
-      description: 'Upload files or extract from URLs',
-      icon: <CloudUploadIcon sx={{ fontSize: 40 }} />,
-      color: 'primary',
-      path: '/upload',
-    },
-    {
-      title: 'Run Pipeline',
-      description: 'Process content through pipeline',
-      icon: <RocketLaunchIcon sx={{ fontSize: 40 }} />,
-      color: 'success',
-      path: '/pipeline',
-    },
-    {
-      title: 'Browse Content',
-      description: 'View and manage your content',
-      icon: <ArticleIcon sx={{ fontSize: 40 }} />,
-      color: 'info',
-      path: '/content',
-    },
-  ]
+  const stats = statsData?.data
+  const activities = activityData?.data?.activities?.slice(0, 10) || []
+  const pendingCount = pendingData?.data?.pending || 0
+  const processingCount = stats?.jobs_processing || 0
 
   return (
-    <Box>
-      {/* Welcome Section */}
-      <Paper
-        elevation={0}
+    <Box sx={{ maxWidth: 1200, mx: 'auto', px: { xs: 2, md: 3 }, py: 3 }}>
+      {/* Page header */}
+      <Box
         sx={{
-          p: 4,
-          mb: 4,
-          borderRadius: 3,
-          background: 'linear-gradient(135deg, #2563eb 0%, #8b5cf6 100%)',
-          color: 'white',
+          display: 'flex',
+          alignItems: 'flex-start',
+          justifyContent: 'space-between',
+          mb: 3,
+          gap: 2,
         }}
       >
-        <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
-          Welcome to Marketing Tool
-        </Typography>
-        <Typography variant="body1" sx={{ opacity: 0.9 }}>
-          Transform your marketing content with AI-powered automation and intelligent workflows
-        </Typography>
-      </Paper>
+        <Box>
+          <Typography
+            component="h1"
+            sx={{
+              fontFamily: 'var(--font-display)',
+              fontSize: '28px',
+              fontWeight: 400,
+              lineHeight: 1.2,
+              color: '#F0E8D8',
+              mb: 0.5,
+            }}
+          >
+            Jobs
+          </Typography>
+          {(processingCount > 0 || pendingCount > 0) && (
+            <Typography
+              component="div"
+              sx={{
+                fontFamily: 'var(--font-mono)',
+                fontSize: '13px',
+                fontFeatureSettings: '"tnum"',
+                color: '#6B6154',
+              }}
+            >
+              {processingCount > 0 && (
+                <Box component="span" sx={{ color: '#E8A238' }}>
+                  {processingCount} running
+                </Box>
+              )}
+              {processingCount > 0 && pendingCount > 0 && (
+                <Box component="span"> · </Box>
+              )}
+              {pendingCount > 0 && (
+                <Box component="span" sx={{ color: '#E8A238' }}>
+                  {pendingCount} need approval
+                </Box>
+              )}
+            </Typography>
+          )}
+        </Box>
 
-      {/* Stats Grid */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        {statsLoading ? (
-          <Grid size={{ xs: 12 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-              <CircularProgress />
-            </Box>
-          </Grid>
-        ) : (
-          stats.map((stat) => (
-            <Grid size={{ xs: 12, sm: 6, md: 3 }} key={stat.label}>
-              <Card elevation={0}>
-                <CardContent>
-                  <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 2 }}>
-                    <Box
-                      sx={{
-                        p: 1.5,
-                        borderRadius: 2,
-                        bgcolor: `${stat.color}.50`,
-                        color: `${stat.color}.main`,
-                      }}
-                    >
-                      {stat.icon}
-                    </Box>
-                    <Chip
-                      label={stat.change}
-                      size="small"
-                      sx={{
-                        height: 24,
-                        fontSize: '0.75rem',
-                        fontWeight: 600,
-                        bgcolor: stat.changePositive ? 'success.50' : 'error.50',
-                        color: stat.changePositive ? 'success.main' : 'error.main',
-                        border: 'none',
-                      }}
-                    />
-                  </Box>
-                  <Typography variant="h3" sx={{ fontWeight: 700, mb: 0.5 }}>
-                    {stat.value}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {stat.label}
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
+        <Button
+          onClick={() => router.push('/pipeline')}
+          aria-label="Create new pipeline run"
+          sx={{
+            bgcolor: '#E8A238',
+            color: '#0F0D0A',
+            fontFamily: 'var(--font-sans)',
+            fontWeight: 600,
+            fontSize: '13px',
+            borderRadius: '6px',
+            px: 2,
+            py: 1,
+            textTransform: 'none',
+            flexShrink: 0,
+            lineHeight: 1.5,
+            '&:hover': { bgcolor: '#d49130' },
+            transition: 'background-color 75ms',
+          }}
+        >
+          + New Pipeline Run
+        </Button>
+      </Box>
+
+      {/* Pending approvals strip */}
+      {pendingCount > 0 && (
+        <Box
+          role="alert"
+          aria-label={`${pendingCount} items pending approval`}
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 2,
+            bgcolor: '#1A1713',
+            border: '1px solid #E8A238',
+            borderRadius: '6px',
+            px: 2,
+            py: 1.5,
+            mb: 3,
+            flexWrap: 'wrap',
+          }}
+        >
+          <Typography
+            sx={{
+              fontFamily: 'var(--font-sans)',
+              fontSize: '13px',
+              fontWeight: 600,
+              color: '#E8A238',
+            }}
+          >
+            {pendingCount} {pendingCount === 1 ? 'item needs' : 'items need'} your review
+          </Typography>
+          <Button
+            onClick={() => router.push('/approvals')}
+            size="small"
+            sx={{
+              color: '#E8A238',
+              border: '1px solid #E8A238',
+              borderRadius: '3px',
+              fontFamily: 'var(--font-sans)',
+              fontSize: '12px',
+              fontWeight: 500,
+              textTransform: 'none',
+              py: 0.5,
+              px: 1.5,
+              minWidth: 0,
+              lineHeight: 1.5,
+              '&:hover': { bgcolor: '#E8A23820' },
+              transition: 'background-color 75ms',
+            }}
+          >
+            Review →
+          </Button>
+        </Box>
+      )}
+
+      {/* Recent jobs list */}
+      <Box
+        sx={{
+          bgcolor: '#1A1713',
+          borderRadius: '6px',
+          border: '1px solid #2A251F',
+          overflow: 'hidden',
+        }}
+      >
+        {activityLoading ? (
+          Array.from({ length: 5 }).map((_, i) => (
+            <JobRowSkeleton key={i} last={i === 4} />
           ))
-        )}
-      </Grid>
-
-      <Grid container spacing={3}>
-        {/* Quick Actions */}
-        <Grid size={{ xs: 12, md: 4 }}>
-          <Paper elevation={0} sx={{ p: 3, borderRadius: 3, height: '100%' }}>
-            <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
-              Quick Actions
+        ) : activityError ? (
+          <Box sx={{ textAlign: 'center', py: 6, px: 4 }}>
+            <Typography
+              sx={{
+                fontFamily: 'var(--font-sans)',
+                fontSize: '14px',
+                color: '#C45C3B',
+                mb: 2,
+              }}
+            >
+              Couldn&apos;t load jobs
             </Typography>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              {quickActions.map((action) => (
-                <Card
-                  key={action.title}
-                  elevation={0}
-                  sx={{
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    bgcolor: `${action.color}.50`,
-                    border: '2px solid transparent',
-                    '&:hover': {
-                      borderColor: `${action.color}.main`,
-                      transform: 'translateY(-2px)',
-                      boxShadow: 2,
-                    },
-                  }}
-                  onClick={() => router.push(action.path)}
-                >
-                  <CardContent>
-                    <Box sx={{ display: 'flex', gap: 2 }}>
-                      <Box sx={{ color: `${action.color}.main` }}>{action.icon}</Box>
-                      <Box>
-                        <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 0.5 }}>
-                          {action.title}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          {action.description}
-                        </Typography>
-                      </Box>
-                    </Box>
-                  </CardContent>
-                </Card>
-              ))}
-            </Box>
-          </Paper>
-        </Grid>
-
-        {/* Recent Activity */}
-        <Grid size={{ xs: 12, md: 8 }}>
-          <Paper elevation={0} sx={{ p: 3, borderRadius: 3, height: '100%' }}>
-            <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
-              Recent Activity
+            <Button
+              onClick={() => refetch()}
+              sx={{
+                color: '#C45C3B',
+                border: '1px solid #C45C3B',
+                borderRadius: '3px',
+                fontFamily: 'var(--font-sans)',
+                fontSize: '12px',
+                textTransform: 'none',
+                py: 0.5,
+                px: 1.5,
+                '&:hover': { bgcolor: '#C45C3B20' },
+              }}
+            >
+              Retry
+            </Button>
+          </Box>
+        ) : activities.length === 0 ? (
+          <Box sx={{ textAlign: 'center', py: 8, px: 4 }}>
+            <Typography
+              sx={{
+                fontFamily: 'var(--font-display)',
+                fontSize: '22px',
+                fontWeight: 400,
+                color: '#F0E8D8',
+                mb: 1.5,
+              }}
+            >
+              No jobs yet.
             </Typography>
-            {activityLoading ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-                <CircularProgress />
-              </Box>
-            ) : recentActivities.length === 0 ? (
-              <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
-                No recent activity
-              </Typography>
-            ) : (
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                {recentActivities.slice(0, 4).map((activity) => (
-                  <Box key={activity.job_id} sx={{ p: 2, bgcolor: 'background.default', borderRadius: 2 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                        {activity.title || `${activity.job_type.replace(/_/g, ' ')}: ${activity.job_id.substring(0, 8)}...`}
-                      </Typography>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Chip
-                          label={activity.status}
-                          size="small"
-                          color={
-                            activity.status === 'completed'
-                              ? 'success'
-                              : activity.status === 'processing'
-                              ? 'warning'
-                              : activity.status === 'failed'
-                              ? 'error'
-                              : 'default'
-                          }
-                          sx={{ textTransform: 'capitalize', height: 24, fontSize: '0.75rem' }}
-                        />
-                        <Typography variant="caption" color="text.secondary">
-                          {formatDistanceToNow(new Date(activity.created_at), { addSuffix: true })}
-                        </Typography>
+            <Typography
+              sx={{
+                fontFamily: 'var(--font-sans)',
+                fontSize: '14px',
+                color: '#6B6154',
+                mb: 3,
+              }}
+            >
+              Run your first pipeline to see results here.
+            </Typography>
+            <Button
+              onClick={() => router.push('/pipeline')}
+              aria-label="Create new pipeline run"
+              sx={{
+                bgcolor: '#E8A238',
+                color: '#0F0D0A',
+                fontFamily: 'var(--font-sans)',
+                fontWeight: 600,
+                fontSize: '13px',
+                borderRadius: '6px',
+                px: 2,
+                py: 1,
+                textTransform: 'none',
+                '&:hover': { bgcolor: '#d49130' },
+              }}
+            >
+              + New Pipeline Run
+            </Button>
+          </Box>
+        ) : (
+          activities.map((activity, i) => {
+            const isProcessing = activity.status === 'processing'
+            const chipStyle = getChipStyle(activity.status)
+            const title =
+              activity.title ||
+              (activity.job_type ? activity.job_type.replace(/_/g, ' ') : `Job #${activity.job_id?.substring(0, 6)}`)
+            const relativeTime = activity.created_at
+              ? formatDistanceToNow(new Date(activity.created_at), { addSuffix: true })
+              : ''
+
+            return (
+              <Box
+                key={activity.job_id}
+                onClick={() => router.push(`/results?job=${activity.job_id}`)}
+                sx={{
+                  px: 3,
+                  py: 1.75,
+                  borderBottom: !isProcessing && i < activities.length - 1 ? '1px solid #2A251F' : 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 2,
+                  cursor: 'pointer',
+                  transition: 'background-color 75ms',
+                  '&:hover': { bgcolor: '#232019' },
+                  // Amber progress trace on processing rows (keyframe defined in globals.css)
+                  ...(isProcessing && {
+                    backgroundImage: 'linear-gradient(#E8A23899, #E8A23899)',
+                    backgroundRepeat: 'no-repeat',
+                    backgroundPosition: 'bottom left',
+                    backgroundSize: '0% 2px',
+                    animation: 'amberTrace 2s ease-in-out infinite',
+                  }),
+                }}
+              >
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Typography
+                    noWrap
+                    sx={{
+                      fontFamily: 'var(--font-sans)',
+                      fontSize: '14px',
+                      fontWeight: 500,
+                      color: '#F0E8D8',
+                      mb: 0.25,
+                    }}
+                  >
+                    {title}
+                  </Typography>
+                  <Typography
+                    sx={{
+                      fontFamily: 'var(--font-sans)',
+                      fontSize: '12px',
+                      color: '#6B6154',
+                    }}
+                  >
+                    {activity.job_type?.replace(/_/g, ' ')}
+                    {relativeTime && (
+                      <Box
+                        component="span"
+                        sx={{ fontFamily: 'var(--font-mono)', fontSize: '11px' }}
+                      >
+                        {' '}· {relativeTime}
                       </Box>
-                    </Box>
-                    {activity.progress > 0 && activity.progress < 100 && (
-                      <LinearProgress
-                        variant="determinate"
-                        value={activity.progress}
-                        sx={{
-                          height: 6,
-                          borderRadius: 3,
-                          bgcolor: 'action.hover',
-                        }}
-                      />
                     )}
-                  </Box>
-                ))}
+                  </Typography>
+                </Box>
+
+                <Chip
+                  label={chipStyle.label}
+                  size="small"
+                  aria-label={`Status: ${chipStyle.label}`}
+                  sx={{
+                    bgcolor: chipStyle.bgcolor,
+                    color: chipStyle.color,
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: '11px',
+                    borderRadius: '3px',
+                    height: 20,
+                    flexShrink: 0,
+                    '& .MuiChip-label': { px: 1 },
+                  }}
+                />
               </Box>
-            )}
-          </Paper>
-        </Grid>
-      </Grid>
+            )
+          })
+        )}
+      </Box>
     </Box>
   )
 }
 
 export default function DashboardPage() {
   return (
-    <ClientOnly fallback={
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh' }}>
-        <CircularProgress />
-      </Box>
-    }>
-      <DashboardContent />
+    <ClientOnly
+      fallback={
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            minHeight: '50vh',
+            bgcolor: '#0F0D0A',
+          }}
+        >
+          <Box sx={{ color: '#6B6154', fontFamily: 'var(--font-sans)', fontSize: '14px' }}>
+            Loading...
+          </Box>
+        </Box>
+      }
+    >
+      <CommandCenterContent />
     </ClientOnly>
   )
 }
-

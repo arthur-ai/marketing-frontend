@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import {
   Box,
   Container,
@@ -18,6 +18,7 @@ import {
   DialogActions,
 } from '@mui/material';
 import { Refresh } from '@mui/icons-material';
+import { useSearchParams } from 'next/navigation';
 import { useResumeJob, useForceDeleteJob } from '@/hooks/useApi';
 import { useJobList } from '@/hooks/useJobList';
 import { useJobDetails } from '@/hooks/useJobDetails';
@@ -29,6 +30,7 @@ import { ComparisonModals } from '@/components/results/comparison-modals';
 import { showSuccessToast, showErrorToast } from '@/lib/toast-utils';
 
 export default function ResultsPage() {
+  const searchParams = useSearchParams();
   const { hasRole } = useAuth();
   const isAdmin = hasRole('admin');
 
@@ -182,6 +184,16 @@ export default function ResultsPage() {
   useEffect(() => {
     refetchJobs();
   }, [refetchJobs]);
+
+  // Auto-select job from ?job=<id> query param (deep link from dashboard)
+  const deepLinkHandled = useRef(false);
+  useEffect(() => {
+    const jobId = searchParams.get('job');
+    if (jobId && jobs.length > 0 && !deepLinkHandled.current) {
+      deepLinkHandled.current = true;
+      fetchJobDetails(jobId);
+    }
+  }, [jobs, searchParams, fetchJobDetails]);
 
   if (jobsLoading && jobs.length === 0) {
     return (

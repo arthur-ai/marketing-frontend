@@ -25,7 +25,7 @@ import { formatTimestamp } from '@/utils/contentFormatters';
 function getJobTitle(job: JobListItem): string {
   if (job.metadata?.title) return job.metadata.title;
   if (job.content_type) return job.content_type.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
-  return 'Job';
+  return `Job #${job.job_id.substring(0, 6)}`;
 }
 
 function getJobSubline(job: JobListItem): string {
@@ -184,9 +184,17 @@ export function JobListPanel({
                   borderRadius: 1,
                   pr: isAdmin ? 5 : undefined,
                   '&.Mui-selected': {
-                    bgcolor: 'primary.light',
-                    '&:hover': { bgcolor: 'primary.light' },
+                    bgcolor: '#E8A23814',
+                    '&:hover': { bgcolor: '#E8A23820' },
                   },
+                  // Amber progress trace on processing rows (keyframe defined in globals.css)
+                  ...(job.status === 'processing' && {
+                    backgroundImage: 'linear-gradient(#E8A23899, #E8A23899)',
+                    backgroundRepeat: 'no-repeat',
+                    backgroundPosition: 'bottom left',
+                    backgroundSize: '0% 2px',
+                    animation: 'amberTrace 2s ease-in-out infinite',
+                  }),
                 }}
               >
                 <ListItemText
@@ -205,14 +213,29 @@ export function JobListPanel({
                   {job.status === 'waiting_for_approval' &&
                     job.chain_status !== 'failed' &&
                     !(job.subjob_status?.failed && job.subjob_status.failed > 0) && (
-                      <Chip label="Waiting for Approval" size="small" color="warning" />
+                      <Chip
+                        label="Needs Approval"
+                        size="small"
+                        aria-label="Status: Needs Approval"
+                        sx={{
+                          bgcolor: '#E8A23820', color: '#E8A238',
+                          fontFamily: 'var(--font-mono)', fontSize: '11px',
+                          borderRadius: '3px', height: 20,
+                          '& .MuiChip-label': { px: 1 },
+                        }}
+                      />
                     )}
                   {job.pending_approval_count && job.pending_approval_count > 0 ? (
                     <Chip
-                      label={`${job.pending_approval_count} approval${job.pending_approval_count !== 1 ? 's' : ''} pending`}
+                      label={`${job.pending_approval_count} pending`}
                       size="small"
-                      color="warning"
-                      sx={{ fontSize: '0.7rem', height: 20 }}
+                      aria-label={`${job.pending_approval_count} approvals pending`}
+                      sx={{
+                        bgcolor: '#E8A23820', color: '#E8A238',
+                        fontFamily: 'var(--font-mono)', fontSize: '11px',
+                        borderRadius: '3px', height: 20,
+                        '& .MuiChip-label': { px: 1 },
+                      }}
                     />
                   ) : null}
                   {job.subjob_count && job.subjob_count > 0 && (
@@ -224,34 +247,40 @@ export function JobListPanel({
                       }
                     >
                       <Chip
-                        label={`${job.subjob_count} subjob${job.subjob_count !== 1 ? 's' : ''}`}
+                        label={`${job.subjob_count} sub`}
                         size="small"
-                        color={
-                          job.chain_status === 'all_completed'
-                            ? 'success'
-                            : job.chain_status === 'blocked'
-                              ? 'warning'
-                              : job.chain_status === 'failed'
-                                ? 'error'
-                                : 'info'
-                        }
-                        sx={{ fontSize: '0.7rem', height: 20 }}
+                        aria-label={`${job.subjob_count} subjobs`}
+                        sx={{
+                          bgcolor: job.chain_status === 'all_completed'
+                            ? '#4A7C6F20'
+                            : job.chain_status === 'failed'
+                              ? '#C45C3B20'
+                              : '#E8A23820',
+                          color: job.chain_status === 'all_completed'
+                            ? '#4A7C6F'
+                            : job.chain_status === 'failed'
+                              ? '#C45C3B'
+                              : '#E8A238',
+                          fontFamily: 'var(--font-mono)', fontSize: '11px',
+                          borderRadius: '3px', height: 20,
+                          '& .MuiChip-label': { px: 1 },
+                        }}
                       />
                     </Tooltip>
                   )}
                   {job.chain_status && job.chain_status !== 'all_completed' && (
                     <Chip
-                      label={job.chain_status.replace('_', ' ')}
+                      label={job.chain_status.replace(/_/g, ' ')}
                       size="small"
-                      variant="outlined"
-                      color={
-                        job.chain_status === 'blocked'
-                          ? 'warning'
-                          : job.chain_status === 'failed'
-                            ? 'error'
-                            : 'info'
-                      }
-                      sx={{ fontSize: '0.65rem', height: 18 }}
+                      aria-label={`Chain status: ${job.chain_status}`}
+                      sx={{
+                        bgcolor: 'transparent',
+                        color: job.chain_status === 'failed' ? '#C45C3B' : '#6B6154',
+                        border: `1px solid ${job.chain_status === 'failed' ? '#C45C3B40' : '#2A251F'}`,
+                        fontFamily: 'var(--font-mono)', fontSize: '10px',
+                        borderRadius: '3px', height: 18,
+                        '& .MuiChip-label': { px: 0.75 },
+                      }}
                     />
                   )}
                 </Box>

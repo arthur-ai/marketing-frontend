@@ -92,3 +92,8 @@
   .bg-job-error  { background-color: color-mix(in srgb, var(--color-error) 12%, transparent); }
   .bg-queued     { background-color: color-mix(in srgb, var(--color-queued) 12%, transparent); }
 }
+
+@keyframes amberTrace {
+  from { background-size: 0% 2px; }
+  to   { background-size: 100% 2px; }
+}
